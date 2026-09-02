@@ -157,17 +157,18 @@ Fill these values as the project is established:
   - `docker compose exec postgres psql -U pii_app -d pii_research -c "\dt"`
   - `npm test` — unit tests for shared Code node logic
   - `npm run bundle:pii-00` — regenerate `workflow.ts` after template/code edits
+  - `.\scripts\smoke\Invoke-PiiWebhook.ps1` — hosted webhook smoke test (see `docs/SMOKE_TESTS.md`)
 
 ## Current Status
 
-Project status: Phase 1 started — PII-00 deployed to n8n (inactive). Local source at `workflows/pii-00-orchestrator/`.
+Project status: Phase 1 — PII-00 deployed to n8n (inactive). **Hosted smoke test passed** (202 ack, case created). Local source at `workflows/pii-00-orchestrator/`.
 
-Hosted workflow `4jvmYtTHKufojJRK` in personal project. Credentials auto-matched. Run manual test via webhook-test URL before publish.
+Hosted workflow `4jvmYtTHKufojJRK` in personal project. Credentials auto-matched. Ready for publish/activate when desired.
 
 ## Next Steps
 
-1. Manual smoke test PII-00 via webhook-test URL (header `X-PII-API-Key`).
-2. Publish/activate workflow when smoke test passes.
+1. Rotate webhook secret (exposed in terminal history during initial curl attempts).
+2. Publish/activate PII-00 when ready for production webhook URL.
 3. Wire PII-01 Identity Resolver subworkflow.
 4. Add backup automation on the VPS before heavy use.
 
@@ -183,3 +184,5 @@ Hosted workflow `4jvmYtTHKufojJRK` in personal project. Credentials auto-matched
 - Documented workflow development agreements: SDK source in `workflows/`, credential `Postgres account`, user-gated MCP deploys, token-efficient local-first context.
 - Authored local PII-00 Case Orchestrator (webhook intake, validation, idempotent case create, 202 ack, async IDENTITY_REVIEW advance).
 - Deployed PII-00 to n8n Cloud: workflow `4jvmYtTHKufojJRK`, version `35ab680a-7cbf-4d74-be46-d5af860c4ca2` (inactive).
+- PII-00 hosted smoke test passed via webhook-test URL (`POST`, header `X-PII-API-Key`, fixture ACAD/NASDAQ/FULL); **202** ack confirmed from PowerShell.
+- Added reusable hosted smoke test script (`scripts/smoke/Invoke-PiiWebhook.ps1`) and `docs/SMOKE_TESTS.md`.

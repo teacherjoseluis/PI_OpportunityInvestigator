@@ -43,6 +43,16 @@ node workflows/scripts/bundle-workflow.mjs pii-00-orchestrator
 
 Per project agreements, deploy to hosted n8n **only when you explicitly request a push** (MCP `create_workflow_from_code`).
 
+## Smoke test (hosted)
+
+After deploy, click **Execute workflow** in n8n, then from repo root:
+
+```powershell
+.\scripts\smoke\Invoke-PiiWebhook.ps1
+```
+
+See [docs/SMOKE_TESTS.md](../../docs/SMOKE_TESTS.md) for URLs, fixtures, and DB verification.
+
 ## Current scope
 
 - Validate investigation request

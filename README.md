@@ -24,7 +24,7 @@ npm test
 npm run bundle:pii-00
 ```
 
-Unit tests cover shared Code node logic under `workflows/shared/code/`. Full webhook execution still requires a hosted n8n test run after deploy.
+Unit tests cover shared Code node logic under `workflows/shared/code/`. Full webhook execution still requires a hosted n8n test run after deploy — see [docs/SMOKE_TESTS.md](docs/SMOKE_TESTS.md) and `scripts/smoke/Invoke-PiiWebhook.ps1`.
 
 ## Repository layout
 
