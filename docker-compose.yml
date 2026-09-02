@@ -35,6 +35,9 @@ services:
       - .env
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD}
+      # Always use the Compose service name and container port, not host publish.
+      DATABASE_HOST: postgres
+      DATABASE_PORT: "5432"
     volumes:
       - ./db/migrations:/migrations:ro
       - ./db/scripts/docker-migrate.sh:/docker-migrate.sh:ro
