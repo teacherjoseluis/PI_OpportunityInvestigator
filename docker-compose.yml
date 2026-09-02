@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pii-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      # Bind to localhost only by default. On the VPS, prefer a firewall
+      # allowlist or remove the port publish and reach Postgres via a
+      # private network / reverse tunnel if n8n is remote.
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pii_pgdata:/var/lib/postgresql/data
+      - ./db/migrations:/migrations:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - pii_net
+
+  # One-shot migration runner. Safe to re-run; applied files are tracked
+  # in schema_migrations. Usage:
+  #   docker compose run --rm migrate
+  migrate:
+    image: postgres:16-alpine
+    container_name: pii-migrate
+    env_file:
+      - .env
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./db/migrations:/migrations:ro
+      - ./db/scripts/docker-migrate.sh:/docker-migrate.sh:ro
+    entrypoint: ["/bin/sh", "/docker-migrate.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pii_net
+    profiles:
+      - migrate
+
+volumes:
+  pii_pgdata:
+    name: pii_pgdata
+
+networks:
+  pii_net:
+    name: pii_net

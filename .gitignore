@@ -1,0 +1,23 @@
+# Secrets and local environment
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Docker / Postgres local volumes (if ever bind-mounted under repo)
+db/data/
+pgdata/
+
+# Node / tooling (future)
+node_modules/
+dist/
+coverage/
+*.log
