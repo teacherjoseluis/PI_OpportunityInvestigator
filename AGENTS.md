@@ -144,7 +144,7 @@ Fill these values as the project is established:
 - Hosted n8n URL: `https://teacherjoseluis.app.n8n.cloud`
 - Hosted n8n project ID: `FaU28ckb88bAPAfT` (personal project; confirmed via MCP)
 - Primary workflow name and ID: `PII-00 Case Orchestrator` / `4jvmYtTHKufojJRK` (inactive; not published)
-- Active version ID: `35ab680a-7cbf-4d74-be46-d5af860c4ca2` (deployed 2026-09-02)
+- Active version ID: `dff4899c-ad27-4db6-9113-506b836efee5` (deployed 2026-09-02; fix null as_of_date insert)
 - Webhook test URL: `https://teacherjoseluis.app.n8n.cloud/webhook-test/pii/investigate`
 - Webhook production URL: `https://teacherjoseluis.app.n8n.cloud/webhook/pii/investigate` (requires publish/activate)
 - Primary data table name and ID: `N/A` — research system of record is PostgreSQL (`pii_research`), not n8n Data Tables
@@ -161,7 +161,7 @@ Fill these values as the project is established:
 
 ## Current Status
 
-Project status: Phase 1 — PII-00 deployed to n8n (inactive). **Hosted smoke test passed** (202 ack, case created). Local source at `workflows/pii-00-orchestrator/`.
+Project status: Phase 1 — PII-00 deployed to n8n (inactive). **End-to-end hosted smoke test passed**: 202 ack, `research_cases` row confirmed on VPS (version `dff4899c-ad27-4db6-9113-506b836efee5`).
 
 Hosted workflow `4jvmYtTHKufojJRK` in personal project. Credentials auto-matched. Ready for publish/activate when desired.
 
@@ -186,3 +186,6 @@ Hosted workflow `4jvmYtTHKufojJRK` in personal project. Credentials auto-matched
 - Deployed PII-00 to n8n Cloud: workflow `4jvmYtTHKufojJRK`, version `35ab680a-7cbf-4d74-be46-d5af860c4ca2` (inactive).
 - PII-00 hosted smoke test passed via webhook-test URL (`POST`, header `X-PII-API-Key`, fixture ACAD/NASDAQ/FULL); **202** ack confirmed from PowerShell.
 - Added reusable hosted smoke test script (`scripts/smoke/Invoke-PiiWebhook.ps1`) and `docs/SMOKE_TESTS.md`.
+- Diagnosed first smoke test: workflow stopped after **Lookup Existing Case** returned 0 rows (n8n skips downstream nodes). Deployed fix: `alwaysOutputData: true` on lookup node — version `669f4961-0bb8-4243-92b0-b67314b477de`.
+- Fixed **Insert Research Case** null handling: n8n passes JS `null` as string `"null"` for `as_of_date` — version `dff4899c-ad27-4db6-9113-506b836efee5`.
+- Re-ran smoke test: **202** ack with `created: true`; `research_cases` row confirmed on VPS Postgres.

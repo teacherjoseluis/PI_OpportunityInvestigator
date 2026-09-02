@@ -21,11 +21,13 @@ Run these **after** an approved MCP deploy, before publish/activate.
 
 **Expected:** HTTP **202** with JSON containing `case_id`, `request_id`, `ticker`, `state`, and `created`.
 
-**Optional DB check:**
+**Optional DB check** (on the **VPS** — n8n writes to hosted Postgres, not local Docker):
 
 ```powershell
-docker compose exec postgres psql -U pii_app -d pii_research -c "SELECT case_id, ticker, state, created_at FROM research_cases ORDER BY created_at DESC LIMIT 3;"
+docker compose exec postgres psql -U pii_app -d pii_research -c "SELECT id AS case_id, request_id, ticker, state, created_at FROM research_cases ORDER BY created_at DESC LIMIT 3;"
 ```
+
+If the webhook returned **202** but this query is empty, open the n8n execution and confirm nodes after **Lookup Existing Case** ran (especially **Insert Research Case**). A known n8n behavior: Postgres nodes that return 0 rows skip downstream nodes unless `alwaysOutputData` is enabled on the lookup node.
 
 ### Run (PowerShell, from repo root)
 

@@ -121,6 +121,8 @@ const lookupExistingCase = node({
   version: 2.7,
   config: {
     name: 'Lookup Existing Case',
+    // Required so "Case Already Exists?" runs when the SELECT returns 0 rows.
+    alwaysOutputData: true,
     parameters: {
       operation: 'executeQuery',
       query:
@@ -170,7 +172,7 @@ const insertResearchCase = node({
     parameters: {
       operation: 'executeQuery',
       query:
-        "INSERT INTO research_cases (request_id, ticker, exchange, research_question, mode, state, requested_by, as_of_date, force_refresh, configuration_version_id) SELECT $1, $2, $3, $4, $5, 'REQUESTED', $6, NULLIF($7, '')::date, $8, cv.id FROM configuration_versions cv WHERE cv.version_label = $9 AND cv.is_active = true LIMIT 1 RETURNING id AS case_id, request_id, ticker, state, true AS created",
+        "INSERT INTO research_cases (request_id, ticker, exchange, research_question, mode, state, requested_by, as_of_date, force_refresh, configuration_version_id) SELECT $1, $2, $3, NULLIF(NULLIF(TRIM($4), ''), 'null'), $5, 'REQUESTED', $6, NULLIF(NULLIF(TRIM($7), ''), 'null')::date, $8, cv.id FROM configuration_versions cv WHERE cv.version_label = $9 AND cv.is_active = true LIMIT 1 RETURNING id AS case_id, request_id, ticker, state, true AS created",
       options: {
         queryReplacement: expr(
           '{{ $("Validate Investigation Request").item.json.request_id }},{{ $("Validate Investigation Request").item.json.ticker }},{{ $("Validate Investigation Request").item.json.exchange }},{{ $("Validate Investigation Request").item.json.research_question }},{{ $("Validate Investigation Request").item.json.mode }},{{ $("Validate Investigation Request").item.json.requested_by }},{{ $("Validate Investigation Request").item.json.as_of_date }},{{ $("Validate Investigation Request").item.json.force_refresh }},{{ $("Validate Investigation Request").item.json.configuration_version }}',
