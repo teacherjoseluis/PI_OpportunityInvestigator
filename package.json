@@ -1,0 +1,9 @@
+{
+  "name": "pi-opportunity-investigator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/unit/*.test.mjs",
+    "bundle:pii-00": "node workflows/scripts/bundle-workflow.mjs pii-00-orchestrator"
+  }
+}

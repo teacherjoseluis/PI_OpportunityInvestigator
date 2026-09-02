@@ -17,6 +17,15 @@ docker compose up -d postgres
 docker compose --profile migrate run --rm migrate
 ```
 
+## Local tests (before git commit or n8n deploy)
+
+```bash
+npm test
+npm run bundle:pii-00
+```
+
+Unit tests cover shared Code node logic under `workflows/shared/code/`. Full webhook execution still requires a hosted n8n test run after deploy.
+
 ## Repository layout
 
 - `AGENTS.md` — working model and milestone log
@@ -24,3 +33,4 @@ docker compose --profile migrate run --rm migrate
 - `docker-compose.yml` — Postgres + migrate runner
 - `db/migrations/` — SQL schema versions
 - `docs/DATABASE.md` — local and VPS database instructions
+- `workflows/` — n8n Workflow SDK sources (PII-00+)

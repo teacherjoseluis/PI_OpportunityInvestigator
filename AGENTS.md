@@ -143,7 +143,7 @@ Fill these values as the project is established:
 
 - Hosted n8n URL: `TBD`
 - Hosted n8n project ID: `FaU28ckb88bAPAfT` (personal project; confirmed via MCP)
-- Primary workflow name and ID: `TBD` (Phase 1 not started)
+- Primary workflow name and ID: `PII-00 Case Orchestrator` — local source at `workflows/pii-00-orchestrator/` (not deployed yet)
 - Primary data table name and ID: `N/A` — research system of record is PostgreSQL (`pii_research`), not n8n Data Tables
 - n8n Postgres credential name: `Postgres account`
 - Research Postgres: VPS at `108.174.153.74:5433`, database `pii_research`, user `pii_app` (password in VPS `.env` only). Local Docker also uses host port `5433` when `5432` is busy.
@@ -152,18 +152,22 @@ Fill these values as the project is established:
   - `docker compose up -d postgres`
   - `docker compose --profile migrate run --rm migrate`
   - `docker compose exec postgres psql -U pii_app -d pii_research -c "\dt"`
+  - `npm test` — unit tests for shared Code node logic
+  - `npm run bundle:pii-00` — regenerate `workflow.ts` after template/code edits
 
 ## Current Status
 
-Project status: Phase 0 complete — VPS Postgres live and reachable from n8n Cloud.
+Project status: Phase 1 started — PII-00 Case Orchestrator authored locally (not deployed to n8n yet).
 
-Host: `108.174.153.74:5433`, database `pii_research`, user `pii_app`. UFW allowlists n8n Cloud egress IPs on 5433. No Phase 1 workflow created yet.
+Host: `108.174.153.74:5433`, database `pii_research`, user `pii_app`. UFW allowlists n8n Cloud egress IPs on 5433.
 
 ## Next Steps
 
-1. Scaffold Phase 1 local workflow source under `workflows/` (PII-00 vertical slice).
-2. Deploy to hosted n8n only when the user requests a push.
-3. Add backup automation on the VPS before heavy use.
+1. Review local PII-00 source under `workflows/pii-00-orchestrator/`.
+2. n8n credential `PII Webhook Header Auth` — created; header name `X-PII-API-Key` (optional local copy in `.env`, never commit value).
+3. Deploy to hosted n8n when the user requests a push.
+4. Wire PII-01 Identity Resolver subworkflow after PII-00 deploy validates.
+5. Add backup automation on the VPS before heavy use.
 
 ## Milestone Log
 
@@ -175,3 +179,4 @@ Host: `108.174.153.74:5433`, database `pii_research`, user `pii_app`. UFW allowl
 - Added Phase 0 Docker Compose Postgres, initial schema migration (`001_initial_schema.sql`), migrate runner, and `docs/DATABASE.md`. Workflows intentionally not started yet.
 - Deployed Postgres to VPS under `/opt/apps/PI_OpportunityInvestigator`; host `108.174.153.74:5433`; UFW allowlisted n8n Cloud IPs on 5433; n8n credential connectivity confirmed.
 - Documented workflow development agreements: SDK source in `workflows/`, credential `Postgres account`, user-gated MCP deploys, token-efficient local-first context.
+- Authored local PII-00 Case Orchestrator (webhook intake, validation, idempotent case create, 202 ack, async IDENTITY_REVIEW advance).

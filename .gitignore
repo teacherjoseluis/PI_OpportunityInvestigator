@@ -21,3 +21,6 @@ node_modules/
 dist/
 coverage/
 *.log
+
+# Generated workflow bundles
+workflows/**/.validate-payload.json

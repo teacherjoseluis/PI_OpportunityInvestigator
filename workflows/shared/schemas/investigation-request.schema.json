@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pii/investigation-request",
+  "title": "InvestigationRequest",
+  "type": "object",
+  "required": ["ticker"],
+  "properties": {
+    "request_id": { "type": "string", "format": "uuid" },
+    "ticker": { "type": "string", "minLength": 1, "maxLength": 12 },
+    "exchange": { "type": "string", "default": "NASDAQ" },
+    "research_question": { "type": "string" },
+    "mode": {
+      "type": "string",
+      "enum": ["FULL", "EVENT_REASSESSMENT", "REFRESH", "COMPARE"],
+      "default": "FULL"
+    },
+    "requested_by": { "type": "string", "default": "user" },
+    "as_of_date": { "type": "string", "format": "date" },
+    "configuration_version": { "type": "string", "default": "v1" },
+    "force_refresh": { "type": "boolean", "default": false }
+  },
+  "additionalProperties": false
+}
