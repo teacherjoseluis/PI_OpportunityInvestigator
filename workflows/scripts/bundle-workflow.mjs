@@ -31,6 +31,13 @@ const embedMap = {
     'workflows/shared/code/validate-investigation-request.js',
   ),
   BUILD_ACK_RESPONSE: path.join(repoRoot, 'workflows/shared/code/build-ack-response.js'),
+  VALIDATE_IDENTITY_REQUEST: path.join(
+    repoRoot,
+    'workflows/shared/code/validate-identity-request.js',
+  ),
+  PREPARE_CACHED_IDENTITY: path.join(repoRoot, 'workflows/shared/code/prepare-cached-identity.js'),
+  RESOLVE_EDGAR_IDENTITY: path.join(repoRoot, 'workflows/shared/code/resolve-edgar-identity.js'),
+  BUILD_IDENTITY_RESULT: path.join(repoRoot, 'workflows/shared/code/build-identity-result.js'),
 };
 
 let content = fs.readFileSync(templatePath, 'utf8');

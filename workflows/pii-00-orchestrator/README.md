@@ -60,7 +60,7 @@ See [docs/SMOKE_TESTS.md](../../docs/SMOKE_TESTS.md) for URLs, fixtures, and DB 
 - Insert `research_cases`, `case_state_history`, `workflow_runs`
 - Return case ack without holding connection for full investigation
 - Advance new cases to `IDENTITY_REVIEW` after response
-- **Not yet wired:** PII-01 Identity Resolver subworkflow
+- **Wired:** PII-01 Identity Resolver (`Xf6DjDUMyfOyNX3G`) via Execute Sub-workflow after IDENTITY_REVIEW
 
 ## Postgres credential
 

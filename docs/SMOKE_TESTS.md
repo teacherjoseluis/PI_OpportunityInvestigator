@@ -69,7 +69,13 @@ When you add PII-01, PII-02, etc.:
 3. Add a section above in this file with expected status code and response fields.
 4. Call the shared script with `-Uri` and `-Fixture`, or add a thin wrapper script if the workflow needs extra steps.
 
-Example for a future endpoint:
+**PII-01** is a subworkflow (no public webhook). After deploy, smoke-test via n8n **Execute workflow** / MCP `execute_workflow` with `{ case_id, ticker, exchange }`, then verify on VPS:
+
+```bash
+docker compose exec postgres psql -U pii_app -d pii_research -c "SELECT c.legal_name, c.cik, s.ticker, s.exchange, rc.state FROM research_cases rc JOIN companies c ON c.id = rc.company_id JOIN securities s ON s.id = rc.security_id ORDER BY rc.updated_at DESC LIMIT 3;"
+```
+
+Example for a future HTTP endpoint:
 
 ```powershell
 .\scripts\smoke\Invoke-PiiWebhook.ps1 `

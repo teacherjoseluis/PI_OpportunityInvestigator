@@ -523,38 +523,65 @@ const logIdentityReviewState = node({
   output: [{ case_id: '660e8400-e29b-41d4-a716-446655440001' }],
 });
 
-const orchestrationPhase1Stub = node({
-  type: 'n8n-nodes-base.set',
-  version: 3.5,
+const executePii01Identity = node({
+  type: 'n8n-nodes-base.executeWorkflow',
+  version: 1.3,
   config: {
-    name: 'Orchestration Phase 1 Stub',
+    name: 'Execute PII-01 Identity Resolver',
     parameters: {
-      mode: 'manual',
-      includeOtherFields: false,
-      assignments: {
-        assignments: [
+      mode: 'once',
+      source: 'database',
+      workflowId: {
+        __rl: true,
+        mode: 'id',
+        value: 'Xf6DjDUMyfOyNX3G',
+        cachedResultName: 'PII-01 Identity Resolver',
+      },
+      workflowInputs: {
+        mappingMode: 'defineBelow',
+        value: {
+          case_id: expr('{{ $("Advance To Identity Review").item.json.case_id }}'),
+          ticker: expr('{{ $("Validate Investigation Request").item.json.ticker }}'),
+          exchange: expr('{{ $("Validate Investigation Request").item.json.exchange }}'),
+        },
+        matchingColumns: [],
+        schema: [
           {
-            id: 'next-step',
-            name: 'next_step',
-            value: 'PII-01 Identity Resolver (not wired yet)',
+            id: 'case_id',
+            displayName: 'case_id',
+            required: true,
+            defaultMatch: false,
+            display: true,
+            canBeUsedToMatch: true,
             type: 'string',
           },
           {
-            id: 'case-id',
-            name: 'case_id',
-            value: expr('{{ $json.case_id }}'),
+            id: 'ticker',
+            displayName: 'ticker',
+            required: true,
+            defaultMatch: false,
+            display: true,
+            canBeUsedToMatch: true,
+            type: 'string',
+          },
+          {
+            id: 'exchange',
+            displayName: 'exchange',
+            required: true,
+            defaultMatch: false,
+            display: true,
+            canBeUsedToMatch: true,
             type: 'string',
           },
         ],
+        attemptToConvertTypes: false,
+        convertFieldsToString: true,
+      },
+      options: {
+        waitForSubWorkflow: true,
       },
     },
   },
-  output: [
-    {
-      next_step: 'PII-01 Identity Resolver (not wired yet)',
-      case_id: '660e8400-e29b-41d4-a716-446655440001',
-    },
-  ],
 });
 
 const intakeNote = sticky(
@@ -570,8 +597,8 @@ const persistenceNote = sticky(
 );
 
 const asyncNote = sticky(
-  '## Async continuation\nAfter webhook response: advance to IDENTITY_REVIEW.\nPII-01 subworkflow wiring is Phase 1 next slice.',
-  [respondAccepted, advanceToIdentityReview, orchestrationPhase1Stub],
+  '## Async continuation\nAfter webhook response: advance to IDENTITY_REVIEW, then Execute PII-01.',
+  [respondAccepted, advanceToIdentityReview, executePii01Identity],
   { color: 6 },
 );
 
@@ -593,7 +620,7 @@ export default workflow('pii-00-orchestrator', 'PII-00 Case Orchestrator')
                 .to(buildAckResponse.to(respondAccepted))
                 .to(advanceToIdentityReview)
                 .to(logIdentityReviewState)
-                .to(orchestrationPhase1Stub),
+                .to(executePii01Identity),
             ),
         ),
       ),

@@ -144,7 +144,8 @@ Fill these values as the project is established:
 - Hosted n8n URL: `https://teacherjoseluis.app.n8n.cloud`
 - Hosted n8n project ID: `FaU28ckb88bAPAfT` (personal project; confirmed via MCP)
 - Primary workflow name and ID: `PII-00 Case Orchestrator` / `4jvmYtTHKufojJRK` (inactive; not published)
-- Active version ID: `dff4899c-ad27-4db6-9113-506b836efee5` (deployed 2026-09-02; fix null as_of_date insert)
+- Active version ID: `14de1e73-e209-447b-98c0-70999f27e4f8` (deployed 2026-09-03; wire PII-01 subworkflow)
+- PII-01 workflow name and ID: `PII-01 Identity Resolver` / `Xf6DjDUMyfOyNX3G` (inactive; version `c1ddb33b-ac90-4d40-beb9-acf4991d7706`)
 - Webhook test URL: `https://teacherjoseluis.app.n8n.cloud/webhook-test/pii/investigate`
 - Webhook production URL: `https://teacherjoseluis.app.n8n.cloud/webhook/pii/investigate` (requires publish/activate)
 - Primary data table name and ID: `N/A` — research system of record is PostgreSQL (`pii_research`), not n8n Data Tables
@@ -157,19 +158,20 @@ Fill these values as the project is established:
   - `docker compose exec postgres psql -U pii_app -d pii_research -c "\dt"`
   - `npm test` — unit tests for shared Code node logic
   - `npm run bundle:pii-00` — regenerate `workflow.ts` after template/code edits
+  - `npm run bundle:pii-01` — regenerate PII-01 `workflow.ts`
   - `.\scripts\smoke\Invoke-PiiWebhook.ps1` — hosted webhook smoke test (see `docs/SMOKE_TESTS.md`)
 
 ## Current Status
 
-Project status: Phase 1 — PII-00 deployed to n8n (inactive). **End-to-end hosted smoke test passed**: 202 ack, `research_cases` row confirmed on VPS (version `dff4899c-ad27-4db6-9113-506b836efee5`).
+Project status: Phase 1 — PII-00 + PII-01 deployed (both inactive). PII-00 calls PII-01 after IDENTITY_REVIEW. Hosted PII-01 smoke test not yet run.
 
-Hosted workflow `4jvmYtTHKufojJRK` in personal project. Credentials auto-matched. Ready for publish/activate when desired.
+Hosted workflows in personal project `FaU28ckb88bAPAfT`. Ready for PII-01 smoke test, then publish/activate when desired.
 
 ## Next Steps
 
-1. Rotate webhook secret (exposed in terminal history during initial curl attempts).
-2. Publish/activate PII-00 when ready for production webhook URL.
-3. Wire PII-01 Identity Resolver subworkflow.
+1. Hosted smoke test: Execute PII-00 (or PII-01 directly) for ACAD; confirm `companies` / `securities` / case state on VPS.
+2. Rotate webhook secret (exposed in terminal history during initial curl attempts).
+3. Publish/activate PII-00 (and PII-01 if required for production subworkflow calls) when ready.
 4. Add backup automation on the VPS before heavy use.
 
 ## Milestone Log
@@ -189,3 +191,10 @@ Hosted workflow `4jvmYtTHKufojJRK` in personal project. Credentials auto-matched
 - Diagnosed first smoke test: workflow stopped after **Lookup Existing Case** returned 0 rows (n8n skips downstream nodes). Deployed fix: `alwaysOutputData: true` on lookup node — version `669f4961-0bb8-4243-92b0-b67314b477de`.
 - Fixed **Insert Research Case** null handling: n8n passes JS `null` as string `"null"` for `as_of_date` — version `dff4899c-ad27-4db6-9113-506b836efee5`.
 - Re-ran smoke test: **202** ack with `created: true`; `research_cases` row confirmed on VPS Postgres.
+
+### 2026-09-03
+
+- Authored local **PII-01 Identity Resolver** (`workflows/pii-01-identity/`): Execute Workflow Trigger → cache lookup → SEC `company_tickers_exchange.json` → upsert `companies` / `securities` / `company_aliases` → advance to `ELIGIBILITY_REVIEW` or `AWAITING_HUMAN_REVIEW`.
+- Shared Code nodes + unit tests for identity validation, EDGAR resolve/score, and cached reuse (`npm test` 19/19).
+- Deployed PII-01 to n8n Cloud: workflow `Xf6DjDUMyfOyNX3G`, version `c1ddb33b-ac90-4d40-beb9-acf4991d7706` (inactive). Canvas: https://teacherjoseluis.app.n8n.cloud/workflow/Xf6DjDUMyfOyNX3G
+- Wired PII-00 to Execute Sub-workflow PII-01 — version `14de1e73-e209-447b-98c0-70999f27e4f8`.

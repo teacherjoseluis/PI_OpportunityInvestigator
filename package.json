@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/unit/*.test.mjs",
-    "bundle:pii-00": "node workflows/scripts/bundle-workflow.mjs pii-00-orchestrator"
+    "bundle:pii-00": "node workflows/scripts/bundle-workflow.mjs pii-00-orchestrator",
+    "bundle:pii-01": "node workflows/scripts/bundle-workflow.mjs pii-01-identity",
+    "bundle": "npm run bundle:pii-00 && npm run bundle:pii-01"
   }
 }
