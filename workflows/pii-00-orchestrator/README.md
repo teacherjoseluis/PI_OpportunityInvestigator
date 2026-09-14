@@ -1,6 +1,6 @@
-# PII-00 Case Orchestrator
+﻿# PII-00 Case Orchestrator
 
-Phase 1 vertical slice — investigation request intake, idempotent case creation, immediate webhook ack, async state advance.
+Phase 1 vertical slice â€” investigation request intake, idempotent case creation, immediate webhook ack, async state advance.
 
 ## Endpoint (after deploy)
 
@@ -61,7 +61,16 @@ See [docs/SMOKE_TESTS.md](../../docs/SMOKE_TESTS.md) for URLs, fixtures, and DB 
 - Return case ack without holding connection for full investigation
 - Advance new cases to `IDENTITY_REVIEW` after response
 - **Wired:** PII-01 Identity Resolver (`Xf6DjDUMyfOyNX3G`) via Execute Sub-workflow after IDENTITY_REVIEW
+- **Wired:** PII-02 Eligibility Gate (`hqgFoP7ny6jnycxx`) after PII-01
+- **Wired:** PII-03 Evidence Collector (`IqoALspzvN3PL5Cq`) after PII-02 only when `next_state === COLLECTING`
+- **Wired:** PII-04 Financial Analyst (`RvIlyuDV0MEsXezL`) after PII-03 only when `next_state === ANALYZING`
+- **Wired:** PII-05 Growth Analyst (`sdamxDo9SUdo4QxC`) after PII-04 only when `next_state === ANALYZING`
+- **Wired:** PII-06 Pipeline Analyst (`b8CxYW8T8FrGl62x`) after PII-05 only when `next_state === ANALYZING`
+- **Wired:** PII-07 Regulatory Analyst (`4AqBDr5hjZeMLy99`) after PII-06 only when `next_state === ANALYZING`
+- **Wired (local):** PII-08 Valuation Analyst (`1PuOVYf0O3GThRwq`) after PII-07 only when `next_state === ANALYZING`
 
 ## Postgres credential
 
-Uses n8n credential **`Postgres account`** → VPS `108.174.153.74:5433` / `pii_research`.
+Uses n8n credential **`Postgres account`** â†’ VPS `108.174.153.74:5433` / `pii_research`.
+- **Wired (local):** PII-10 Scoring Gate (lIjKOZS7qDizvynm) after PII-09 only when 
+ext_state === ANALYZING`r

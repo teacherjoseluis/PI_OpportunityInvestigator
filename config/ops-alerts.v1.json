@@ -1,0 +1,16 @@
+{
+  "stuck_case_hours": 48,
+  "stale_review_hours": 168,
+  "failed_run_lookback_hours": 72,
+  "unresolved_dead_letter_hours": 1,
+  "budget_overrun_enabled": true,
+  "max_alerts_per_run": 50,
+  "terminal_states": ["COMPLETE", "INCOMPLETE", "FAILED", "SUPERSEDED"],
+  "review_states": ["AWAITING_HUMAN_REVIEW"],
+  "material_alert_types": [
+    "failed_workflow_run",
+    "unresolved_dead_letter",
+    "budget_overrun",
+    "stuck_case"
+  ]
+}

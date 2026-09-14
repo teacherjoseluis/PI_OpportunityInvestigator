@@ -139,13 +139,38 @@ function padCik(cik) {
   return digits.padStart(10, '0');
 }
 
+function rowFromFields(fields, values) {
+  if (!Array.isArray(fields) || !Array.isArray(values)) return null;
+  const row = {};
+  for (let i = 0; i < fields.length; i += 1) {
+    row[fields[i]] = values[i];
+  }
+  if (row.cik != null && row.cik_str == null) row.cik_str = row.cik;
+  if (row.name && !row.title) row.title = row.name;
+  return row.ticker ? row : null;
+}
+
 function extractRows(payload) {
   if (!payload) return [];
-  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload)) {
+    return payload
+      .map((row) => (Array.isArray(row) ? null : row))
+      .filter((row) => row && row.ticker);
+  }
   if (typeof payload === 'object') {
-    // HTTP node may wrap as { data: {...} } or return the map directly.
-    const root = payload.data && typeof payload.data === 'object' && !payload.ticker ? payload.data : payload;
-    if (Array.isArray(root)) return root;
+    // Current SEC format: { fields: ["cik","name","ticker","exchange"], data: [[...], ...] }
+    if (Array.isArray(payload.fields) && Array.isArray(payload.data)) {
+      return payload.data.map((values) => rowFromFields(payload.fields, values)).filter(Boolean);
+    }
+    const root =
+      payload.data && typeof payload.data === 'object' && !payload.ticker ? payload.data : payload;
+    if (Array.isArray(root?.fields) && Array.isArray(root?.data)) {
+      return root.data.map((values) => rowFromFields(root.fields, values)).filter(Boolean);
+    }
+    if (Array.isArray(root)) {
+      if (Array.isArray(root[0])) return [];
+      return root.filter((row) => row && typeof row === 'object' && row.ticker);
+    }
     return Object.values(root).filter((row) => row && typeof row === 'object' && row.ticker);
   }
   return [];
@@ -490,8 +515,15 @@ const fetchEdgarTickers = node({
         parameters: [
           {
             name: 'User-Agent',
-            value:
-              'PI-OpportunityInvestigator/1.0 (github.com/teacherjoseluis/PI_OpportunityInvestigator; research)',
+            value: 'PI Opportunity Investigator teacherjoseluis@gmail.com',
+          },
+          {
+            name: 'Accept-Encoding',
+            value: 'gzip, deflate',
+          },
+          {
+            name: 'Host',
+            value: 'www.sec.gov',
           },
           {
             name: 'Accept',
@@ -501,6 +533,7 @@ const fetchEdgarTickers = node({
       },
       options: {
         timeout: 60000,
+        lowercaseHeaders: false,
         response: {
           response: {
             responseFormat: 'json',
@@ -556,10 +589,10 @@ const upsertCompany = node({
     parameters: {
       operation: 'executeQuery',
       query:
-        "WITH upsert AS (INSERT INTO companies (legal_name, cik, identity_confidence, notes) VALUES ($1, $2, $3::numeric, $4) ON CONFLICT (cik) WHERE cik IS NOT NULL DO UPDATE SET legal_name = EXCLUDED.legal_name, identity_confidence = EXCLUDED.identity_confidence, notes = EXCLUDED.notes, updated_at = NOW() RETURNING id AS company_id) SELECT company_id FROM upsert",
+        "WITH upsert AS (INSERT INTO companies (legal_name, cik, identity_confidence, notes) VALUES ($1, $2, $3::numeric, 'sec.gov/files/company_tickers_exchange.json') ON CONFLICT (cik) WHERE cik IS NOT NULL DO UPDATE SET legal_name = EXCLUDED.legal_name, identity_confidence = EXCLUDED.identity_confidence, notes = EXCLUDED.notes, updated_at = NOW() RETURNING id AS company_id) SELECT company_id FROM upsert",
       options: {
         queryReplacement: expr(
-          '{{ $json.legal_name }},{{ $json.cik }},{{ $json.identity_confidence }},{{ $json.provenance }}',
+          '{{ $json.legal_name.replaceAll(",", " ") }},{{ $json.cik }},{{ $json.identity_confidence }}',
         ),
         replaceEmptyStrings: true,
       },
@@ -600,10 +633,10 @@ const upsertTickerAlias = node({
     parameters: {
       operation: 'executeQuery',
       query:
-        'INSERT INTO company_aliases (company_id, alias_type, alias_value, confidence, provenance, requires_human_approval) VALUES ($1::uuid, $2, $3, $4::numeric, $5, $6::boolean) ON CONFLICT (company_id, alias_type, alias_value) DO UPDATE SET confidence = EXCLUDED.confidence, provenance = EXCLUDED.provenance, requires_human_approval = EXCLUDED.requires_human_approval, updated_at = NOW() RETURNING id AS alias_id',
+        "INSERT INTO company_aliases (company_id, alias_type, alias_value, confidence, provenance, requires_human_approval) VALUES ($1::uuid, 'ticker', $2, $3::numeric, 'sec.gov/files/company_tickers_exchange.json', ($4 = 'NEEDS_HUMAN_REVIEW')) ON CONFLICT (company_id, alias_type, alias_value) DO UPDATE SET confidence = EXCLUDED.confidence, provenance = EXCLUDED.provenance, requires_human_approval = EXCLUDED.requires_human_approval, updated_at = NOW() RETURNING id AS alias_id",
       options: {
         queryReplacement: expr(
-          '{{ $("Upsert Company").item.json.company_id }},ticker,{{ $("Resolve Edgar Identity").item.json.ticker }},{{ $("Resolve Edgar Identity").item.json.identity_confidence }},{{ $("Resolve Edgar Identity").item.json.provenance }},{{ $("Resolve Edgar Identity").item.json.outcome === "NEEDS_HUMAN_REVIEW" }}',
+          '{{ $("Upsert Company").item.json.company_id }},{{ $("Resolve Edgar Identity").item.json.ticker }},{{ $("Resolve Edgar Identity").item.json.identity_confidence }},{{ $("Resolve Edgar Identity").item.json.outcome }}',
         ),
         replaceEmptyStrings: true,
       },
@@ -622,10 +655,10 @@ const upsertLegalNameAlias = node({
     parameters: {
       operation: 'executeQuery',
       query:
-        'INSERT INTO company_aliases (company_id, alias_type, alias_value, confidence, provenance, requires_human_approval) VALUES ($1::uuid, $2, $3, $4::numeric, $5, $6::boolean) ON CONFLICT (company_id, alias_type, alias_value) DO UPDATE SET confidence = EXCLUDED.confidence, provenance = EXCLUDED.provenance, requires_human_approval = EXCLUDED.requires_human_approval, updated_at = NOW() RETURNING id AS alias_id',
+        "INSERT INTO company_aliases (company_id, alias_type, alias_value, confidence, provenance, requires_human_approval) VALUES ($1::uuid, 'legal_name', $2, $3::numeric, 'sec.gov/files/company_tickers_exchange.json', ($4 = 'NEEDS_HUMAN_REVIEW')) ON CONFLICT (company_id, alias_type, alias_value) DO UPDATE SET confidence = EXCLUDED.confidence, provenance = EXCLUDED.provenance, requires_human_approval = EXCLUDED.requires_human_approval, updated_at = NOW() RETURNING id AS alias_id",
       options: {
         queryReplacement: expr(
-          '{{ $("Upsert Company").item.json.company_id }},legal_name,{{ $("Resolve Edgar Identity").item.json.legal_name }},{{ $("Resolve Edgar Identity").item.json.identity_confidence }},{{ $("Resolve Edgar Identity").item.json.provenance }},{{ $("Resolve Edgar Identity").item.json.outcome === "NEEDS_HUMAN_REVIEW" }}',
+          '{{ $("Upsert Company").item.json.company_id }},{{ $("Resolve Edgar Identity").item.json.legal_name.replaceAll(",", " ") }},{{ $("Resolve Edgar Identity").item.json.identity_confidence }},{{ $("Resolve Edgar Identity").item.json.outcome }}',
         ),
         replaceEmptyStrings: true,
       },

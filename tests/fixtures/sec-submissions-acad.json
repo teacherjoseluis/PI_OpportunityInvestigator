@@ -1,0 +1,21 @@
+{
+  "cik": "0001070494",
+  "entityType": "operating",
+  "sic": "2834",
+  "sicDescription": "Pharmaceutical Preparations",
+  "name": "ACADIA PHARMACEUTICALS INC",
+  "tickers": ["ACAD"],
+  "exchanges": ["Nasdaq"],
+  "filings": {
+    "recent": {
+      "accessionNumber": [
+        "0001070494-26-000012",
+        "0001070494-26-000008",
+        "0001070494-25-000045"
+      ],
+      "filingDate": ["2026-08-01", "2026-05-10", "2025-11-20"],
+      "form": ["10-Q", "8-K", "10-K"],
+      "primaryDocument": ["acad-20260630.htm", "acad-20260510.htm", "acad-20251231.htm"]
+    }
+  }
+}

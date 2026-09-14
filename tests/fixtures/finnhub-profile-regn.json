@@ -1,0 +1,14 @@
+{
+  "country": "US",
+  "currency": "USD",
+  "exchange": "NASDAQ NMS - GLOBAL MARKET",
+  "finnhubIndustry": "Biotechnology",
+  "ipo": "1991-04-02",
+  "logo": "https://static.finnhub.io/logo/regn-example.png",
+  "marketCapitalization": 85000.5,
+  "name": "Regeneron Pharmaceuticals Inc",
+  "phone": "19148477000",
+  "shareOutstanding": 107.5,
+  "ticker": "REGN",
+  "weburl": "https://www.regeneron.com"
+}

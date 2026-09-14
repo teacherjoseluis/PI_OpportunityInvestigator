@@ -1,0 +1,20 @@
+{
+  "min_evidence_documents": 1,
+  "category_map": {
+    "business_quality": "financial_business",
+    "growth": "growth_prospects",
+    "pipeline": "pipeline_clinical",
+    "valuation": "valuation_market",
+    "risk": "risk_red_team"
+  },
+  "insufficient_topic_penalty": 5,
+  "max_insufficient_penalty": 40,
+  "require_sec_filing": true,
+  "require_cash_debt_from_filing": true,
+  "require_red_team": true,
+  "require_schema_valid_report": true,
+  "hard_stop_zero_evidence": true,
+  "min_evidence_confidence_for_watchlist": 70,
+  "min_research_priority_for_watchlist": 60,
+  "min_research_priority_for_high_conviction": 75
+}

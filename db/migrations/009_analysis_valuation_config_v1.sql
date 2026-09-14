@@ -1,0 +1,55 @@
+-- Merge Phase 1 valuation/market analysis settings into active configuration_versions.gates_json.
+-- Uses jsonb_set so nested analysis.* keys are not wiped by later migrations.
+
+UPDATE configuration_versions
+SET
+  gates_json = jsonb_set(
+    COALESCE(gates_json, '{}'::jsonb),
+    '{analysis}',
+    COALESCE(gates_json->'analysis', '{}'::jsonb) || '{
+      "valuation": {
+        "min_evidence_documents": 1,
+        "min_structural_claims": 1,
+        "claim_category": "valuation_market",
+        "watched_event_forms": ["8-K", "6-K"],
+        "watched_offering_forms": ["S-3", "424B", "424B5", "S-1"],
+        "insufficient_topics": [
+          {
+            "key": "market_cap_enterprise_value",
+            "text": "INSUFFICIENT_EVIDENCE: Market capitalization and enterprise value require authorized market quotes/statistics (TwelveData or equivalent) stored as evidence; not computed in Phase 1 from filing index alone."
+          },
+          {
+            "key": "net_cash_debt",
+            "text": "INSUFFICIENT_EVIDENCE: Net cash/debt needs XBRL or filing-body balance-sheet facts (PII-03 circle-back)."
+          },
+          {
+            "key": "revenue_and_earnings_multiples",
+            "text": "INSUFFICIENT_EVIDENCE: EV/revenue, P/S, and earnings multiples need revenue/earnings facts plus market prices (XBRL + licensed market data)."
+          },
+          {
+            "key": "peer_comparison",
+            "text": "INSUFFICIENT_EVIDENCE: Peer valuation comparison requires an explicit peer set and licensed comparable metrics (not configured in Phase 1)."
+          },
+          {
+            "key": "liquidity_adv",
+            "text": "INSUFFICIENT_EVIDENCE: Average daily dollar volume and liquidity bands need authorized market statistics evidence."
+          },
+          {
+            "key": "volatility_drawdown",
+            "text": "INSUFFICIENT_EVIDENCE: Volatility and drawdown require price history from an authorized market-data source."
+          },
+          {
+            "key": "short_interest",
+            "text": "INSUFFICIENT_EVIDENCE: Short interest is not collected in Phase 1 evidence collectors."
+          },
+          {
+            "key": "entry_timing",
+            "text": "INSUFFICIENT_EVIDENCE: Optional entry-timing context is deferred until market-behavior evidence and scoring (PII-10) are available."
+          }
+        ]
+      }
+    }'::jsonb
+  ),
+  description = COALESCE(description, '') || ' Analysis valuation v1: deterministic SEC metadata anchors + explicit insufficient topics.',
+  updated_at = NOW()
+WHERE is_active = TRUE;

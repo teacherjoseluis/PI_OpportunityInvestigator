@@ -211,8 +211,15 @@ const fetchEdgarTickers = node({
         parameters: [
           {
             name: 'User-Agent',
-            value:
-              'PI-OpportunityInvestigator/1.0 (github.com/teacherjoseluis/PI_OpportunityInvestigator; research)',
+            value: 'PI Opportunity Investigator teacherjoseluis@gmail.com',
+          },
+          {
+            name: 'Accept-Encoding',
+            value: 'gzip, deflate',
+          },
+          {
+            name: 'Host',
+            value: 'www.sec.gov',
           },
           {
             name: 'Accept',
@@ -222,6 +229,7 @@ const fetchEdgarTickers = node({
       },
       options: {
         timeout: 60000,
+        lowercaseHeaders: false,
         response: {
           response: {
             responseFormat: 'json',
@@ -277,10 +285,10 @@ const upsertCompany = node({
     parameters: {
       operation: 'executeQuery',
       query:
-        "WITH upsert AS (INSERT INTO companies (legal_name, cik, identity_confidence, notes) VALUES ($1, $2, $3::numeric, $4) ON CONFLICT (cik) WHERE cik IS NOT NULL DO UPDATE SET legal_name = EXCLUDED.legal_name, identity_confidence = EXCLUDED.identity_confidence, notes = EXCLUDED.notes, updated_at = NOW() RETURNING id AS company_id) SELECT company_id FROM upsert",
+        "WITH upsert AS (INSERT INTO companies (legal_name, cik, identity_confidence, notes) VALUES ($1, $2, $3::numeric, 'sec.gov/files/company_tickers_exchange.json') ON CONFLICT (cik) WHERE cik IS NOT NULL DO UPDATE SET legal_name = EXCLUDED.legal_name, identity_confidence = EXCLUDED.identity_confidence, notes = EXCLUDED.notes, updated_at = NOW() RETURNING id AS company_id) SELECT company_id FROM upsert",
       options: {
         queryReplacement: expr(
-          '{{ $json.legal_name }},{{ $json.cik }},{{ $json.identity_confidence }},{{ $json.provenance }}',
+          '{{ $json.legal_name.replaceAll(",", " ") }},{{ $json.cik }},{{ $json.identity_confidence }}',
         ),
         replaceEmptyStrings: true,
       },
@@ -321,10 +329,10 @@ const upsertTickerAlias = node({
     parameters: {
       operation: 'executeQuery',
       query:
-        'INSERT INTO company_aliases (company_id, alias_type, alias_value, confidence, provenance, requires_human_approval) VALUES ($1::uuid, $2, $3, $4::numeric, $5, $6::boolean) ON CONFLICT (company_id, alias_type, alias_value) DO UPDATE SET confidence = EXCLUDED.confidence, provenance = EXCLUDED.provenance, requires_human_approval = EXCLUDED.requires_human_approval, updated_at = NOW() RETURNING id AS alias_id',
+        "INSERT INTO company_aliases (company_id, alias_type, alias_value, confidence, provenance, requires_human_approval) VALUES ($1::uuid, 'ticker', $2, $3::numeric, 'sec.gov/files/company_tickers_exchange.json', ($4 = 'NEEDS_HUMAN_REVIEW')) ON CONFLICT (company_id, alias_type, alias_value) DO UPDATE SET confidence = EXCLUDED.confidence, provenance = EXCLUDED.provenance, requires_human_approval = EXCLUDED.requires_human_approval, updated_at = NOW() RETURNING id AS alias_id",
       options: {
         queryReplacement: expr(
-          '{{ $("Upsert Company").item.json.company_id }},ticker,{{ $("Resolve Edgar Identity").item.json.ticker }},{{ $("Resolve Edgar Identity").item.json.identity_confidence }},{{ $("Resolve Edgar Identity").item.json.provenance }},{{ $("Resolve Edgar Identity").item.json.outcome === "NEEDS_HUMAN_REVIEW" }}',
+          '{{ $("Upsert Company").item.json.company_id }},{{ $("Resolve Edgar Identity").item.json.ticker }},{{ $("Resolve Edgar Identity").item.json.identity_confidence }},{{ $("Resolve Edgar Identity").item.json.outcome }}',
         ),
         replaceEmptyStrings: true,
       },
@@ -343,10 +351,10 @@ const upsertLegalNameAlias = node({
     parameters: {
       operation: 'executeQuery',
       query:
-        'INSERT INTO company_aliases (company_id, alias_type, alias_value, confidence, provenance, requires_human_approval) VALUES ($1::uuid, $2, $3, $4::numeric, $5, $6::boolean) ON CONFLICT (company_id, alias_type, alias_value) DO UPDATE SET confidence = EXCLUDED.confidence, provenance = EXCLUDED.provenance, requires_human_approval = EXCLUDED.requires_human_approval, updated_at = NOW() RETURNING id AS alias_id',
+        "INSERT INTO company_aliases (company_id, alias_type, alias_value, confidence, provenance, requires_human_approval) VALUES ($1::uuid, 'legal_name', $2, $3::numeric, 'sec.gov/files/company_tickers_exchange.json', ($4 = 'NEEDS_HUMAN_REVIEW')) ON CONFLICT (company_id, alias_type, alias_value) DO UPDATE SET confidence = EXCLUDED.confidence, provenance = EXCLUDED.provenance, requires_human_approval = EXCLUDED.requires_human_approval, updated_at = NOW() RETURNING id AS alias_id",
       options: {
         queryReplacement: expr(
-          '{{ $("Upsert Company").item.json.company_id }},legal_name,{{ $("Resolve Edgar Identity").item.json.legal_name }},{{ $("Resolve Edgar Identity").item.json.identity_confidence }},{{ $("Resolve Edgar Identity").item.json.provenance }},{{ $("Resolve Edgar Identity").item.json.outcome === "NEEDS_HUMAN_REVIEW" }}',
+          '{{ $("Upsert Company").item.json.company_id }},{{ $("Resolve Edgar Identity").item.json.legal_name.replaceAll(",", " ") }},{{ $("Resolve Edgar Identity").item.json.identity_confidence }},{{ $("Resolve Edgar Identity").item.json.outcome }}',
         ),
         replaceEmptyStrings: true,
       },

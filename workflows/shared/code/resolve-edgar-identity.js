@@ -32,13 +32,38 @@ function padCik(cik) {
   return digits.padStart(10, '0');
 }
 
+function rowFromFields(fields, values) {
+  if (!Array.isArray(fields) || !Array.isArray(values)) return null;
+  const row = {};
+  for (let i = 0; i < fields.length; i += 1) {
+    row[fields[i]] = values[i];
+  }
+  if (row.cik != null && row.cik_str == null) row.cik_str = row.cik;
+  if (row.name && !row.title) row.title = row.name;
+  return row.ticker ? row : null;
+}
+
 function extractRows(payload) {
   if (!payload) return [];
-  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload)) {
+    return payload
+      .map((row) => (Array.isArray(row) ? null : row))
+      .filter((row) => row && row.ticker);
+  }
   if (typeof payload === 'object') {
-    // HTTP node may wrap as { data: {...} } or return the map directly.
-    const root = payload.data && typeof payload.data === 'object' && !payload.ticker ? payload.data : payload;
-    if (Array.isArray(root)) return root;
+    // Current SEC format: { fields: ["cik","name","ticker","exchange"], data: [[...], ...] }
+    if (Array.isArray(payload.fields) && Array.isArray(payload.data)) {
+      return payload.data.map((values) => rowFromFields(payload.fields, values)).filter(Boolean);
+    }
+    const root =
+      payload.data && typeof payload.data === 'object' && !payload.ticker ? payload.data : payload;
+    if (Array.isArray(root?.fields) && Array.isArray(root?.data)) {
+      return root.data.map((values) => rowFromFields(root.fields, values)).filter(Boolean);
+    }
+    if (Array.isArray(root)) {
+      if (Array.isArray(root[0])) return [];
+      return root.filter((row) => row && typeof row === 'object' && row.ticker);
+    }
     return Object.values(root).filter((row) => row && typeof row === 'object' && row.ticker);
   }
   return [];

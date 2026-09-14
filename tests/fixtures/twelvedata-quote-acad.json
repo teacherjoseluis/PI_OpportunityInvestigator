@@ -1,0 +1,16 @@
+{
+  "symbol": "ACAD",
+  "name": "ACADIA Pharmaceuticals Inc",
+  "exchange": "NASDAQ",
+  "mic_code": "XNAS",
+  "currency": "USD",
+  "datetime": "2026-09-03",
+  "timestamp": 1756933200,
+  "open": "20.10",
+  "high": "20.80",
+  "low": "19.90",
+  "close": "20.50",
+  "volume": "2500000",
+  "previous_close": "20.00",
+  "average_volume": "2200000"
+}

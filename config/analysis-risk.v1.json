@@ -1,0 +1,70 @@
+{
+  "min_evidence_documents": 1,
+  "min_structural_claims": 1,
+  "claim_category": "risk_red_team",
+  "watched_event_forms": [
+    "8-K",
+    "6-K"
+  ],
+  "watched_offering_forms": [
+    "S-3",
+    "424B",
+    "424B5",
+    "S-1"
+  ],
+  "adverse_trial_statuses": [
+    "TERMINATED",
+    "WITHDRAWN",
+    "SUSPENDED"
+  ],
+  "insufficient_topics": [
+    {
+      "key": "financial_financing_depth",
+      "text": "INSUFFICIENT_EVIDENCE: Cash runway, covenant, and financing-need depth require XBRL/filing-body liquidity facts (PII-03 circle-back)."
+    },
+    {
+      "key": "clinical_efficacy_safety",
+      "text": "INSUFFICIENT_EVIDENCE: Efficacy and safety risk need trial results, adverse-event tables, and study-body evidence not present in Phase 1 metadata."
+    },
+    {
+      "key": "regulatory_risk_detail",
+      "text": "INSUFFICIENT_EVIDENCE: CRL, AdCom, labeling, and review-division concerns need FDA/openFDA and filing-body evidence."
+    },
+    {
+      "key": "commercialization_reimbursement",
+      "text": "INSUFFICIENT_EVIDENCE: Commercial and reimbursement risk require payer, pricing, and launch-execution evidence not collected in Phase 1."
+    },
+    {
+      "key": "competitive_risk",
+      "text": "INSUFFICIENT_EVIDENCE: Competitive displacement risk needs structured competitor and standard-of-care evidence."
+    },
+    {
+      "key": "patent_exclusivity",
+      "text": "INSUFFICIENT_EVIDENCE: Patent and exclusivity risk need USPTO/Orange Book (or equivalent) collectors (PII-03 backlog)."
+    },
+    {
+      "key": "manufacturing_supply",
+      "text": "INSUFFICIENT_EVIDENCE: Manufacturing and supply-chain risk need CMC/inspection evidence not collected in Phase 1."
+    },
+    {
+      "key": "legal_compliance_litigation",
+      "text": "INSUFFICIENT_EVIDENCE: Litigation and compliance risk need docket/filing-body extraction beyond form index signals."
+    },
+    {
+      "key": "management_governance",
+      "text": "INSUFFICIENT_EVIDENCE: Management and governance risk need proxy/8-K body and insider evidence not parsed in Phase 1."
+    },
+    {
+      "key": "concentration_key_person",
+      "text": "INSUFFICIENT_EVIDENCE: Product and key-person concentration need revenue-mix and org disclosures from filing bodies."
+    },
+    {
+      "key": "contradictions_red_team",
+      "text": "INSUFFICIENT_EVIDENCE: Cross-claim contradiction and red-team review need multi-analyst claim graphs plus fuller evidence (deferred to later Phase 1 hardening)."
+    },
+    {
+      "key": "thesis_breaking_conditions",
+      "text": "INSUFFICIENT_EVIDENCE: Explicit thesis-breaking conditions and monitoring signals require scored risk objects (PII-10) and richer evidence."
+    }
+  ]
+}

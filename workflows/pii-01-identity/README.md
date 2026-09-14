@@ -38,7 +38,7 @@ Subworkflow (not a public webhook). Called by PII-00 via **Execute Sub-workflow*
 
 1. Validate `case_id` / ticker / exchange
 2. Lookup existing `securities` + `companies` (idempotent cache)
-3. Else fetch `https://www.sec.gov/files/company_tickers_exchange.json` (requires User-Agent)
+3. Else fetch `https://www.sec.gov/files/company_tickers_exchange.json` (SEC Fair Access: User-Agent must include company name **and** a contact email)
 4. Match ticker + exchange; score confidence; upsert company, security, aliases
 5. Link `research_cases.company_id` / `security_id` and advance state
 6. Log `case_state_history` + `workflow_runs` (`PII-01`)

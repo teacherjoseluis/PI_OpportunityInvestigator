@@ -1,0 +1,41 @@
+{
+  "studies": [
+    {
+      "protocolSection": {
+        "identificationModule": {
+          "nctId": "NCT04495855",
+          "briefTitle": "Study of Pimavanserin in Dementia-related Psychosis",
+          "officialTitle": "A Study of Pimavanserin"
+        },
+        "statusModule": {
+          "overallStatus": "COMPLETED",
+          "startDateStruct": { "date": "2020-09-15" }
+        },
+        "sponsorCollaboratorsModule": {
+          "leadSponsor": { "name": "ACADIA Pharmaceuticals Inc." }
+        },
+        "designModule": {
+          "phases": ["PHASE3"]
+        }
+      }
+    },
+    {
+      "protocolSection": {
+        "identificationModule": {
+          "nctId": "NCT05543018",
+          "briefTitle": "Open-label Extension Study"
+        },
+        "statusModule": {
+          "overallStatus": "RECRUITING",
+          "startDateStruct": { "date": "2022-11" }
+        },
+        "sponsorCollaboratorsModule": {
+          "leadSponsor": { "name": "ACADIA Pharmaceuticals Inc." }
+        },
+        "designModule": {
+          "phases": ["PHASE3"]
+        }
+      }
+    }
+  ]
+}

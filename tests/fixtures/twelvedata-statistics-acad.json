@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "symbol": "ACAD",
+    "name": "ACADIA Pharmaceuticals Inc",
+    "currency": "USD",
+    "exchange": "NASDAQ",
+    "mic_code": "XNAS",
+    "exchange_timezone": "America/New_York"
+  },
+  "statistics": {
+    "valuations_metrics": {
+      "market_capitalization": 2500000000,
+      "enterprise_value": 2200000000
+    }
+  }
+}

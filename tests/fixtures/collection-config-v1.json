@@ -1,0 +1,10 @@
+{
+  "gates_json": {
+    "collection": {
+      "sec_recent_filings_limit": 10,
+      "ctgov_page_size": 20,
+      "min_sec_documents": 1,
+      "partial_requires_human_review": false
+    }
+  }
+}

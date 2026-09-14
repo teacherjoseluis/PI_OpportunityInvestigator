@@ -1,0 +1,59 @@
+[
+  {
+    "id": "11111111-1111-4111-8111-111111111101",
+    "source_type": "sec_edgar_submissions",
+    "metadata_json": {
+      "cik": "0001070494",
+      "name": "ACADIA PHARMACEUTICALS INC",
+      "recent_filing_count": 12,
+      "collected_filing_count": 3
+    }
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111102",
+    "source_type": "sec_edgar_filing",
+    "metadata_json": {
+      "form": "10-K",
+      "accessionNumber": "0001070494-25-000010",
+      "filingDate": "2025-02-27"
+    }
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111103",
+    "source_type": "sec_edgar_filing",
+    "metadata_json": {
+      "form": "10-Q",
+      "accessionNumber": "0001070494-25-000040",
+      "filingDate": "2025-05-07"
+    }
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111104",
+    "source_type": "sec_edgar_filing",
+    "metadata_json": {
+      "form": "8-K",
+      "accessionNumber": "0001070494-25-000055",
+      "filingDate": "2025-06-01"
+    }
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111201",
+    "source_type": "clinicaltrials_gov",
+    "metadata_json": {
+      "nctId": "NCT04495855",
+      "briefTitle": "Study of Pimavanserin",
+      "overallStatus": "COMPLETED",
+      "phases": ["PHASE3"]
+    }
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111202",
+    "source_type": "clinicaltrials_gov",
+    "metadata_json": {
+      "nctId": "NCT05543018",
+      "briefTitle": "Open-label Extension",
+      "overallStatus": "RECRUITING",
+      "phases": ["PHASE3"]
+    }
+  }
+]

@@ -1,14 +1,18 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 /**
- * Execute an n8n Code node script locally with mocked $input / $execution.
+ * Execute an n8n Code node script locally with mocked $input / $execution / $.
  */
-export function runCodeNode(scriptPath, { items = [], executionId = 'test-exec-1' } = {}) {
+export function runCodeNode(
+  scriptPath,
+  { items = [], executionId = 'test-exec-1', nodes = {} } = {},
+) {
   const code = fs.readFileSync(scriptPath, 'utf8');
   const normalized = items.map((item) =>
     item && item.json !== undefined ? item : { json: item },
@@ -19,10 +23,24 @@ export function runCodeNode(scriptPath, { items = [], executionId = 'test-exec-1
     first: () => normalized[0] ?? { json: {} },
   };
   const $execution = { id: executionId };
+  const $ = (name) => {
+    const nodeItems = nodes[name];
+    if (!nodeItems) {
+      throw new Error('Node not found: ' + name);
+    }
+    const list = nodeItems.map((item) =>
+      item && item.json !== undefined ? item : { json: item },
+    );
+    return {
+      first: () => list[0] ?? { json: {} },
+      all: () => list,
+    };
+  };
 
   const sandbox = {
     $input,
     $execution,
+    $,
     console,
     Math,
     String,
@@ -33,6 +51,11 @@ export function runCodeNode(scriptPath, { items = [], executionId = 'test-exec-1
     Date,
     RegExp,
     Error,
+    Buffer,
+    require: (name) => {
+      if (name === 'crypto') return crypto;
+      throw new Error('Cannot require: ' + name);
+    },
   };
 
   const wrapped = `(function() {\n${code}\n})()`;

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "c1111111-1111-4111-8111-111111111101",
+    "claim_category": "financial_business",
+    "claim_text": "Periodic SEC filings present in evidence index.",
+    "claim_kind": "fact",
+    "confidence": 80,
+    "materiality": "MEDIUM",
+    "extraction_method": "deterministic_sec_metadata",
+    "evidence_link_count": 1
+  },
+  {
+    "id": "c1111111-1111-4111-8111-111111111102",
+    "claim_category": "financial_business",
+    "claim_text": "INSUFFICIENT_EVIDENCE: Cash runway needs XBRL.",
+    "claim_kind": "inference",
+    "confidence": 95,
+    "materiality": "HIGH",
+    "extraction_method": "deterministic_insufficient_gate",
+    "evidence_link_count": 1
+  },
+  {
+    "id": "c1111111-1111-4111-8111-111111111201",
+    "claim_category": "growth_prospects",
+    "claim_text": "Clinical activity dependence signal from CT.gov.",
+    "claim_kind": "inference",
+    "confidence": 55,
+    "materiality": "MEDIUM",
+    "extraction_method": "deterministic_ctgov_metadata",
+    "evidence_link_count": 1
+  },
+  {
+    "id": "c1111111-1111-4111-8111-111111111301",
+    "claim_category": "pipeline_clinical",
+    "claim_text": "Study inventory from CT.gov metadata.",
+    "claim_kind": "fact",
+    "confidence": 85,
+    "materiality": "MEDIUM",
+    "extraction_method": "deterministic_ctgov_metadata",
+    "evidence_link_count": 2
+  },
+  {
+    "id": "c1111111-1111-4111-8111-111111111401",
+    "claim_category": "valuation_market",
+    "claim_text": "Periodic filings valuation anchor.",
+    "claim_kind": "fact",
+    "confidence": 85,
+    "materiality": "LOW",
+    "extraction_method": "deterministic_sec_metadata",
+    "evidence_link_count": 1
+  },
+  {
+    "id": "c1111111-1111-4111-8111-111111111501",
+    "claim_category": "risk_red_team",
+    "claim_text": "Material event risk signal from 8-K.",
+    "claim_kind": "inference",
+    "confidence": 55,
+    "materiality": "HIGH",
+    "extraction_method": "deterministic_sec_metadata",
+    "evidence_link_count": 1
+  },
+  {
+    "id": "c1111111-1111-4111-8111-111111111502",
+    "claim_category": "risk_red_team",
+    "claim_text": "INSUFFICIENT_EVIDENCE: Thesis-breaking conditions deferred.",
+    "claim_kind": "inference",
+    "confidence": 95,
+    "materiality": "HIGH",
+    "extraction_method": "deterministic_insufficient_gate",
+    "evidence_link_count": 1
+  }
+]

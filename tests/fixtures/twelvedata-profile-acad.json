@@ -1,0 +1,14 @@
+{
+  "symbol": "ACAD",
+  "name": "ACADIA Pharmaceuticals Inc",
+  "exchange": "NASDAQ",
+  "mic_code": "XNAS",
+  "sector": "Healthcare",
+  "industry": "Biotechnology",
+  "employees": 500,
+  "website": "http://www.acadia.com",
+  "description": "ACADIA Pharmaceuticals Inc. is a biopharmaceutical company focused on the development and commercialization of innovative medicines.",
+  "type": "Common Stock",
+  "CEO": "Catherine Owen",
+  "country": "US"
+}

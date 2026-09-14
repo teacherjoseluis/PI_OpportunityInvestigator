@@ -1,0 +1,12 @@
+{
+  "default_recipient": "teacherjoseluis@gmail.com",
+  "from_email": "teacherjoseluis@gmail.com",
+  "default_mode": "INVESTIGATION_REPORT",
+  "allow_draft_test_delivery": true,
+  "production_requires_publication_ready": true,
+  "production_requires_schema_valid": true,
+  "subject_prefix_test": "[PII DRAFT — NOT PUBLICATION READY]",
+  "subject_prefix_prod": "[PII Report]",
+  "max_body_chars": 50000,
+  "max_markdown_chars": 20000
+}

@@ -6,6 +6,19 @@
     "test": "node --test tests/unit/*.test.mjs",
     "bundle:pii-00": "node workflows/scripts/bundle-workflow.mjs pii-00-orchestrator",
     "bundle:pii-01": "node workflows/scripts/bundle-workflow.mjs pii-01-identity",
-    "bundle": "npm run bundle:pii-00 && npm run bundle:pii-01"
+    "bundle:pii-02": "node workflows/scripts/bundle-workflow.mjs pii-02-eligibility",
+    "bundle:pii-03": "node workflows/scripts/bundle-workflow.mjs pii-03-evidence",
+    "bundle:pii-04": "node workflows/scripts/bundle-workflow.mjs pii-04-financial",
+    "bundle:pii-05": "node workflows/scripts/bundle-workflow.mjs pii-05-growth",
+    "bundle:pii-06": "node workflows/scripts/bundle-workflow.mjs pii-06-pipeline",
+    "bundle:pii-07": "node workflows/scripts/bundle-workflow.mjs pii-07-regulatory",
+    "bundle:pii-08": "node workflows/scripts/bundle-workflow.mjs pii-08-valuation",
+    "bundle:pii-09": "node workflows/scripts/bundle-workflow.mjs pii-09-risk",
+    "bundle:pii-10": "node workflows/scripts/bundle-workflow.mjs pii-10-scoring",
+    "bundle:pii-11": "node workflows/scripts/bundle-workflow.mjs pii-11-report",
+    "bundle:pii-12": "node workflows/scripts/bundle-workflow.mjs pii-12-monitoring",
+    "bundle:pii-13": "node workflows/scripts/bundle-workflow.mjs pii-13-operations",
+    "bundle:pii-14": "node workflows/scripts/bundle-workflow.mjs pii-14-email-delivery",
+    "bundle": "npm run bundle:pii-00 && npm run bundle:pii-01 && npm run bundle:pii-02 && npm run bundle:pii-03 && npm run bundle:pii-04 && npm run bundle:pii-05 && npm run bundle:pii-06 && npm run bundle:pii-07 && npm run bundle:pii-08 && npm run bundle:pii-09 && npm run bundle:pii-10 && npm run bundle:pii-11 && npm run bundle:pii-12 && npm run bundle:pii-13 && npm run bundle:pii-14"
   }
 }
