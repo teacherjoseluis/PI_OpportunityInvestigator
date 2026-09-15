@@ -146,15 +146,15 @@ Fill these values as the project is established:
 - Primary workflow name and ID: `PII-00 Case Orchestrator` / `4jvmYtTHKufojJRK` (published; version `84997803-a604-4438-b2d6-f1911f616af6`)
 - PII-01 workflow name and ID: `PII-01 Identity Resolver` / `Xf6DjDUMyfOyNX3G` (published; version `de222a9c-c473-4dae-86f8-2017ff9319a7`)
 - PII-02 workflow name and ID: `PII-02 Eligibility Gate` / `hqgFoP7ny6jnycxx` (published; version `567e37d5-1cd7-41cd-9399-9ae3055f69e0`)
-- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `b83e7eae-1187-4fd8-b219-307a73b4e919`)
-- PII-04 workflow name and ID: `PII-04 Financial and Business Analyst` / `RvIlyuDV0MEsXezL` (published; version `c087e5d5-40cb-4539-aff7-7728afbf6fd0`)
+- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `5d5b0689-1a3c-42c1-bff0-09ffeeee13f7`)
+- PII-04 workflow name and ID: `PII-04 Financial and Business Analyst` / `RvIlyuDV0MEsXezL` (published; version `f84c082f-4f5a-4e69-a7b5-9be64c2e1e19`)
 - PII-05 workflow name and ID: `PII-05 Growth Analyst` / `sdamxDo9SUdo4QxC` (published; version `74d5f54e-5d88-45dc-bce1-99981bc3de6b`)
 - PII-06 workflow name and ID: `PII-06 Pipeline and Clinical Analyst` / `b8CxYW8T8FrGl62x` (published; version `7b992085-7363-4320-897b-cd0b87aeec14`)
 - PII-07 workflow name and ID: `PII-07 Regulatory and Catalyst Analyst` / `4AqBDr5hjZeMLy99` (published; version `645dc348-1ff2-43c0-9ff9-b33c23d55ec4`)
 - PII-08 workflow name and ID: `PII-08 Valuation and Market Analyst` / `1PuOVYf0O3GThRwq` (published; version `f12e1d7e-caab-4c59-b6e0-8fe0e3e505c8`)
 - PII-09 workflow name and ID: `PII-09 Risk and Red-Team Reviewer` / `mioSWLKBMLAaBGzs` (published; version `d47ca67c-033a-4103-bae9-5b9ddbd4a9e3`)
-- PII-10 workflow name and ID: `PII-10 Scoring and Quality Gate` / `lIjKOZS7qDizvynm` (published; version `37c522f4-926d-49d4-a604-df6d687beda5`)
-- PII-11 workflow name and ID: `PII-11 Report Generator` / `CLiHq1zJ1Euwhrxb` (published; version `6254ee70-18cf-4a1f-b4da-e8f8fd6000ba`)
+- PII-10 workflow name and ID: `PII-10 Scoring and Quality Gate` / `lIjKOZS7qDizvynm` (published; version `74ad0610-407a-46fe-8e13-cc238cec2dc3`)
+- PII-11 workflow name and ID: `PII-11 Report Generator` / `CLiHq1zJ1Euwhrxb` (published; version `65614b81-f873-4f1c-ad89-05e6df8dcb35`)
 - PII-12 workflow name and ID: `PII-12 Monitoring and Reassessment` / `go396vtpeHKcvtub` (inactive; version `2633c95f-34cf-4051-a384-a0ec7b78762e`)
 - PII-13 workflow name and ID: `PII-13 Operations and Alerts` / `ldPDfkqkkuDBfLe5` (inactive; version `be2d45ee-bd56-4e1a-b588-bdf46d2143f1`)
 - PII-14 workflow name and ID: `PII-14 Email Digest and Report Delivery` / `kf6pC1t7J1XavbiE` (published; version `9a7c0bf0-1a1f-4234-99af-d0ec88a6b846`; on PII-00 path)
@@ -198,11 +198,11 @@ Fill these values as the project is established:
 
 ## Current Status
 
-Project status: Phase 1 through PII-15 hosted. **PII-00…PII-11 + PII-15 published** for Slack/production webhooks. **PII Slack Intake** published: `Co5hmZSuqqk97rhg` (passes `request_context`). **PII-15 Slack Completion Notify** published: `3Q4goJz1gGKJRLMI` — DM after PII-11 when `request_context.slack.user_id` present. PII-14 now published and wired on PII-00 after PII-11 (TEST_DELIVERY unless publication_ready); PII-12/13 remain inactive/standalone. Migrations through `017` on VPS (user-applied); local **`018` E1 XBRL** ready, not yet applied/deployed. Remaining: apply `018` + deploy E1 workflows when requested; Slack bot scope `im:write` + reinstall, then smoke `/pii REGN` for completion DM.
+Project status: Phase 1 through PII-15 hosted. **PII-00…PII-11 + PII-15 published** for Slack/production webhooks. **PII Slack Intake** published: `Co5hmZSuqqk97rhg` (passes `request_context`). **PII-15 Slack Completion Notify** published: `3Q4goJz1gGKJRLMI` — DM after PII-11 when `request_context.slack.user_id` present. PII-14 now published and wired on PII-00 after PII-11 (TEST_DELIVERY unless publication_ready); PII-12/13 remain inactive/standalone. Migrations through `017` on VPS (user-applied); **E1 workflows deployed/published** (PII-03/04/10/11); VPS **`018` E1 XBRL** still needs apply before smoke. Remaining: apply `018` + E1 smoke/sign-off; Slack bot scope `im:write` + reinstall, then smoke `/pii REGN` for completion DM.
 
 ### PII-03 enrichment backlog (see ENRICHMENT.md)
 
-1. ~~SEC XBRL cash/debt (E1)~~ — **local done**; await VPS `018` + deploy + smoke/sign-off
+1. ~~SEC XBRL cash/debt (E1)~~ — **workflows deployed**; await VPS `018` + smoke/sign-off
 2. Full SEC filing HTML bodies → **E3** (needs **E2** object storage)
 3. FDA / openFDA collector → **E4**
 4. Company IR / press collector → **E5**
@@ -214,7 +214,7 @@ Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 
 ## Next Steps
 
-1. Apply migration **`018_collection_sec_xbrl_cash_debt_v1.sql`** on VPS; then ask to **deploy** updated PII-03 / PII-04 / PII-10 / PII-11 for E1 smoke (REGN or ACAD).
+1. Apply migration **`018_collection_sec_xbrl_cash_debt_v1.sql`** on VPS; then E1 smoke (REGN or ACAD) on published PII-03/04/10/11.
 2. Sign off E1 per [`docs/ENRICHMENT.md`](docs/ENRICHMENT.md) checklist; then Slice **E2** or continue Slack.
 3. Add Slack bot scope `im:write` and reinstall **Slack PII bot**; smoke `/pii REGN` → expect completion DM after PII-11.
 4. Optionally upgrade TwelveData to Grow/Pro so `/profile` + `/statistics` succeed without Finnhub fallback.
@@ -223,13 +223,22 @@ Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 
 ## Milestone Log
 
+### 2026-09-15 (Slice E1 deploy)
+
+- Deployed/published E1 updates (existing workflow IDs preserved; Postgres `Fkr5XG72D2ddc9ix` / `Postgres account` on new nodes):
+  - PII-03 `IqoALspzvN3PL5Cq` → `5d5b0689-1a3c-42c1-bff0-09ffeeee13f7` (companyfacts XBRL path between SEC count and CT.gov)
+  - PII-04 `RvIlyuDV0MEsXezL` → `f84c082f-4f5a-4e69-a7b5-9be64c2e1e19` (Load Financial Metrics + evaluate jsCode)
+  - PII-10 `lIjKOZS7qDizvynm` → `74ad0610-407a-46fe-8e13-cc238cec2dc3` (`cash_debt_from_filing` gate)
+  - PII-11 `CLiHq1zJ1Euwhrxb` → `65614b81-f873-4f1c-ad89-05e6df8dcb35` (publication_ready vs XBRL claims)
+- Hosted smoke still blocked until VPS migration `018` is applied.
+
 ### 2026-09-15 (Slice E1 local)
 
 - Implemented **E1 SEC XBRL cash/debt**: `config/collection.v1.json` enables `sec_filing_bodies` (`companyfacts_cash_debt`); migration `018_collection_sec_xbrl_cash_debt_v1.sql`.
 - PII-03: fetch companyfacts → normalize → upsert `sec_companyfacts` evidence + `financial_periods`/`financial_metrics` + `evidence_chunks`; coverage reports `xbrl_*` counts.
 - PII-04: Load Financial Metrics → real `cash_debt` claims (`deterministic_xbrl_metrics`) when facts exist.
 - PII-10 / PII-11: `cash_debt_from_filing` / `publication_ready` honor filing-backed XBRL claims.
-- Unit tests + `bundle:pii-03/04/10/11`. **Not deployed** (await explicit request + VPS `018`).
+- Unit tests + `bundle:pii-03/04/10/11`.
 
 ### 2026-09-15 (enrichment spec)
 
