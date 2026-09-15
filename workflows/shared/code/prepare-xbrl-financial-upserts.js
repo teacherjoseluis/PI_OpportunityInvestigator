@@ -24,7 +24,8 @@ return [
       fiscal_year: normalized.fiscal_year,
       fiscal_quarter: normalized.fiscal_quarter,
       metrics_b64: normalized.metrics_b64,
-      chunk_text: normalized.chunk_text,
+      // Commas break n8n Postgres queryReplacement CSV binding.
+      chunk_text: String(normalized.chunk_text || '').replaceAll(',', ';'),
       chunk_index: normalized.chunk_index == null ? 0 : normalized.chunk_index,
       chunk_token_estimate: normalized.chunk_token_estimate || null,
       chunk_metadata_b64: normalized.chunk_metadata_b64 || '',

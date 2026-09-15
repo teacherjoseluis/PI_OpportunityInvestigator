@@ -292,5 +292,5 @@ Dependencies: later slices assume earlier ones unless noted.
 ## Status
 
 - **Spec:** signed off.
-- **E1 (local):** implemented — companyfacts → `financial_metrics` + PII-04/10/11 rewires. Migration `018` ready. **Not deployed** until you ask; apply `018` on VPS before hosted smoke.
-- **Next:** your E1 smoke/sign-off, then Slice **E2** (or Slack `im:write` smoke in parallel).
+- **E1:** implemented, VPS `018` applied, workflows published, REGN smoke passed (`cash_debt_from_filing` PASS, `publication_ready=true`). Await your checklist sign-off.
+- **Next:** Slice **E2** (or Slack `im:write` smoke in parallel).

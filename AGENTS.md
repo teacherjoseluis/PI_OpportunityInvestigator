@@ -146,7 +146,7 @@ Fill these values as the project is established:
 - Primary workflow name and ID: `PII-00 Case Orchestrator` / `4jvmYtTHKufojJRK` (published; version `84997803-a604-4438-b2d6-f1911f616af6`)
 - PII-01 workflow name and ID: `PII-01 Identity Resolver` / `Xf6DjDUMyfOyNX3G` (published; version `de222a9c-c473-4dae-86f8-2017ff9319a7`)
 - PII-02 workflow name and ID: `PII-02 Eligibility Gate` / `hqgFoP7ny6jnycxx` (published; version `567e37d5-1cd7-41cd-9399-9ae3055f69e0`)
-- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `5d5b0689-1a3c-42c1-bff0-09ffeeee13f7`)
+- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `fa57d2eb-51ee-4b98-a8f1-4c8789b4a9ab`)
 - PII-04 workflow name and ID: `PII-04 Financial and Business Analyst` / `RvIlyuDV0MEsXezL` (published; version `f84c082f-4f5a-4e69-a7b5-9be64c2e1e19`)
 - PII-05 workflow name and ID: `PII-05 Growth Analyst` / `sdamxDo9SUdo4QxC` (published; version `74d5f54e-5d88-45dc-bce1-99981bc3de6b`)
 - PII-06 workflow name and ID: `PII-06 Pipeline and Clinical Analyst` / `b8CxYW8T8FrGl62x` (published; version `7b992085-7363-4320-897b-cd0b87aeec14`)
@@ -202,7 +202,7 @@ Project status: Phase 1 through PII-15 hosted. **PII-00…PII-11 + PII-15 publis
 
 ### PII-03 enrichment backlog (see ENRICHMENT.md)
 
-1. ~~SEC XBRL cash/debt (E1)~~ — **workflows deployed**; await VPS `018` + smoke/sign-off
+1. ~~SEC XBRL cash/debt (E1)~~ — **deployed + smoked** (REGN); await your sign-off
 2. Full SEC filing HTML bodies → **E3** (needs **E2** object storage)
 3. FDA / openFDA collector → **E4**
 4. Company IR / press collector → **E5**
@@ -214,14 +214,19 @@ Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 
 ## Next Steps
 
-1. Apply migration **`018_collection_sec_xbrl_cash_debt_v1.sql`** on VPS; then E1 smoke (REGN or ACAD) on published PII-03/04/10/11.
-2. Sign off E1 per [`docs/ENRICHMENT.md`](docs/ENRICHMENT.md) checklist; then Slice **E2** or continue Slack.
-3. Add Slack bot scope `im:write` and reinstall **Slack PII bot**; smoke `/pii REGN` → expect completion DM after PII-11.
-4. Optionally upgrade TwelveData to Grow/Pro so `/profile` + `/statistics` succeed without Finnhub fallback.
-5. Rotate webhook secret; review published workflow exposure.
-6. Later: weekly discovery digest; schedule triggers; clean leftover ACAD stuck/stale cases; enrichment E2–E7.
+1. Sign off E1 per [`docs/ENRICHMENT.md`](docs/ENRICHMENT.md) checklist (smoke notes below); then Slice **E2** or continue Slack.
+2. Add Slack bot scope `im:write` and reinstall **Slack PII bot**; smoke `/pii REGN` → expect completion DM after PII-11.
+3. Optionally upgrade TwelveData to Grow/Pro so `/profile` + `/statistics` succeed without Finnhub fallback.
+4. Rotate webhook secret; review published workflow exposure.
+5. Later: weekly discovery digest; schedule triggers; clean leftover ACAD stuck/stale cases; enrichment E2–E7.
 
 ## Milestone Log
+
+### 2026-09-15 (Slice E1 smoke)
+
+- Hotfix PII-03: strip commas from expand title/publisher fields and XBRL chunk_text (n8n `queryReplacement` CSV). Published `fa57d2eb-51ee-4b98-a8f1-4c8789b4a9ab`.
+- REGN case `a87fa88d-2508-4150-b01f-da7f03a6d8c0` via manual wrapper: PII-03 exec `2362` COLLECTED (`xbrl_stored_count=1`, `xbrl_metric_count=7`); PII-04 `2363` cash_debt fact; PII-10 `2364` `cash_debt_from_filing` PASS; PII-11 `2365` `publication_ready=true`.
+- Full webhook REGN still hits eligibility `duplicate_recent_case` for siblings — E1 path validated after VPS `018` via direct subworkflow smoke.
 
 ### 2026-09-15 (Slice E1 deploy)
 
