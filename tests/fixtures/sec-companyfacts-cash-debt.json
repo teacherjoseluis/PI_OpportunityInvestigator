@@ -1,0 +1,65 @@
+{
+  "cik": 1070494,
+  "entityName": "ACADIA PHARMACEUTICALS INC",
+  "facts": {
+    "us-gaap": {
+      "CashAndCashEquivalentsAtCarryingValue": {
+        "label": "Cash and Cash Equivalents, at Carrying Value",
+        "units": {
+          "USD": [
+            {
+              "end": "2024-12-31",
+              "val": 310000000,
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2025-02-26",
+              "accn": "0001070494-25-000012"
+            },
+            {
+              "end": "2023-12-31",
+              "val": 250000000,
+              "fy": 2023,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-02-27",
+              "accn": "0001070494-24-000010"
+            }
+          ]
+        }
+      },
+      "MarketableSecuritiesCurrent": {
+        "label": "Marketable Securities, Current",
+        "units": {
+          "USD": [
+            {
+              "end": "2024-12-31",
+              "val": 90000000,
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2025-02-26",
+              "accn": "0001070494-25-000012"
+            }
+          ]
+        }
+      },
+      "LongTermDebtNoncurrent": {
+        "label": "Long-term Debt, Noncurrent",
+        "units": {
+          "USD": [
+            {
+              "end": "2024-12-31",
+              "val": 40000000,
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2025-02-26",
+              "accn": "0001070494-25-000012"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

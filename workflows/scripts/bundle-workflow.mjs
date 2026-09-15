@@ -52,6 +52,10 @@ const embedMap = {
     'workflows/shared/code/validate-collection-request.js',
   ),
   NORMALIZE_SEC_EVIDENCE: path.join(repoRoot, 'workflows/shared/code/normalize-sec-evidence.js'),
+  NORMALIZE_SEC_XBRL_EVIDENCE: path.join(
+    repoRoot,
+    'workflows/shared/code/normalize-sec-xbrl-evidence.js',
+  ),
   NORMALIZE_CTGOV_EVIDENCE: path.join(
     repoRoot,
     'workflows/shared/code/normalize-ctgov-evidence.js',
@@ -65,6 +69,15 @@ const embedMap = {
   PREPARE_CTGOV_ZERO_COUNT: path.join(
     repoRoot,
     'workflows/shared/code/prepare-ctgov-zero-count.js',
+  ),
+  PREPARE_XBRL_FINANCIAL_UPSERTS: path.join(
+    repoRoot,
+    'workflows/shared/code/prepare-xbrl-financial-upserts.js',
+  ),
+  COUNT_XBRL_UPSERTS: path.join(repoRoot, 'workflows/shared/code/count-xbrl-upserts.js'),
+  PREPARE_XBRL_ZERO_COUNT: path.join(
+    repoRoot,
+    'workflows/shared/code/prepare-xbrl-zero-count.js',
   ),
   EVALUATE_COLLECTION_COVERAGE: path.join(
     repoRoot,
@@ -298,6 +311,30 @@ const embedMap = {
   BUILD_EMAIL_RESULT: path.join(
     repoRoot,
     'workflows/shared/code/build-email-result.js',
+  ),
+  PARSE_SLACK_SLASH_COMMAND: path.join(
+    repoRoot,
+    'workflows/shared/code/parse-slack-slash-command.js',
+  ),
+  BUILD_SLACK_FOLLOWUP: path.join(
+    repoRoot,
+    'workflows/shared/code/build-slack-followup.js',
+  ),
+  VALIDATE_SLACK_NOTIFY_REQUEST: path.join(
+    repoRoot,
+    'workflows/shared/code/validate-slack-notify-request.js',
+  ),
+  EVALUATE_SLACK_NOTIFY: path.join(
+    repoRoot,
+    'workflows/shared/code/evaluate-slack-notify.js',
+  ),
+  PREPARE_SLACK_NOTIFY_AGGREGATE: path.join(
+    repoRoot,
+    'workflows/shared/code/prepare-slack-notify-aggregate.js',
+  ),
+  BUILD_SLACK_NOTIFY_RESULT: path.join(
+    repoRoot,
+    'workflows/shared/code/build-slack-notify-result.js',
   ),
 };
 

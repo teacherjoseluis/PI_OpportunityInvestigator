@@ -146,6 +146,29 @@ const loadEvidenceDocuments = node({
   },
 });
 
+const loadFinancialMetrics = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Load Financial Metrics',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query:
+        "SELECT fm.metric_key, fm.metric_value, fm.currency, fm.unit, fm.assumption_set, fm.source_evidence_id, fm.calculation_notes, fp.period_label, fp.period_end, fp.period_start, fp.fiscal_year, fp.fiscal_quarter FROM financial_metrics fm JOIN financial_periods fp ON fp.id = fm.financial_period_id WHERE fp.case_id = $1::uuid OR fp.company_id = NULLIF(NULLIF(TRIM($2), ''), 'null')::uuid ORDER BY fp.period_end DESC NULLS LAST, fm.metric_key ASC",
+      options: {
+        queryReplacement: expr(
+          '{{ $("Validate Financial Request").item.json.case_id }},{{ $("Load Case And Company").item.json.company_id }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
 const loadAnalysisConfig = node({
   type: 'n8n-nodes-base.postgres',
   version: 2.7,
@@ -486,13 +509,13 @@ const buildFinancialResult = node({
 });
 
 const intakeNote = sticky(
-  '## PII-04 Financial Analyst\nPhase 1: deterministic claims from SEC/CT.gov metadata.\nNo LLM. No invented cash/runway numbers.',
+  '## PII-04 Financial Analyst\nDeterministic claims from SEC/CT.gov metadata + Slice E1 XBRL cash/debt metrics.\nNo LLM. No invented cash/runway numbers.',
   [financialTrigger, validateFinancialRequest, loadEvidenceDocuments],
   { color: 4 },
 );
 
 const claimsNote = sticky(
-  '## Claims\nPersist claims + claim_evidence_links.\nExplicit INSUFFICIENT_EVIDENCE topics until PII-03 XBRL circle-back.',
+  '## Claims\nPersist claims + claim_evidence_links.\nCash/debt facts when financial_metrics present; else INSUFFICIENT_EVIDENCE.',
   [evaluateFinancialBusiness, insertFinancialClaims, insertClaimEvidenceLinks],
   { color: 5 },
 );
@@ -524,12 +547,14 @@ export default workflow('pii-04-financial', 'PII-04 Financial and Business Analy
       .onTrue(
         loadCaseAndCompany.to(
           loadEvidenceDocuments.to(
-            loadAnalysisConfig.to(
-              evaluateFinancialBusiness.to(
-                expandFinancialClaims.to(
-                  hasClaims
-                    .onTrue(insertFinancialClaims.to(afterClaimsPath))
-                    .onFalse(prepareZeroClaims.to(finishPath)),
+            loadFinancialMetrics.to(
+              loadAnalysisConfig.to(
+                evaluateFinancialBusiness.to(
+                  expandFinancialClaims.to(
+                    hasClaims
+                      .onTrue(insertFinancialClaims.to(afterClaimsPath))
+                      .onFalse(prepareZeroClaims.to(finishPath)),
+                  ),
                 ),
               ),
             ),

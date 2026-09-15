@@ -10,11 +10,15 @@ import {
 
 const validateCollectionRequestCode = `__VALIDATE_COLLECTION_REQUEST__`;
 const normalizeSecEvidenceCode = `__NORMALIZE_SEC_EVIDENCE__`;
+const normalizeSecXbrlEvidenceCode = `__NORMALIZE_SEC_XBRL_EVIDENCE__`;
 const normalizeCtgovEvidenceCode = `__NORMALIZE_CTGOV_EVIDENCE__`;
 const expandEvidenceDocumentsCode = `__EXPAND_EVIDENCE_DOCUMENTS__`;
 const countSecUpsertsCode = `__COUNT_SEC_UPSERTS__`;
 const countCtgovUpsertsCode = `__COUNT_CTGOV_UPSERTS__`;
 const prepareCtgovZeroCountCode = `__PREPARE_CTGOV_ZERO_COUNT__`;
+const prepareXbrlFinancialUpsertsCode = `__PREPARE_XBRL_FINANCIAL_UPSERTS__`;
+const countXbrlUpsertsCode = `__COUNT_XBRL_UPSERTS__`;
+const prepareXbrlZeroCountCode = `__PREPARE_XBRL_ZERO_COUNT__`;
 const evaluateCollectionCoverageCode = `__EVALUATE_COLLECTION_COVERAGE__`;
 const buildCollectionResultCode = `__BUILD_COLLECTION_RESULT__`;
 
@@ -303,6 +307,230 @@ const prepareSecZeroCount = node({
           { id: 'sec-ok', name: 'sec_ok', value: false, type: 'boolean' },
         ],
       },
+    },
+  },
+});
+
+const fetchSecCompanyfacts = node({
+  type: 'n8n-nodes-base.httpRequest',
+  version: 4.5,
+  config: {
+    name: 'Fetch SEC Companyfacts',
+    onError: 'continueRegularOutput',
+    retryOnFail: true,
+    maxTries: 3,
+    waitBetweenTries: 2000,
+    parameters: {
+      method: 'GET',
+      url: expr(
+        '=https://data.sec.gov/api/xbrl/companyfacts/CIK{{ $("Load Case And Company").item.json.cik }}.json',
+      ),
+      authentication: 'none',
+      sendHeaders: true,
+      specifyHeaders: 'keypair',
+      headerParameters: {
+        parameters: [
+          {
+            name: 'User-Agent',
+            value: 'PI Opportunity Investigator teacherjoseluis@gmail.com',
+          },
+          { name: 'Accept', value: 'application/json' },
+          { name: 'Accept-Encoding', value: 'gzip, deflate' },
+        ],
+      },
+      options: {
+        timeout: 90000,
+        lowercaseHeaders: false,
+        response: {
+          response: {
+            neverError: true,
+            responseFormat: 'json',
+          },
+        },
+      },
+    },
+  },
+});
+
+const normalizeSecXbrlEvidence = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Normalize SEC XBRL Facts',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: normalizeSecXbrlEvidenceCode,
+    },
+  },
+});
+
+const expandXbrlDocuments = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Expand XBRL Documents',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: expandEvidenceDocumentsCode,
+    },
+  },
+});
+
+const hasXbrlDocs = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Has XBRL Docs?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_upsert }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const upsertXbrlEvidenceSql =
+  "INSERT INTO evidence_documents (case_id, company_id, source_type, publisher, canonical_url, stable_source_id, title, publication_date, content_sha256, authority_tier, access_status, parsing_status, raw_content_location, metadata_json) VALUES ($1::uuid, NULLIF(NULLIF(TRIM($2), ''), 'null')::uuid, $3, $4, $5, $6, $7, CASE WHEN NULLIF(NULLIF(TRIM($8), ''), 'null') IS NULL THEN NULL WHEN TRIM($8) ~ '^\\d{4}-\\d{2}-\\d{2}' THEN LEFT(TRIM($8), 10)::date WHEN TRIM($8) ~ '^\\d{4}-\\d{2}$' THEN (TRIM($8) || '-01')::date WHEN TRIM($8) ~ '^\\d{4}$' THEN (TRIM($8) || '-01-01')::date ELSE NULL END, $9, 'primary', 'retrieved', 'xbrl_facts_extracted', 'inline:metadata_json', convert_from(decode($10, 'base64'), 'UTF8')::jsonb) ON CONFLICT (content_sha256) WHERE content_sha256 IS NOT NULL DO UPDATE SET case_id = COALESCE(EXCLUDED.case_id, evidence_documents.case_id), company_id = COALESCE(EXCLUDED.company_id, evidence_documents.company_id), parsing_status = EXCLUDED.parsing_status, metadata_json = EXCLUDED.metadata_json, updated_at = NOW() RETURNING id AS evidence_id, case_id, source_type, stable_source_id";
+
+const upsertXbrlEvidence = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert XBRL Evidence',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertXbrlEvidenceSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.case_id }},{{ $json.company_id }},{{ $json.source_type }},{{ $json.publisher }},{{ $json.canonical_url }},{{ $json.stable_source_id }},{{ $json.title_safe }},{{ $json.publication_date }},{{ $json.content_sha256 }},{{ $json.metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const prepareXbrlFinancialUpserts = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare XBRL Financial Upserts',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareXbrlFinancialUpsertsCode,
+    },
+  },
+});
+
+const upsertXbrlFinancialPeriod = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert XBRL Financial Period',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query:
+        "INSERT INTO financial_periods (company_id, case_id, period_label, period_start, period_end, fiscal_year, fiscal_quarter, source_evidence_id) VALUES ($1::uuid, $2::uuid, $3, NULLIF(NULLIF(TRIM($4), ''), 'null')::date, NULLIF(NULLIF(TRIM($5), ''), 'null')::date, NULLIF(NULLIF(TRIM($6), ''), 'null')::integer, NULLIF(NULLIF(TRIM($7), ''), 'null')::integer, $8::uuid) ON CONFLICT (company_id, period_label) DO UPDATE SET case_id = COALESCE(EXCLUDED.case_id, financial_periods.case_id), period_end = COALESCE(EXCLUDED.period_end, financial_periods.period_end), fiscal_year = COALESCE(EXCLUDED.fiscal_year, financial_periods.fiscal_year), fiscal_quarter = COALESCE(EXCLUDED.fiscal_quarter, financial_periods.fiscal_quarter), source_evidence_id = COALESCE(EXCLUDED.source_evidence_id, financial_periods.source_evidence_id), updated_at = NOW() RETURNING id AS financial_period_id, company_id, case_id",
+      options: {
+        queryReplacement: expr(
+          '{{ $json.company_id }},{{ $json.case_id }},{{ $json.period_label }},{{ $json.period_start }},{{ $json.period_end }},{{ $json.fiscal_year }},{{ $json.fiscal_quarter }},{{ $json.evidence_id }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const upsertXbrlFinancialMetrics = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert XBRL Financial Metrics',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query:
+        "WITH metrics AS (SELECT * FROM jsonb_to_recordset(convert_from(decode($2, 'base64'), 'UTF8')::jsonb) AS x(metric_key text, metric_value numeric, currency text, unit text, scale text, assumption_set text, calculation_notes text)) INSERT INTO financial_metrics (financial_period_id, metric_key, metric_value, currency, unit, scale, assumption_set, source_evidence_id, calculation_notes) SELECT $1::uuid, metric_key, metric_value, COALESCE(currency, 'USD'), COALESCE(unit, 'USD'), COALESCE(scale, 'as_reported'), COALESCE(NULLIF(assumption_set, ''), 'reported'), $3::uuid, calculation_notes FROM metrics ON CONFLICT (financial_period_id, metric_key, assumption_set) DO UPDATE SET metric_value = EXCLUDED.metric_value, currency = EXCLUDED.currency, unit = EXCLUDED.unit, scale = EXCLUDED.scale, source_evidence_id = EXCLUDED.source_evidence_id, calculation_notes = EXCLUDED.calculation_notes RETURNING id AS financial_metric_id, metric_key",
+      options: {
+        queryReplacement: expr(
+          '{{ $json.financial_period_id }},{{ $("Prepare XBRL Financial Upserts").item.json.metrics_b64 }},{{ $("Prepare XBRL Financial Upserts").item.json.evidence_id }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const upsertXbrlEvidenceChunk = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert XBRL Evidence Chunk',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query:
+        "INSERT INTO evidence_chunks (evidence_id, chunk_index, chunk_text, token_estimate, metadata_json) VALUES ($1::uuid, COALESCE(NULLIF(NULLIF(TRIM($2), ''), 'null')::integer, 0), $3, NULLIF(NULLIF(TRIM($4), ''), 'null')::integer, convert_from(decode($5, 'base64'), 'UTF8')::jsonb) ON CONFLICT (evidence_id, chunk_index) DO UPDATE SET chunk_text = EXCLUDED.chunk_text, token_estimate = EXCLUDED.token_estimate, metadata_json = EXCLUDED.metadata_json RETURNING id AS chunk_id, evidence_id",
+      options: {
+        queryReplacement: expr(
+          '{{ $("Prepare XBRL Financial Upserts").item.json.evidence_id }},{{ $("Prepare XBRL Financial Upserts").item.json.chunk_index }},{{ $("Prepare XBRL Financial Upserts").item.json.chunk_text }},{{ $("Prepare XBRL Financial Upserts").item.json.chunk_token_estimate }},{{ $("Prepare XBRL Financial Upserts").item.json.chunk_metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const countXbrlUpserts = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Count XBRL Upserts',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: countXbrlUpsertsCode,
+    },
+  },
+});
+
+const prepareXbrlZeroCount = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare XBRL Zero Count',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareXbrlZeroCountCode,
     },
   },
 });
@@ -621,19 +849,19 @@ const buildCollectionResult = node({
 });
 
 const intakeNote = sticky(
-  '## PII-03 Evidence Collector\nPhase 1: SEC submissions + ClinicalTrials.gov.\nDeferred: FDA, IR, patents, full filing bodies, object storage.',
+  '## PII-03 Evidence Collector\nSEC submissions + ClinicalTrials.gov + Slice E1 companyfacts XBRL cash/debt.\nDeferred: FDA, IR, patents, full HTML bodies, object storage.',
   [collectionTrigger, validateCollectionRequest, loadCaseAndCompany],
   { color: 4 },
 );
 
 const collectorsNote = sticky(
-  '## Collectors\nSEC Fair Access User-Agent required.\nUpsert evidence_documents by content_sha256.',
-  [fetchSecSubmissions, fetchCtgovStudies, upsertSecEvidence],
+  '## Collectors\nSEC Fair Access User-Agent required.\nUpsert evidence_documents by content_sha256; XBRL → financial_periods/metrics + chunks.',
+  [fetchSecSubmissions, fetchSecCompanyfacts, fetchCtgovStudies, upsertSecEvidence],
   { color: 5 },
 );
 
 const coverageNote = sticky(
-  '## Coverage\nmin_sec_documents default 1 → ANALYZING.\nPARTIAL still advances unless config requires human review.',
+  '## Coverage\nmin_sec_documents default 1 → ANALYZING.\nXBRL failure is partial (does not block ANALYZING when SEC/CT ok).',
   [evaluateCollectionCoverage, advanceCaseState, buildCollectionResult],
   { color: 6 },
 );
@@ -655,6 +883,26 @@ const ctgovAndFinish = fetchCtgovStudies.to(
   ),
 );
 
+const xbrlAndFinish = fetchSecCompanyfacts.to(
+  normalizeSecXbrlEvidence.to(
+    expandXbrlDocuments.to(
+      hasXbrlDocs
+        .onTrue(
+          upsertXbrlEvidence.to(
+            prepareXbrlFinancialUpserts.to(
+              upsertXbrlFinancialPeriod.to(
+                upsertXbrlFinancialMetrics.to(
+                  upsertXbrlEvidenceChunk.to(countXbrlUpserts.to(ctgovAndFinish)),
+                ),
+              ),
+            ),
+          ),
+        )
+        .onFalse(prepareXbrlZeroCount.to(ctgovAndFinish)),
+    ),
+  ),
+);
+
 export default workflow('pii-03-evidence', 'PII-03 Evidence Collector')
   .add(collectionTrigger)
   .to(validateCollectionRequest)
@@ -668,8 +916,8 @@ export default workflow('pii-03-evidence', 'PII-03 Evidence Collector')
               normalizeSecEvidence.to(
                 expandSecDocuments.to(
                   hasSecDocs
-                    .onTrue(upsertSecEvidence.to(countSecUpserts.to(ctgovAndFinish)))
-                    .onFalse(prepareSecZeroCount.to(ctgovAndFinish)),
+                    .onTrue(upsertSecEvidence.to(countSecUpserts.to(xbrlAndFinish)))
+                    .onFalse(prepareSecZeroCount.to(xbrlAndFinish)),
                 ),
               ),
             ),

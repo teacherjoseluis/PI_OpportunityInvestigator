@@ -1,6 +1,6 @@
 # PII-03 Evidence Collector
 
-Phase 1 vertical slice — collect primary evidence for a case in `COLLECTING`, persist `evidence_documents`, advance state.
+Collect primary evidence for a case in `COLLECTING`, persist `evidence_documents` (and Slice E1 financial metrics), advance state.
 
 ## Invocation
 
@@ -23,38 +23,51 @@ Subworkflow. Called by PII-00 after PII-02 only when `next_state === COLLECTING`
   "case_id": "uuid",
   "outcome": "COLLECTED",
   "next_state": "ANALYZING",
-  "counts": { "sec_stored_count": 4, "ct_stored_count": 2 },
-  "collector_status": [{ "key": "sec_edgar", "ok": true }]
+  "counts": {
+    "sec_stored_count": 4,
+    "ct_stored_count": 2,
+    "xbrl_stored_count": 1,
+    "xbrl_metric_count": 6
+  },
+  "collector_status": [
+    { "key": "sec_edgar", "ok": true },
+    { "key": "clinicaltrials_gov", "ok": true },
+    { "key": "sec_filing_bodies", "ok": true, "metric_count": 6 }
+  ]
 }
 ```
 
 Outcomes: `COLLECTED` | `PARTIAL` | `FAILED`.
 
-## Phase 1 collectors (live)
+## Live collectors
 
 | Collector | Source |
 |---|---|
 | SEC EDGAR | `data.sec.gov/submissions/CIK….json` — summary + recent filing metadata |
 | ClinicalTrials.gov | API v2 `/studies` by sponsor name — one row per NCT |
+| SEC companyfacts (E1) | `data.sec.gov/api/xbrl/companyfacts/CIK….json` — cash/debt → `financial_periods` / `financial_metrics` + `evidence_chunks` |
 
-## Deferred collectors (extension points)
+## Deferred collectors
 
-Configured in `config/collection.v1.json` with `enabled: false`:
+Configured in `config/collection.v1.json` with `enabled: false` (except `sec_filing_bodies` for E1):
 
 - FDA / openFDA
 - Company IR / press
 - USPTO / patents
-- Full SEC filing bodies / XBRL
-- Object storage for raw blobs
+- Full SEC filing HTML bodies (E3; companyfacts path is E1)
+- Object storage for raw blobs (E2)
+
+Roadmap: **[docs/ENRICHMENT.md](../../docs/ENRICHMENT.md)**.
 
 ## Behavior
 
 1. Validate input; load case + CIK/legal_name; load `gates_json.collection`
 2. Fetch SEC submissions → normalize → upsert `evidence_documents` (SHA-256 dedupe)
-3. Fetch CT.gov studies → normalize → upsert
-4. Evaluate coverage (`min_sec_documents` default 1)
-5. Advance `COLLECTING` → `ANALYZING` (or `INCOMPLETE` / human review per config)
-6. Log `case_state_history` + `workflow_runs` (`PII-03`)
+3. Fetch SEC companyfacts → normalize cash/debt → upsert evidence + period/metrics + chunk
+4. Fetch CT.gov studies → normalize → upsert
+5. Evaluate coverage (`min_sec_documents` default 1; XBRL failure is non-blocking when SEC/CT ok)
+6. Advance `COLLECTING` → `ANALYZING` (or `INCOMPLETE` / human review per config)
+7. Log `case_state_history` + `workflow_runs` (`PII-03`)
 
 ## Regenerate
 
@@ -70,3 +83,5 @@ Credential: **Postgres account**. `callerPolicy=workflowsFromSameOwner`.
 ## Smoke note
 
 PII-03 does not run when PII-02 returns `AWAITING_HUMAN_REVIEW`. Force a case to `COLLECTING` or obtain an eligibility PASS, then Execute this workflow in n8n with `{ case_id, ticker, exchange }` (MCP cannot drive Execute Workflow Trigger).
+
+Before hosted E1 smoke: apply migration `018_collection_sec_xbrl_cash_debt_v1.sql` on VPS, then deploy updated PII-03 (and PII-04 / PII-10 / PII-11) when requested.

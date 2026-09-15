@@ -346,11 +346,15 @@ const opposing = strongestClaim(
 );
 const insufficientAny = claimRows.filter(isInsufficientClaim);
 
+const cashDebtResolved = claimRows.some(
+  (c) =>
+    (c.topic_key === 'cash_debt' || c.extraction_method === 'deterministic_xbrl_metrics') &&
+    !isInsufficientClaim(c),
+);
 const cashDebtMissing =
-  scoreRow.business_quality_score == null ||
-  scoreRow.business_quality_score === '' ||
-  business.insufficient_topics.some((t) => /cash|debt|runway/i.test(t)) ||
-  insufficientAny.some((c) => /cash|debt|runway/i.test(String(c.claim_text || '')));
+  !cashDebtResolved &&
+  (business.insufficient_topics.some((t) => /cash|debt|runway/i.test(t)) ||
+    insufficientAny.some((c) => /cash|debt|runway/i.test(String(c.claim_text || ''))));
 
 const priorVersion = Number(versionRow.max_version || 0);
 const nextVersion = priorVersion + 1;

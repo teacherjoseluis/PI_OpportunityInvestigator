@@ -46,6 +46,73 @@ describe('evaluate-financial-business', () => {
     assert.ok(result.json.claims.some((c) => c.topic_key === 'pipeline_presence_inference'));
   });
 
+  it('emits cash_debt fact when XBRL financial metrics are present', () => {
+    const [result] = runCodeNode(EVALUATE, {
+      items: [{ financial_config: financialConfig }],
+      nodes: {
+        'Validate Financial Request': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            ticker: 'ACAD',
+            exchange: 'NASDAQ',
+            n8n_execution_id: 'exec-xbrl',
+          },
+        ],
+        'Load Case And Company': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            company_id: '7e2399f9-c323-41e5-8291-e354b3375527',
+            legal_name: 'ACADIA PHARMACEUTICALS INC',
+            ticker: 'ACAD',
+          },
+        ],
+        'Load Analysis Config': [{ gates_json: { analysis: { financial: financialConfig } } }],
+        'Load Evidence Documents': [
+          ...evidence,
+          {
+            id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            source_type: 'sec_companyfacts',
+            title: 'SEC companyfacts cash/debt',
+            metadata_json: { collector: 'sec_filing_bodies' },
+          },
+        ],
+        'Load Financial Metrics': [
+          {
+            metric_key: 'cash_and_equivalents',
+            metric_value: 310000000,
+            currency: 'USD',
+            period_label: 'XBRL_2024-12-31',
+            period_end: '2024-12-31',
+            source_evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+          {
+            metric_key: 'total_debt',
+            metric_value: 40000000,
+            currency: 'USD',
+            period_label: 'XBRL_2024-12-31',
+            period_end: '2024-12-31',
+            source_evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+          {
+            metric_key: 'net_cash',
+            metric_value: 270000000,
+            currency: 'USD',
+            period_label: 'XBRL_2024-12-31',
+            period_end: '2024-12-31',
+            source_evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+        ],
+      },
+    });
+
+    assert.equal(result.json.outcome, 'ANALYZED');
+    assert.ok(!result.json.insufficient_topics.includes('cash_debt'));
+    const cashClaim = result.json.claims.find((c) => c.topic_key === 'cash_debt');
+    assert.ok(cashClaim);
+    assert.equal(cashClaim.extraction_method, 'deterministic_xbrl_metrics');
+    assert.ok(cashClaim.claim_text.includes('310,000,000'));
+  });
+
   it('returns INSUFFICIENT when no filings exist', () => {
     const [result] = runCodeNode(EVALUATE, {
       items: [{}],

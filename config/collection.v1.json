@@ -25,8 +25,9 @@
       "description": "Deferred — USPTO / patent sources"
     },
     "sec_filing_bodies": {
-      "enabled": false,
-      "description": "Deferred — full SEC filing body / XBRL fact extraction"
+      "enabled": true,
+      "description": "Slice E1 — SEC companyfacts XBRL cash/debt metrics (not full HTML bodies)",
+      "mode": "companyfacts_cash_debt"
     }
   }
 }

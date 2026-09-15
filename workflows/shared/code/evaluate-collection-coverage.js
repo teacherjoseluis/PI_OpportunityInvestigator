@@ -21,11 +21,16 @@ const validated = nodeJson('Validate Collection Request') || item;
 const configRow = nodeJson('Load Collection Config') || item.config || {};
 const secNorm = nodeJson('Normalize SEC Evidence') || item.sec || {};
 const ctNorm = nodeJson('Normalize CT.gov Evidence') || item.ctgov || {};
+const xbrlNorm = nodeJson('Normalize SEC XBRL Facts') || item.xbrl || {};
 
 const gates = configRow.gates_json || {};
 const collection = (gates && gates.collection) || item.collection || {};
 const minSec = Number(collection.min_sec_documents ?? 1);
 const partialNeedsHuman = collection.partial_requires_human_review === true;
+const xbrlEnabled =
+  collection.collectors &&
+  collection.collectors.sec_filing_bodies &&
+  collection.collectors.sec_filing_bodies.enabled === true;
 
 const secAttempted = countItems('Expand SEC Documents') || Number(secNorm.document_count || 0);
 const ctAttempted = countItems('Expand CT.gov Documents') || Number(ctNorm.document_count || 0);
@@ -37,13 +42,25 @@ const secStored = Number(
 const ctStored = Number(
   item.ct_stored_count ?? nodeJson('Count CT.gov Upserts')?.ct_stored_count ?? ctAttempted,
 );
+const xbrlStored = Number(
+  item.xbrl_stored_count ??
+    nodeJson('Count XBRL Upserts')?.xbrl_stored_count ??
+    nodeJson('Prepare XBRL Zero Count')?.xbrl_stored_count ??
+    0,
+);
+const xbrlMetrics = Number(
+  item.xbrl_metric_count ?? nodeJson('Count XBRL Upserts')?.xbrl_metric_count ?? 0,
+);
 
 const secOk = secNorm.ok === true && secStored >= minSec;
 const ctOk = ctNorm.ok === true; // zero studies can still be a successful empty search
 const secFailed = secNorm.ok === false;
 const ctFailed = ctNorm.ok === false;
+const xbrlOk =
+  !xbrlEnabled || xbrlNorm.skipped === true || xbrlNorm.ok === true || xbrlStored > 0;
+const xbrlFailed = xbrlEnabled && xbrlNorm.skipped !== true && xbrlNorm.ok === false && xbrlStored < 1;
 
-const totalStored = secStored + (ctFailed ? 0 : ctStored);
+const totalStored = secStored + (ctFailed ? 0 : ctStored) + xbrlStored;
 const collector_status = [
   {
     key: 'sec_edgar',
@@ -57,6 +74,14 @@ const collector_status = [
     error: ctNorm.error || null,
     document_count: ctFailed ? 0 : ctStored,
   },
+  {
+    key: 'sec_filing_bodies',
+    ok: xbrlOk,
+    skipped: !xbrlEnabled || xbrlNorm.skipped === true,
+    error: xbrlFailed ? xbrlNorm.error || 'xbrl_failed' : null,
+    document_count: xbrlStored,
+    metric_count: xbrlMetrics,
+  },
 ];
 
 let outcome;
@@ -64,9 +89,9 @@ let next_state;
 let reason;
 
 if (secOk && !ctFailed) {
-  outcome = ctStored > 0 || ctOk ? 'COLLECTED' : 'COLLECTED';
+  outcome = 'COLLECTED';
   next_state = 'ANALYZING';
-  reason = 'minimum_coverage_met';
+  reason = xbrlFailed ? 'minimum_coverage_met_xbrl_partial' : 'minimum_coverage_met';
 } else if (totalStored > 0 || secOk) {
   outcome = 'PARTIAL';
   next_state = partialNeedsHuman ? 'AWAITING_HUMAN_REVIEW' : 'ANALYZING';
@@ -84,6 +109,8 @@ if (secOk && !ctFailed) {
 const summary = {
   sec_stored_count: secStored,
   ct_stored_count: ctFailed ? 0 : ctStored,
+  xbrl_stored_count: xbrlStored,
+  xbrl_metric_count: xbrlMetrics,
   total_stored_count: totalStored,
   min_sec_documents: minSec,
 };

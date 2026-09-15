@@ -74,6 +74,49 @@ describe('evaluate-collection-coverage', () => {
     assert.equal(result.json.next_state, 'ANALYZING');
   });
 
+  it('reports sec_filing_bodies status when XBRL metrics are stored', () => {
+    const [result] = runCodeNode(COVERAGE, {
+      items: [{ sec_stored_count: 4, ct_stored_count: 2, xbrl_stored_count: 1, xbrl_metric_count: 6 }],
+      nodes: {
+        'Validate Collection Request': [
+          {
+            case_id: '91815cf2-865d-4173-8263-f490cc129608',
+            ticker: 'ACAD',
+            exchange: 'NASDAQ',
+            n8n_execution_id: '1',
+          },
+        ],
+        'Load Collection Config': [
+          {
+            gates_json: {
+              collection: {
+                min_sec_documents: 1,
+                collectors: {
+                  sec_filing_bodies: { enabled: true, mode: 'companyfacts_cash_debt' },
+                },
+              },
+            },
+          },
+        ],
+        'Normalize SEC Evidence': [{ ok: true, document_count: 4, cik: '0001070494' }],
+        'Normalize CT.gov Evidence': [{ ok: true, document_count: 2 }],
+        'Normalize SEC XBRL Facts': [{ ok: true, document_count: 1, metric_count: 6 }],
+        'Expand SEC Documents': [{ skip_upsert: false }],
+        'Expand CT.gov Documents': [{ skip_upsert: false }],
+        'Count SEC Upserts': [{ sec_stored_count: 4 }],
+        'Count CT.gov Upserts': [{ ct_stored_count: 2 }],
+        'Count XBRL Upserts': [{ xbrl_stored_count: 1, xbrl_metric_count: 6 }],
+      },
+    });
+
+    assert.equal(result.json.outcome, 'COLLECTED');
+    assert.equal(result.json.counts.xbrl_stored_count, 1);
+    assert.equal(result.json.counts.xbrl_metric_count, 6);
+    const xbrlStatus = result.json.collector_status.find((c) => c.key === 'sec_filing_bodies');
+    assert.equal(xbrlStatus.ok, true);
+    assert.equal(xbrlStatus.metric_count, 6);
+  });
+
   it('fails when no evidence was stored', () => {
     const [result] = runCodeNode(COVERAGE, {
       items: [{ sec_stored_count: 0, ct_stored_count: 0 }],

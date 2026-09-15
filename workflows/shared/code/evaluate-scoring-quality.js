@@ -333,10 +333,20 @@ addGate(
 const requireCashDebt =
   scoring.require_cash_debt_from_filing !== false &&
   (gates.require_cash_debt_from_filing !== false);
+
+const cashDebtFact = claimRows.some(
+  (c) =>
+    (c.topic_key === 'cash_debt' || c.extraction_method === 'deterministic_xbrl_metrics') &&
+    !isInsufficientClaim(c),
+);
 addGate(
   'cash_debt_from_filing',
-  false,
-  'Phase 1: XBRL/filing-body cash and debt not collected (PII-03 backlog)',
+  !requireCashDebt || cashDebtFact,
+  cashDebtFact
+    ? 'filing-backed cash/debt claim present'
+    : requireCashDebt
+      ? 'missing filing-backed cash/debt claim (XBRL/companyfacts)'
+      : 'cash_debt gate disabled',
 );
 
 const pipelineClaims = claimRows.filter(

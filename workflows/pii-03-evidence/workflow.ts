@@ -243,6 +243,444 @@ return [
   },
 ];
 `;
+const normalizeSecXbrlEvidenceCode = `// Canonical helpers + PII-03 "Normalize SEC XBRL Facts" Code node.
+// Extracts cash/debt metrics from SEC companyfacts JSON (Slice E1).
+
+const crypto = require('crypto');
+
+function nodeJson(name) {
+  try {
+    return $(name).first().json;
+  } catch {
+    return null;
+  }
+}
+
+function sha256Hex(value) {
+  return crypto.createHash('sha256').update(String(value), 'utf8').digest('hex');
+}
+
+function toBase64(obj) {
+  return Buffer.from(JSON.stringify(obj), 'utf8').toString('base64');
+}
+
+function padCik(cik) {
+  const digits = String(cik == null ? '' : cik).replace(/\\D/g, '');
+  if (!digits) return null;
+  return digits.padStart(10, '0');
+}
+
+function toNumber(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Pick the latest USD fact from a companyfacts concept unit map. */
+function pickLatestFact(conceptNode) {
+  if (!conceptNode || typeof conceptNode !== 'object') return null;
+  const units = conceptNode.units || {};
+  const series = units.USD || units['USD/shares'] || null;
+  if (!Array.isArray(series) || !series.length) return null;
+
+  const ranked = series
+    .map((row) => ({
+      val: toNumber(row.val),
+      end: row.end || null,
+      fy: row.fy == null ? null : Number(row.fy),
+      fp: row.fp || null,
+      form: row.form || null,
+      filed: row.filed || null,
+      accn: row.accn || null,
+      frame: row.frame || null,
+    }))
+    .filter((row) => row.val != null && row.end);
+
+  if (!ranked.length) return null;
+
+  ranked.sort((a, b) => {
+    if (a.end !== b.end) return a.end < b.end ? 1 : -1;
+    const af = a.filed || '';
+    const bf = b.filed || '';
+    if (af !== bf) return af < bf ? 1 : -1;
+    return 0;
+  });
+
+  return ranked[0];
+}
+
+function readConcept(facts, taxonomy, concept) {
+  const node = facts && facts[taxonomy] && facts[taxonomy][concept];
+  if (!node) return null;
+  const latest = pickLatestFact(node);
+  if (!latest) return null;
+  return {
+    concept,
+    taxonomy,
+    label: node.label || concept,
+    ...latest,
+  };
+}
+
+function firstConcept(facts, taxonomy, concepts) {
+  for (const concept of concepts) {
+    const hit = readConcept(facts, taxonomy, concept);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/**
+ * Extract cash / marketable securities / debt metrics from companyfacts payload.
+ * Pure function — used by Code node and unit tests.
+ */
+function extractCashDebtMetrics(companyfacts, options) {
+  const opts = options || {};
+  const facts = (companyfacts && companyfacts.facts) || {};
+  const taxonomy = opts.taxonomy || 'us-gaap';
+
+  const cashConcepts = opts.cash_concepts || [
+    'CashAndCashEquivalentsAtCarryingValue',
+    'CashCashEquivalentsAndShortTermInvestments',
+    'Cash',
+  ];
+  const marketableConcepts = opts.marketable_concepts || [
+    'MarketableSecuritiesCurrent',
+    'AvailableForSaleSecuritiesCurrent',
+    'ShortTermInvestments',
+    'MarketableSecurities',
+  ];
+  const shortDebtConcepts = opts.short_debt_concepts || [
+    'ShortTermBorrowings',
+    'LongTermDebtCurrent',
+    'DebtCurrent',
+    'LongTermDebtAndCapitalLeaseObligationsCurrent',
+  ];
+  const longDebtConcepts = opts.long_debt_concepts || [
+    'LongTermDebtNoncurrent',
+    'LongTermDebt',
+    'LongTermDebtAndCapitalLeaseObligations',
+    'LongTermDebtNoncurrentAndCapitalLeaseObligations',
+  ];
+
+  const cash = firstConcept(facts, taxonomy, cashConcepts);
+  const marketable = firstConcept(facts, taxonomy, marketableConcepts);
+  const shortDebt = firstConcept(facts, taxonomy, shortDebtConcepts);
+  const longDebt = firstConcept(facts, taxonomy, longDebtConcepts);
+
+  if (!cash && !marketable && !shortDebt && !longDebt) {
+    return { ok: false, error: 'no_cash_debt_concepts', metrics: [], period: null };
+  }
+
+  const anchor = cash || marketable || longDebt || shortDebt;
+  const periodEnd = anchor.end;
+  const periodLabel = 'XBRL_' + periodEnd;
+  const fp = String(anchor.fp || '').toUpperCase();
+  let fiscalQuarter = null;
+  if (fp === 'Q1') fiscalQuarter = 1;
+  else if (fp === 'Q2') fiscalQuarter = 2;
+  else if (fp === 'Q3') fiscalQuarter = 3;
+  else if (fp === 'Q4' || fp === 'FY') fiscalQuarter = fp === 'FY' ? 4 : 4;
+
+  const period = {
+    period_label: periodLabel,
+    period_start: null,
+    period_end: periodEnd,
+    fiscal_year: anchor.fy,
+    fiscal_quarter: fiscalQuarter,
+    form: anchor.form || null,
+    filed: anchor.filed || null,
+    accession: anchor.accn || null,
+  };
+
+  const metrics = [];
+  function pushMetric(key, fact, notes) {
+    if (!fact) return;
+    metrics.push({
+      metric_key: key,
+      metric_value: fact.val,
+      currency: 'USD',
+      unit: 'USD',
+      scale: 'as_reported',
+      assumption_set: 'reported',
+      calculation_notes: notes || fact.concept,
+      concept: fact.concept,
+      end: fact.end,
+      form: fact.form || null,
+    });
+  }
+
+  pushMetric('cash_and_equivalents', cash, cash ? cash.concept : null);
+  pushMetric('marketable_securities_current', marketable, marketable ? marketable.concept : null);
+  pushMetric('short_term_debt', shortDebt, shortDebt ? shortDebt.concept : null);
+  pushMetric('long_term_debt', longDebt, longDebt ? longDebt.concept : null);
+
+  const cashVal = cash ? cash.val : 0;
+  const mktVal = marketable ? marketable.val : 0;
+  const stVal = shortDebt ? shortDebt.val : 0;
+  const ltVal = longDebt ? longDebt.val : 0;
+  const liquid = (cash ? cash.val : 0) + (marketable ? marketable.val : 0);
+  const totalDebt = (shortDebt ? shortDebt.val : 0) + (longDebt ? longDebt.val : 0);
+
+  if (cash || marketable) {
+    metrics.push({
+      metric_key: 'liquid_assets',
+      metric_value: liquid,
+      currency: 'USD',
+      unit: 'USD',
+      scale: 'as_reported',
+      assumption_set: 'reported',
+      calculation_notes:
+        'cash_and_equivalents(' +
+        cashVal +
+        ') + marketable_securities_current(' +
+        mktVal +
+        ')',
+      concept: 'derived',
+      end: periodEnd,
+      form: anchor.form || null,
+    });
+  }
+
+  if (shortDebt || longDebt) {
+    metrics.push({
+      metric_key: 'total_debt',
+      metric_value: totalDebt,
+      currency: 'USD',
+      unit: 'USD',
+      scale: 'as_reported',
+      assumption_set: 'reported',
+      calculation_notes:
+        'short_term_debt(' + stVal + ') + long_term_debt(' + ltVal + ')',
+      concept: 'derived',
+      end: periodEnd,
+      form: anchor.form || null,
+    });
+  }
+
+  if ((cash || marketable) && (shortDebt || longDebt || totalDebt === 0)) {
+    metrics.push({
+      metric_key: 'net_cash',
+      metric_value: liquid - totalDebt,
+      currency: 'USD',
+      unit: 'USD',
+      scale: 'as_reported',
+      assumption_set: 'reported',
+      calculation_notes: 'liquid_assets - total_debt',
+      concept: 'derived',
+      end: periodEnd,
+      form: anchor.form || null,
+    });
+  }
+
+  return {
+    ok: metrics.length > 0,
+    error: metrics.length ? null : 'no_metrics',
+    period,
+    metrics,
+    entityName: (companyfacts && companyfacts.entityName) || null,
+    cik: companyfacts && companyfacts.cik != null ? String(companyfacts.cik) : null,
+  };
+}
+
+// --- Code node entry (n8n) ---
+const item = $input.first().json || {};
+const validated = nodeJson('Validate Collection Request') || item;
+const caseRow = nodeJson('Load Case And Company') || item.case || item;
+const configRow = nodeJson('Load Collection Config') || item.config || {};
+
+const gates = configRow.gates_json || {};
+const collection =
+  (gates && gates.collection) || item.collection || item.collection_config || {};
+const collectors = collection.collectors || {};
+const xbrlCfg = collectors.sec_filing_bodies || {};
+const enabled = xbrlCfg.enabled !== false;
+
+const caseId = validated.case_id || caseRow.case_id || item.case_id;
+const companyId = caseRow.company_id || validated.company_id || null;
+const cik = padCik(caseRow.cik || validated.cik || item.cik);
+const legalName = caseRow.legal_name || item.legal_name || null;
+const ticker = validated.ticker || caseRow.ticker || item.ticker;
+
+if (!enabled) {
+  return [
+    {
+      json: {
+        case_id: caseId,
+        company_id: companyId,
+        cik,
+        legal_name: legalName,
+        ticker,
+        collector: 'sec_filing_bodies',
+        ok: true,
+        skipped: true,
+        error: null,
+        document_count: 0,
+        metric_count: 0,
+        documents: [],
+        has_xbrl_docs: false,
+      },
+    },
+  ];
+}
+
+const payload = item.companyfacts || item;
+const hasError = Boolean(
+  payload.error || payload.code || (payload.statusCode && payload.statusCode >= 400),
+);
+const hasFacts = payload.facts && typeof payload.facts === 'object';
+
+if (!cik || hasError || !hasFacts) {
+  return [
+    {
+      json: {
+        case_id: caseId,
+        company_id: companyId,
+        cik,
+        legal_name: legalName,
+        ticker,
+        collector: 'sec_filing_bodies',
+        ok: false,
+        skipped: false,
+        error: hasError ? 'sec_companyfacts_fetch_failed' : !cik ? 'cik_missing' : 'companyfacts_invalid',
+        document_count: 0,
+        metric_count: 0,
+        documents: [],
+        has_xbrl_docs: false,
+      },
+    },
+  ];
+}
+
+const extracted = extractCashDebtMetrics(payload, {
+  cash_concepts: xbrlCfg.cash_concepts,
+  marketable_concepts: xbrlCfg.marketable_concepts,
+  short_debt_concepts: xbrlCfg.short_debt_concepts,
+  long_debt_concepts: xbrlCfg.long_debt_concepts,
+});
+
+if (!extracted.ok) {
+  return [
+    {
+      json: {
+        case_id: caseId,
+        company_id: companyId,
+        cik,
+        legal_name: legalName || extracted.entityName,
+        ticker,
+        collector: 'sec_filing_bodies',
+        ok: false,
+        skipped: false,
+        error: extracted.error || 'extract_failed',
+        document_count: 0,
+        metric_count: 0,
+        documents: [],
+        has_xbrl_docs: false,
+      },
+    },
+  ];
+}
+
+const compactBody = {
+  cik,
+  entityName: extracted.entityName || legalName,
+  period: extracted.period,
+  metrics: extracted.metrics.map((m) => ({
+    metric_key: m.metric_key,
+    metric_value: m.metric_value,
+    concept: m.concept,
+    end: m.end,
+    form: m.form,
+  })),
+};
+const bodyJson = JSON.stringify(compactBody);
+const contentSha = sha256Hex(bodyJson);
+const stableId = 'sec-companyfacts-cashdebt-' + cik + '-' + extracted.period.period_end;
+
+const meta = {
+  collector: 'sec_filing_bodies',
+  cik,
+  period: extracted.period,
+  metric_keys: extracted.metrics.map((m) => m.metric_key),
+  source: 'data.sec.gov/api/xbrl/companyfacts',
+};
+const chunkText =
+  'SEC XBRL companyfacts cash/debt snapshot for ' +
+  (extracted.entityName || legalName || ticker) +
+  ' as of ' +
+  extracted.period.period_end +
+  ': ' +
+  extracted.metrics
+    .map((m) => m.metric_key + '=' + m.metric_value)
+    .join('; ') +
+  '.';
+
+const document = {
+  case_id: caseId,
+  company_id: companyId,
+  source_type: 'sec_companyfacts',
+  publisher: 'SEC EDGAR',
+  canonical_url: 'https://data.sec.gov/api/xbrl/companyfacts/CIK' + cik + '.json',
+  stable_source_id: stableId,
+  title:
+    'SEC companyfacts cash/debt ' +
+    (extracted.entityName || ticker || cik) +
+    ' @ ' +
+    extracted.period.period_end,
+  publication_date: extracted.period.filed || extracted.period.period_end,
+  content_sha256: contentSha,
+  authority_tier: 'primary',
+  access_status: 'retrieved',
+  parsing_status: 'xbrl_facts_extracted',
+  raw_content_location: 'inline:metadata_json',
+  metadata_json: meta,
+  metadata_b64: toBase64(meta),
+  chunk_text: chunkText,
+};
+
+const metricsForSql = extracted.metrics.map((m) => ({
+  metric_key: m.metric_key,
+  metric_value: m.metric_value,
+  currency: m.currency || 'USD',
+  unit: m.unit || 'USD',
+  scale: m.scale || 'as_reported',
+  assumption_set: m.assumption_set || 'reported',
+  calculation_notes: m.calculation_notes || null,
+}));
+
+const period = extracted.period;
+const chunkMetaB64 = toBase64({ kind: 'xbrl_cash_debt_summary', period_end: period.period_end });
+
+return [
+  {
+    json: {
+      case_id: caseId,
+      company_id: companyId,
+      cik,
+      legal_name: legalName || extracted.entityName,
+      ticker,
+      collector: 'sec_filing_bodies',
+      ok: true,
+      skipped: false,
+      error: null,
+      document_count: 1,
+      metric_count: metricsForSql.length,
+      documents: [document],
+      has_xbrl_docs: true,
+      period_label: period.period_label,
+      period_start: period.period_start,
+      period_end: period.period_end,
+      fiscal_year: period.fiscal_year,
+      fiscal_quarter: period.fiscal_quarter,
+      metrics_b64: toBase64(metricsForSql),
+      chunk_text: chunkText,
+      chunk_index: 0,
+      chunk_token_estimate: Math.ceil(chunkText.length / 4),
+      chunk_metadata_b64: chunkMetaB64,
+    },
+  },
+];
+`;
 const normalizeCtgovEvidenceCode = `// Canonical source for PII-03 "Normalize CT.gov Evidence" Code node.
 
 const crypto = require('crypto');
@@ -538,6 +976,99 @@ return [
   },
 ];
 `;
+const prepareXbrlFinancialUpsertsCode = `// After Upsert XBRL Evidence: bind returned evidence_id onto period/metrics/chunk fields.
+
+function nodeJson(name) {
+  try {
+    return $(name).first().json;
+  } catch {
+    return null;
+  }
+}
+
+const upserted = $input.first().json || {};
+const normalized = nodeJson('Normalize SEC XBRL Facts') || {};
+const evidenceId = upserted.evidence_id || upserted.id || null;
+
+return [
+  {
+    json: {
+      case_id: normalized.case_id || upserted.case_id,
+      company_id: normalized.company_id || upserted.company_id,
+      evidence_id: evidenceId,
+      period_label: normalized.period_label,
+      period_start: normalized.period_start,
+      period_end: normalized.period_end,
+      fiscal_year: normalized.fiscal_year,
+      fiscal_quarter: normalized.fiscal_quarter,
+      metrics_b64: normalized.metrics_b64,
+      chunk_text: normalized.chunk_text,
+      chunk_index: normalized.chunk_index == null ? 0 : normalized.chunk_index,
+      chunk_token_estimate: normalized.chunk_token_estimate || null,
+      chunk_metadata_b64: normalized.chunk_metadata_b64 || '',
+      metric_count: normalized.metric_count || 0,
+      xbrl_stored_count: evidenceId ? 1 : 0,
+    },
+  },
+];
+`;
+const countXbrlUpsertsCode = `// Count XBRL evidence + metric upsert results for coverage.
+
+function nodeJson(name) {
+  try {
+    return $(name).first().json;
+  } catch {
+    return null;
+  }
+}
+
+const prepared = nodeJson('Prepare XBRL Financial Upserts') || $input.first().json || {};
+const metricRows = (() => {
+  try {
+    return $('Upsert XBRL Financial Metrics').all().length;
+  } catch {
+    return Number(prepared.metric_count || 0);
+  }
+})();
+
+return [
+  {
+    json: {
+      case_id: prepared.case_id,
+      company_id: prepared.company_id,
+      xbrl_stored_count: Number(prepared.xbrl_stored_count || (prepared.evidence_id ? 1 : 0)),
+      xbrl_metric_count: metricRows,
+      evidence_id: prepared.evidence_id || null,
+    },
+  },
+];
+`;
+const prepareXbrlZeroCountCode = `// XBRL collector skipped or produced no documents.
+
+function nodeJson(name) {
+  try {
+    return $(name).first().json;
+  } catch {
+    return null;
+  }
+}
+
+const normalized = nodeJson('Normalize SEC XBRL Facts') || $input.first().json || {};
+const validated = nodeJson('Validate Collection Request') || {};
+
+return [
+  {
+    json: {
+      case_id: normalized.case_id || validated.case_id,
+      company_id: normalized.company_id || null,
+      xbrl_stored_count: 0,
+      xbrl_metric_count: 0,
+      skipped: normalized.skipped === true,
+      error: normalized.error || null,
+    },
+  },
+];
+`;
 const evaluateCollectionCoverageCode = `// Canonical source for PII-03 "Evaluate Collection Coverage" Code node.
 
 function nodeJson(name) {
@@ -561,11 +1092,16 @@ const validated = nodeJson('Validate Collection Request') || item;
 const configRow = nodeJson('Load Collection Config') || item.config || {};
 const secNorm = nodeJson('Normalize SEC Evidence') || item.sec || {};
 const ctNorm = nodeJson('Normalize CT.gov Evidence') || item.ctgov || {};
+const xbrlNorm = nodeJson('Normalize SEC XBRL Facts') || item.xbrl || {};
 
 const gates = configRow.gates_json || {};
 const collection = (gates && gates.collection) || item.collection || {};
 const minSec = Number(collection.min_sec_documents ?? 1);
 const partialNeedsHuman = collection.partial_requires_human_review === true;
+const xbrlEnabled =
+  collection.collectors &&
+  collection.collectors.sec_filing_bodies &&
+  collection.collectors.sec_filing_bodies.enabled === true;
 
 const secAttempted = countItems('Expand SEC Documents') || Number(secNorm.document_count || 0);
 const ctAttempted = countItems('Expand CT.gov Documents') || Number(ctNorm.document_count || 0);
@@ -577,13 +1113,25 @@ const secStored = Number(
 const ctStored = Number(
   item.ct_stored_count ?? nodeJson('Count CT.gov Upserts')?.ct_stored_count ?? ctAttempted,
 );
+const xbrlStored = Number(
+  item.xbrl_stored_count ??
+    nodeJson('Count XBRL Upserts')?.xbrl_stored_count ??
+    nodeJson('Prepare XBRL Zero Count')?.xbrl_stored_count ??
+    0,
+);
+const xbrlMetrics = Number(
+  item.xbrl_metric_count ?? nodeJson('Count XBRL Upserts')?.xbrl_metric_count ?? 0,
+);
 
 const secOk = secNorm.ok === true && secStored >= minSec;
 const ctOk = ctNorm.ok === true; // zero studies can still be a successful empty search
 const secFailed = secNorm.ok === false;
 const ctFailed = ctNorm.ok === false;
+const xbrlOk =
+  !xbrlEnabled || xbrlNorm.skipped === true || xbrlNorm.ok === true || xbrlStored > 0;
+const xbrlFailed = xbrlEnabled && xbrlNorm.skipped !== true && xbrlNorm.ok === false && xbrlStored < 1;
 
-const totalStored = secStored + (ctFailed ? 0 : ctStored);
+const totalStored = secStored + (ctFailed ? 0 : ctStored) + xbrlStored;
 const collector_status = [
   {
     key: 'sec_edgar',
@@ -597,6 +1145,14 @@ const collector_status = [
     error: ctNorm.error || null,
     document_count: ctFailed ? 0 : ctStored,
   },
+  {
+    key: 'sec_filing_bodies',
+    ok: xbrlOk,
+    skipped: !xbrlEnabled || xbrlNorm.skipped === true,
+    error: xbrlFailed ? xbrlNorm.error || 'xbrl_failed' : null,
+    document_count: xbrlStored,
+    metric_count: xbrlMetrics,
+  },
 ];
 
 let outcome;
@@ -604,9 +1160,9 @@ let next_state;
 let reason;
 
 if (secOk && !ctFailed) {
-  outcome = ctStored > 0 || ctOk ? 'COLLECTED' : 'COLLECTED';
+  outcome = 'COLLECTED';
   next_state = 'ANALYZING';
-  reason = 'minimum_coverage_met';
+  reason = xbrlFailed ? 'minimum_coverage_met_xbrl_partial' : 'minimum_coverage_met';
 } else if (totalStored > 0 || secOk) {
   outcome = 'PARTIAL';
   next_state = partialNeedsHuman ? 'AWAITING_HUMAN_REVIEW' : 'ANALYZING';
@@ -624,6 +1180,8 @@ if (secOk && !ctFailed) {
 const summary = {
   sec_stored_count: secStored,
   ct_stored_count: ctFailed ? 0 : ctStored,
+  xbrl_stored_count: xbrlStored,
+  xbrl_metric_count: xbrlMetrics,
   total_stored_count: totalStored,
   min_sec_documents: minSec,
 };
@@ -982,6 +1540,230 @@ const prepareSecZeroCount = node({
   },
 });
 
+const fetchSecCompanyfacts = node({
+  type: 'n8n-nodes-base.httpRequest',
+  version: 4.5,
+  config: {
+    name: 'Fetch SEC Companyfacts',
+    onError: 'continueRegularOutput',
+    retryOnFail: true,
+    maxTries: 3,
+    waitBetweenTries: 2000,
+    parameters: {
+      method: 'GET',
+      url: expr(
+        '=https://data.sec.gov/api/xbrl/companyfacts/CIK{{ $("Load Case And Company").item.json.cik }}.json',
+      ),
+      authentication: 'none',
+      sendHeaders: true,
+      specifyHeaders: 'keypair',
+      headerParameters: {
+        parameters: [
+          {
+            name: 'User-Agent',
+            value: 'PI Opportunity Investigator teacherjoseluis@gmail.com',
+          },
+          { name: 'Accept', value: 'application/json' },
+          { name: 'Accept-Encoding', value: 'gzip, deflate' },
+        ],
+      },
+      options: {
+        timeout: 90000,
+        lowercaseHeaders: false,
+        response: {
+          response: {
+            neverError: true,
+            responseFormat: 'json',
+          },
+        },
+      },
+    },
+  },
+});
+
+const normalizeSecXbrlEvidence = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Normalize SEC XBRL Facts',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: normalizeSecXbrlEvidenceCode,
+    },
+  },
+});
+
+const expandXbrlDocuments = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Expand XBRL Documents',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: expandEvidenceDocumentsCode,
+    },
+  },
+});
+
+const hasXbrlDocs = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Has XBRL Docs?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_upsert }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const upsertXbrlEvidenceSql =
+  "INSERT INTO evidence_documents (case_id, company_id, source_type, publisher, canonical_url, stable_source_id, title, publication_date, content_sha256, authority_tier, access_status, parsing_status, raw_content_location, metadata_json) VALUES ($1::uuid, NULLIF(NULLIF(TRIM($2), ''), 'null')::uuid, $3, $4, $5, $6, $7, CASE WHEN NULLIF(NULLIF(TRIM($8), ''), 'null') IS NULL THEN NULL WHEN TRIM($8) ~ '^\\d{4}-\\d{2}-\\d{2}' THEN LEFT(TRIM($8), 10)::date WHEN TRIM($8) ~ '^\\d{4}-\\d{2}$' THEN (TRIM($8) || '-01')::date WHEN TRIM($8) ~ '^\\d{4}$' THEN (TRIM($8) || '-01-01')::date ELSE NULL END, $9, 'primary', 'retrieved', 'xbrl_facts_extracted', 'inline:metadata_json', convert_from(decode($10, 'base64'), 'UTF8')::jsonb) ON CONFLICT (content_sha256) WHERE content_sha256 IS NOT NULL DO UPDATE SET case_id = COALESCE(EXCLUDED.case_id, evidence_documents.case_id), company_id = COALESCE(EXCLUDED.company_id, evidence_documents.company_id), parsing_status = EXCLUDED.parsing_status, metadata_json = EXCLUDED.metadata_json, updated_at = NOW() RETURNING id AS evidence_id, case_id, source_type, stable_source_id";
+
+const upsertXbrlEvidence = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert XBRL Evidence',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertXbrlEvidenceSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.case_id }},{{ $json.company_id }},{{ $json.source_type }},{{ $json.publisher }},{{ $json.canonical_url }},{{ $json.stable_source_id }},{{ $json.title_safe }},{{ $json.publication_date }},{{ $json.content_sha256 }},{{ $json.metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const prepareXbrlFinancialUpserts = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare XBRL Financial Upserts',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareXbrlFinancialUpsertsCode,
+    },
+  },
+});
+
+const upsertXbrlFinancialPeriod = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert XBRL Financial Period',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query:
+        "INSERT INTO financial_periods (company_id, case_id, period_label, period_start, period_end, fiscal_year, fiscal_quarter, source_evidence_id) VALUES ($1::uuid, $2::uuid, $3, NULLIF(NULLIF(TRIM($4), ''), 'null')::date, NULLIF(NULLIF(TRIM($5), ''), 'null')::date, NULLIF(NULLIF(TRIM($6), ''), 'null')::integer, NULLIF(NULLIF(TRIM($7), ''), 'null')::integer, $8::uuid) ON CONFLICT (company_id, period_label) DO UPDATE SET case_id = COALESCE(EXCLUDED.case_id, financial_periods.case_id), period_end = COALESCE(EXCLUDED.period_end, financial_periods.period_end), fiscal_year = COALESCE(EXCLUDED.fiscal_year, financial_periods.fiscal_year), fiscal_quarter = COALESCE(EXCLUDED.fiscal_quarter, financial_periods.fiscal_quarter), source_evidence_id = COALESCE(EXCLUDED.source_evidence_id, financial_periods.source_evidence_id), updated_at = NOW() RETURNING id AS financial_period_id, company_id, case_id",
+      options: {
+        queryReplacement: expr(
+          '{{ $json.company_id }},{{ $json.case_id }},{{ $json.period_label }},{{ $json.period_start }},{{ $json.period_end }},{{ $json.fiscal_year }},{{ $json.fiscal_quarter }},{{ $json.evidence_id }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const upsertXbrlFinancialMetrics = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert XBRL Financial Metrics',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query:
+        "WITH metrics AS (SELECT * FROM jsonb_to_recordset(convert_from(decode($2, 'base64'), 'UTF8')::jsonb) AS x(metric_key text, metric_value numeric, currency text, unit text, scale text, assumption_set text, calculation_notes text)) INSERT INTO financial_metrics (financial_period_id, metric_key, metric_value, currency, unit, scale, assumption_set, source_evidence_id, calculation_notes) SELECT $1::uuid, metric_key, metric_value, COALESCE(currency, 'USD'), COALESCE(unit, 'USD'), COALESCE(scale, 'as_reported'), COALESCE(NULLIF(assumption_set, ''), 'reported'), $3::uuid, calculation_notes FROM metrics ON CONFLICT (financial_period_id, metric_key, assumption_set) DO UPDATE SET metric_value = EXCLUDED.metric_value, currency = EXCLUDED.currency, unit = EXCLUDED.unit, scale = EXCLUDED.scale, source_evidence_id = EXCLUDED.source_evidence_id, calculation_notes = EXCLUDED.calculation_notes RETURNING id AS financial_metric_id, metric_key",
+      options: {
+        queryReplacement: expr(
+          '{{ $json.financial_period_id }},{{ $("Prepare XBRL Financial Upserts").item.json.metrics_b64 }},{{ $("Prepare XBRL Financial Upserts").item.json.evidence_id }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const upsertXbrlEvidenceChunk = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert XBRL Evidence Chunk',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query:
+        "INSERT INTO evidence_chunks (evidence_id, chunk_index, chunk_text, token_estimate, metadata_json) VALUES ($1::uuid, COALESCE(NULLIF(NULLIF(TRIM($2), ''), 'null')::integer, 0), $3, NULLIF(NULLIF(TRIM($4), ''), 'null')::integer, convert_from(decode($5, 'base64'), 'UTF8')::jsonb) ON CONFLICT (evidence_id, chunk_index) DO UPDATE SET chunk_text = EXCLUDED.chunk_text, token_estimate = EXCLUDED.token_estimate, metadata_json = EXCLUDED.metadata_json RETURNING id AS chunk_id, evidence_id",
+      options: {
+        queryReplacement: expr(
+          '{{ $("Prepare XBRL Financial Upserts").item.json.evidence_id }},{{ $("Prepare XBRL Financial Upserts").item.json.chunk_index }},{{ $("Prepare XBRL Financial Upserts").item.json.chunk_text }},{{ $("Prepare XBRL Financial Upserts").item.json.chunk_token_estimate }},{{ $("Prepare XBRL Financial Upserts").item.json.chunk_metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const countXbrlUpserts = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Count XBRL Upserts',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: countXbrlUpsertsCode,
+    },
+  },
+});
+
+const prepareXbrlZeroCount = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare XBRL Zero Count',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareXbrlZeroCountCode,
+    },
+  },
+});
+
 const fetchCtgovStudies = node({
   type: 'n8n-nodes-base.httpRequest',
   version: 4.5,
@@ -1296,19 +2078,19 @@ const buildCollectionResult = node({
 });
 
 const intakeNote = sticky(
-  '## PII-03 Evidence Collector\nPhase 1: SEC submissions + ClinicalTrials.gov.\nDeferred: FDA, IR, patents, full filing bodies, object storage.',
+  '## PII-03 Evidence Collector\nSEC submissions + ClinicalTrials.gov + Slice E1 companyfacts XBRL cash/debt.\nDeferred: FDA, IR, patents, full HTML bodies, object storage.',
   [collectionTrigger, validateCollectionRequest, loadCaseAndCompany],
   { color: 4 },
 );
 
 const collectorsNote = sticky(
-  '## Collectors\nSEC Fair Access User-Agent required.\nUpsert evidence_documents by content_sha256.',
-  [fetchSecSubmissions, fetchCtgovStudies, upsertSecEvidence],
+  '## Collectors\nSEC Fair Access User-Agent required.\nUpsert evidence_documents by content_sha256; XBRL → financial_periods/metrics + chunks.',
+  [fetchSecSubmissions, fetchSecCompanyfacts, fetchCtgovStudies, upsertSecEvidence],
   { color: 5 },
 );
 
 const coverageNote = sticky(
-  '## Coverage\nmin_sec_documents default 1 → ANALYZING.\nPARTIAL still advances unless config requires human review.',
+  '## Coverage\nmin_sec_documents default 1 → ANALYZING.\nXBRL failure is partial (does not block ANALYZING when SEC/CT ok).',
   [evaluateCollectionCoverage, advanceCaseState, buildCollectionResult],
   { color: 6 },
 );
@@ -1330,6 +2112,26 @@ const ctgovAndFinish = fetchCtgovStudies.to(
   ),
 );
 
+const xbrlAndFinish = fetchSecCompanyfacts.to(
+  normalizeSecXbrlEvidence.to(
+    expandXbrlDocuments.to(
+      hasXbrlDocs
+        .onTrue(
+          upsertXbrlEvidence.to(
+            prepareXbrlFinancialUpserts.to(
+              upsertXbrlFinancialPeriod.to(
+                upsertXbrlFinancialMetrics.to(
+                  upsertXbrlEvidenceChunk.to(countXbrlUpserts.to(ctgovAndFinish)),
+                ),
+              ),
+            ),
+          ),
+        )
+        .onFalse(prepareXbrlZeroCount.to(ctgovAndFinish)),
+    ),
+  ),
+);
+
 export default workflow('pii-03-evidence', 'PII-03 Evidence Collector')
   .add(collectionTrigger)
   .to(validateCollectionRequest)
@@ -1343,8 +2145,8 @@ export default workflow('pii-03-evidence', 'PII-03 Evidence Collector')
               normalizeSecEvidence.to(
                 expandSecDocuments.to(
                   hasSecDocs
-                    .onTrue(upsertSecEvidence.to(countSecUpserts.to(ctgovAndFinish)))
-                    .onFalse(prepareSecZeroCount.to(ctgovAndFinish)),
+                    .onTrue(upsertSecEvidence.to(countSecUpserts.to(xbrlAndFinish)))
+                    .onFalse(prepareSecZeroCount.to(xbrlAndFinish)),
                 ),
               ),
             ),

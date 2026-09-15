@@ -1,4 +1,4 @@
-# AGENTS.md
+﻿# AGENTS.md
 
 ## Purpose
 
@@ -143,29 +143,33 @@ Fill these values as the project is established:
 
 - Hosted n8n URL: `https://teacherjoseluis.app.n8n.cloud`
 - Hosted n8n project ID: `FaU28ckb88bAPAfT` (personal project; confirmed via MCP)
-- Primary workflow name and ID: `PII-00 Case Orchestrator` / `4jvmYtTHKufojJRK` (inactive; not published)
-- PII-01 workflow name and ID: `PII-01 Identity Resolver` / `Xf6DjDUMyfOyNX3G` (inactive; version `de222a9c-c473-4dae-86f8-2017ff9319a7`)
-- PII-02 workflow name and ID: `PII-02 Eligibility Gate` / `hqgFoP7ny6jnycxx` (inactive; version `567e37d5-1cd7-41cd-9399-9ae3055f69e0`)
-- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (inactive; version `b83e7eae-1187-4fd8-b219-307a73b4e919`)
-- PII-04 workflow name and ID: `PII-04 Financial and Business Analyst` / `RvIlyuDV0MEsXezL` (inactive; version `c087e5d5-40cb-4539-aff7-7728afbf6fd0`)
-- PII-05 workflow name and ID: `PII-05 Growth Analyst` / `sdamxDo9SUdo4QxC` (inactive; version `389fc1f4-038a-47d6-8e24-89956c51bdae`)
-- PII-06 workflow name and ID: `PII-06 Pipeline and Clinical Analyst` / `b8CxYW8T8FrGl62x` (inactive; version `e870be1a-98c3-4cfa-8286-c5e374e0b512`)
-- PII-07 workflow name and ID: `PII-07 Regulatory and Catalyst Analyst` / `4AqBDr5hjZeMLy99` (inactive; version `b59227a2-9bad-4d44-9c1c-d7dabf4b1b93`)
-- PII-08 workflow name and ID: `PII-08 Valuation and Market Analyst` / `1PuOVYf0O3GThRwq` (inactive; version `630de67e-510a-4ea3-b2a3-42b7f4f6f58d`)
-- PII-09 workflow name and ID: `PII-09 Risk and Red-Team Reviewer` / `mioSWLKBMLAaBGzs` (inactive; version `eef8fbae-5b9e-4b10-b4b5-ea5e453b4436`)
-- PII-10 workflow name and ID: `PII-10 Scoring and Quality Gate` / `lIjKOZS7qDizvynm` (inactive; version `37c522f4-926d-49d4-a604-df6d687beda5`)
-- PII-11 workflow name and ID: `PII-11 Report Generator` / `CLiHq1zJ1Euwhrxb` (inactive; version `6254ee70-18cf-4a1f-b4da-e8f8fd6000ba`)
+- Primary workflow name and ID: `PII-00 Case Orchestrator` / `4jvmYtTHKufojJRK` (published; version `84997803-a604-4438-b2d6-f1911f616af6`)
+- PII-01 workflow name and ID: `PII-01 Identity Resolver` / `Xf6DjDUMyfOyNX3G` (published; version `de222a9c-c473-4dae-86f8-2017ff9319a7`)
+- PII-02 workflow name and ID: `PII-02 Eligibility Gate` / `hqgFoP7ny6jnycxx` (published; version `567e37d5-1cd7-41cd-9399-9ae3055f69e0`)
+- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `b83e7eae-1187-4fd8-b219-307a73b4e919`)
+- PII-04 workflow name and ID: `PII-04 Financial and Business Analyst` / `RvIlyuDV0MEsXezL` (published; version `c087e5d5-40cb-4539-aff7-7728afbf6fd0`)
+- PII-05 workflow name and ID: `PII-05 Growth Analyst` / `sdamxDo9SUdo4QxC` (published; version `74d5f54e-5d88-45dc-bce1-99981bc3de6b`)
+- PII-06 workflow name and ID: `PII-06 Pipeline and Clinical Analyst` / `b8CxYW8T8FrGl62x` (published; version `7b992085-7363-4320-897b-cd0b87aeec14`)
+- PII-07 workflow name and ID: `PII-07 Regulatory and Catalyst Analyst` / `4AqBDr5hjZeMLy99` (published; version `645dc348-1ff2-43c0-9ff9-b33c23d55ec4`)
+- PII-08 workflow name and ID: `PII-08 Valuation and Market Analyst` / `1PuOVYf0O3GThRwq` (published; version `f12e1d7e-caab-4c59-b6e0-8fe0e3e505c8`)
+- PII-09 workflow name and ID: `PII-09 Risk and Red-Team Reviewer` / `mioSWLKBMLAaBGzs` (published; version `d47ca67c-033a-4103-bae9-5b9ddbd4a9e3`)
+- PII-10 workflow name and ID: `PII-10 Scoring and Quality Gate` / `lIjKOZS7qDizvynm` (published; version `37c522f4-926d-49d4-a604-df6d687beda5`)
+- PII-11 workflow name and ID: `PII-11 Report Generator` / `CLiHq1zJ1Euwhrxb` (published; version `6254ee70-18cf-4a1f-b4da-e8f8fd6000ba`)
 - PII-12 workflow name and ID: `PII-12 Monitoring and Reassessment` / `go396vtpeHKcvtub` (inactive; version `2633c95f-34cf-4051-a384-a0ec7b78762e`)
 - PII-13 workflow name and ID: `PII-13 Operations and Alerts` / `ldPDfkqkkuDBfLe5` (inactive; version `be2d45ee-bd56-4e1a-b588-bdf46d2143f1`)
-- PII-14 workflow name and ID: `PII-14 Email Digest and Report Delivery` / `kf6pC1t7J1XavbiE` (inactive; version `9a7c0bf0-1a1f-4234-99af-d0ec88a6b846`)
-- Active version ID: 1b902685-ba2f-4111-b32f-0679663dc3cf (PII-00; wired through PII-11)
+- PII-14 workflow name and ID: `PII-14 Email Digest and Report Delivery` / `kf6pC1t7J1XavbiE` (published; version `9a7c0bf0-1a1f-4234-99af-d0ec88a6b846`; on PII-00 path)
+- PII Slack Intake workflow name and ID: `PII Slack Intake` / `Co5hmZSuqqk97rhg` (published; version `1d358400-1f6c-4a08-afca-ed776cbceb9e`)
+- PII-15 workflow name and ID: `PII-15 Slack Completion Notify` / `3Q4goJz1gGKJRLMI` (published; version `763f7250-d903-4a24-8b57-a40be09f7c4f`)
+- Active version ID: 84997803-a604-4438-b2d6-f1911f616af6 (PII-00; wired through PII-11 → PII-14 → PII-15)
 - Webhook test URL: `https://teacherjoseluis.app.n8n.cloud/webhook-test/pii/investigate`
-- Webhook production URL: `https://teacherjoseluis.app.n8n.cloud/webhook/pii/investigate` (requires publish/activate)
+- Webhook production URL: `https://teacherjoseluis.app.n8n.cloud/webhook/pii/investigate` (published)
+- Slack slash webhook production URL: `https://teacherjoseluis.app.n8n.cloud/webhook/pii/slack` (published)
 - Primary data table name and ID: `N/A` ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â research system of record is PostgreSQL (`pii_research`), not n8n Data Tables
 - n8n Postgres credential name: `Postgres account`
 - n8n Twelve Data credential name: `TwelveData API key` (`httpQueryAuth`) — `/quote` on Basic; `/profile` needs Grow+; `/statistics` needs Pro+
 - n8n Finnhub credential name: `Finnhub API key` (`httpQueryAuth`) — PII-02 profile2 fallback for industry + market cap when TwelveData plan-blocks
 - n8n SMTP credential name: `SMTP account` (from/to `teacherjoseluis@gmail.com`; shared with Investment Concierge)
+- n8n Slack credential name: `Slack PII bot` (`slackApi`) — used by PII-15 completion DM; requires `im:write` (plus existing scopes); Slack intake Phase 1 still uses slash `response_url`
 - Research Postgres: VPS at `108.174.153.74:5433`, database `pii_research`, user `pii_app` (password in VPS `.env` only). Local Docker also uses host port `5433` when `5432` is busy.
 - Deployment method: MCP for n8n workflows (user must explicitly request each push); git pull + `docker compose` for Postgres on VPS (`/opt/apps/PI_OpportunityInvestigator`)
 - Local validation commands:
@@ -187,36 +191,55 @@ Fill these values as the project is established:
   - `npm run bundle:pii-11` — regenerate PII-11 `workflow.ts`
   - `npm run bundle:pii-12` — regenerate PII-12 `workflow.ts`
   - `npm run bundle:pii-13` — regenerate PII-13 `workflow.ts`
-  - `npm run bundle:pii-14` — regenerate PII-14 `workflow.ts`
-  - `.\scripts\smoke\Invoke-PiiWebhook.ps1` — hosted webhook smoke test (see `docs/SMOKE_TESTS.md`)
+ - `npm run bundle:pii-14` — regenerate PII-14 `workflow.ts`
+ - `npm run bundle:pii-slack` — regenerate Slack intake `workflow.ts`
+ - `npm run bundle:pii-15` — regenerate PII-15 Slack notify `workflow.ts`
+ - `.\scripts\smoke\Invoke-PiiWebhook.ps1` — hosted webhook smoke test (see `docs/SMOKE_TESTS.md`)
 
 ## Current Status
 
-Project status: Phase 1 through PII-14 hosted (all inactive; PII-12/13/14 standalone, not on PII-00 path). Eligibility plan-gap fixed: PII-02 uses Finnhub `/stock/profile2` when TwelveData `/profile`/`/statistics` return 403; config mcap max raised to $150B (`016`). REGN full-chain smoke passed: case `a732aa53-a065-4682-b062-5173e2e4f88d` → COLLECTING → PII-11 `REPORT_DRAFT` / `AWAITING_HUMAN_REVIEW` (`publication_ready=false`, `cash_debt_from_filing`). PII-14 canvas: https://teacherjoseluis.app.n8n.cloud/workflow/kf6pC1t7J1XavbiE. Migrations through `016` on VPS (eligibility patch applied via n8n Postgres).
+Project status: Phase 1 through PII-15 hosted. **PII-00…PII-11 + PII-15 published** for Slack/production webhooks. **PII Slack Intake** published: `Co5hmZSuqqk97rhg` (passes `request_context`). **PII-15 Slack Completion Notify** published: `3Q4goJz1gGKJRLMI` — DM after PII-11 when `request_context.slack.user_id` present. PII-14 now published and wired on PII-00 after PII-11 (TEST_DELIVERY unless publication_ready); PII-12/13 remain inactive/standalone. Migrations through `017` on VPS (user-applied); local **`018` E1 XBRL** ready, not yet applied/deployed. Remaining: apply `018` + deploy E1 workflows when requested; Slack bot scope `im:write` + reinstall, then smoke `/pii REGN` for completion DM.
 
-### PII-03 circle-back backlog (do not forget)
+### PII-03 enrichment backlog (see ENRICHMENT.md)
 
-PII-04 Phase 1 is intentionally limited to metadata-only analysis. **Return to PII-03** to add:
+1. ~~SEC XBRL cash/debt (E1)~~ — **local done**; await VPS `018` + deploy + smoke/sign-off
+2. Full SEC filing HTML bodies → **E3** (needs **E2** object storage)
+3. FDA / openFDA collector → **E4**
+4. Company IR / press collector → **E5**
+5. USPTO / patents collector → **E6**
+6. Object storage for raw blobs → **E2**
+7. Broader `evidence_chunks` + analyst sweep → **E7**
 
-1. Full SEC filing bodies / XBRL fact extraction (`sec_filing_bodies`)
-2. FDA / openFDA collector
-3. Company IR / press collector
-4. USPTO / patents collector
-5. Object storage for raw blobs (replace `inline:metadata_json`)
-6. Populate `evidence_chunks` from collector summaries
-7. Full-chain webhook smoke once eligibility can reach `COLLECTING` (TwelveData profile/statistics and/or ACAD duplicate cleanup)
-
-Hosted workflows in personal project `FaU28ckb88bAPAfT`. Migrations `001`ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“`006` tracked on VPS; analysis keys repaired via short deep-merge SQL (`007` file local; insufficient_topics lists empty until full config reload).
+Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 
 ## Next Steps
 
-1. Circle back to PII-03 enrichment backlog above before expecting TAM/product-growth/XBRL/clinical-quality/FDA claims (also unblocks `cash_debt_from_filing` / COMPLETE / production email).
-2. Optionally upgrade TwelveData to Grow/Pro so `/profile` + `/statistics` succeed without Finnhub fallback.
-3. Rotate webhook secret; publish/activate when ready for production.
-4. Optionally deactivate duplicate ACAD claims (~1050 active) and reload full `insufficient_topics` where still empty.
-5. Later: weekly discovery digest; schedule triggers; wire PII-14 after PII-11 when publication-ready; clean leftover ACAD stuck/stale cases flagged by PII-13.
+1. Apply migration **`018_collection_sec_xbrl_cash_debt_v1.sql`** on VPS; then ask to **deploy** updated PII-03 / PII-04 / PII-10 / PII-11 for E1 smoke (REGN or ACAD).
+2. Sign off E1 per [`docs/ENRICHMENT.md`](docs/ENRICHMENT.md) checklist; then Slice **E2** or continue Slack.
+3. Add Slack bot scope `im:write` and reinstall **Slack PII bot**; smoke `/pii REGN` → expect completion DM after PII-11.
+4. Optionally upgrade TwelveData to Grow/Pro so `/profile` + `/statistics` succeed without Finnhub fallback.
+5. Rotate webhook secret; review published workflow exposure.
+6. Later: weekly discovery digest; schedule triggers; clean leftover ACAD stuck/stale cases; enrichment E2–E7.
 
 ## Milestone Log
+
+### 2026-09-15 (Slice E1 local)
+
+- Implemented **E1 SEC XBRL cash/debt**: `config/collection.v1.json` enables `sec_filing_bodies` (`companyfacts_cash_debt`); migration `018_collection_sec_xbrl_cash_debt_v1.sql`.
+- PII-03: fetch companyfacts → normalize → upsert `sec_companyfacts` evidence + `financial_periods`/`financial_metrics` + `evidence_chunks`; coverage reports `xbrl_*` counts.
+- PII-04: Load Financial Metrics → real `cash_debt` claims (`deterministic_xbrl_metrics`) when facts exist.
+- PII-10 / PII-11: `cash_debt_from_filing` / `publication_ready` honor filing-backed XBRL claims.
+- Unit tests + `bundle:pii-03/04/10/11`. **Not deployed** (await explicit request + VPS `018`).
+
+### 2026-09-15 (enrichment spec)
+
+- Authored [`docs/ENRICHMENT.md`](docs/ENRICHMENT.md): architecture, slices **E1–E7**, smoke/sign-off checklists, AGENTS backlog map. E1 = SEC XBRL cash/debt (Postgres facts; blobs deferred to E2). Linked from README, PII-03 README, and Next Steps.
+
+### 2026-09-15 (PII-14 on orchestrator)
+
+- Wired **PII-14** into PII-00 after PII-11 (before PII-15): always emails; uses `TEST_DELIVERY` when not `publication_ready`, else `INVESTIGATION_REPORT`.
+- Published PII-14 version `9a7c0bf0-1a1f-4234-99af-d0ec88a6b846`; republished PII-00 version `84997803-a604-4438-b2d6-f1911f616af6`.
+
 
 ### 2026-09-02
 
@@ -441,3 +464,32 @@ Hosted workflows in personal project `FaU28ckb88bAPAfT`. Migrations `001`ÃƒÆ�
 - Implemented approved mockup layout in `evaluate-email-delivery.js`: navy header, draft strip, Supporting/Challenging columns, score strip, Watch next, Evidence gaps, disclaimer footer (table HTML for clients).
 - Load Case SQL now pulls scores + claim sections + monitoring plan from `report_json`.
 - Deployed PII-14 version `9a7c0bf0-1a1f-4234-99af-d0ec88a6b846` (inactive). REGN `TEST_DELIVERY` resent to `teacherjoseluis@gmail.com` (exec `2302`, outcome `SENT`).
+
+### 2026-09-14 (PII Slack Intake local)
+
+- Authored local **PII Slack Intake** (`workflows/pii-slack-intake/`): webhook `pii/slack` → parse `/pii TICKER [EXCHANGE] [question]` → immediate Slack ack → HTTP POST PII-00 `/webhook/pii/investigate` with `PII Webhook Header Auth` → follow-up via Slack `response_url`.
+- Shared Code + unit tests for parse/follow-up; `npm run bundle:pii-slack`.
+- Standalone Phase 1 slice — **not wired into PII-00**.
+- Credential `Slack PII bot` exists in n8n (optional for this slice; follow-up uses `response_url`).
+
+### 2026-09-14 (PII Slack Intake deploy + publish)
+
+- Deployed **PII Slack Intake** to n8n: workflow `Co5hmZSuqqk97rhg`, version `ea286637-10af-4dd0-9fcd-18e825878c47` (**published**); canvas https://teacherjoseluis.app.n8n.cloud/workflow/Co5hmZSuqqk97rhg — credential `PII Webhook Header Auth`; `callerPolicy=workflowsFromSameOwner`.
+- Production Slack webhook: `https://teacherjoseluis.app.n8n.cloud/webhook/pii/slack`.
+- Published PII-01…PII-11 then **PII-00** so `/webhook/pii/investigate` is live for Slack outbound POSTs.
+- User must set Slack Slash Command Request URL to the production Slack webhook, then smoke `/pii REGN`.
+
+### 2026-09-14 (PII-15 Slack completion notify local)
+
+- Authored local **PII-15 Slack Completion Notify** (`workflows/pii-15-slack-notify/`): after PII-11, DM requester via `Slack PII bot` using `research_cases.request_context_json.slack`.
+- Migration `017_slack_notify_v1.sql`: `request_context_json`, `slack_deliveries`, `gates_json.slack_notify`.
+- Extended investigation intake schema/validate + PII-00 insert + Slack intake POST to store Slack user/channel.
+- Wired local PII-00 IF after PII-11 → Execute PII-15 (now hosted `3Q4goJz1gGKJRLMI`).
+- Shared Code + unit tests; `npm run bundle:pii-15` / `bundle:pii-00` / `bundle:pii-slack`.
+
+### 2026-09-14 (PII-15 deploy + publish)
+
+- Deployed **PII-15** to n8n: workflow `3Q4goJz1gGKJRLMI`, version `763f7250-d903-4a24-8b57-a40be09f7c4f` (**published**); canvas https://teacherjoseluis.app.n8n.cloud/workflow/3Q4goJz1gGKJRLMI — credentials `Postgres account` + `Slack PII bot`; `callerPolicy=workflowsFromSameOwner`.
+- Updated hosted **PII-00** (`4jvmYtTHKufojJRK`) version `84681f22-5cd4-4e96-a8b2-28463a492c5d` (**published**): `request_context_json` on Insert Research Case, validate jsCode with `request_context_b64`, Execute PII-15 after PII-11.
+- Updated hosted **PII Slack Intake** (`Co5hmZSuqqk97rhg`) version `1d358400-1f6c-4a08-afca-ed776cbceb9e` (**published**): parse/follow-up jsCode + Post Investigate `request_context`.
+- VPS migration `017` applied by user before deploy. Manual remaining: Slack `im:write` scope + bot reinstall; smoke `/pii REGN` for DM.
