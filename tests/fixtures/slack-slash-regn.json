@@ -1,0 +1,13 @@
+{
+  "token": "verification-token-placeholder",
+  "team_id": "T00000000",
+  "team_domain": "example",
+  "channel_id": "C00000000",
+  "channel_name": "research",
+  "user_id": "U00000000",
+  "user_name": "joseluis",
+  "command": "/pii",
+  "text": "REGN NASDAQ",
+  "response_url": "https://hooks.slack.com/commands/T00000000/0000000000/example",
+  "trigger_id": "0000000000.0000000000"
+}

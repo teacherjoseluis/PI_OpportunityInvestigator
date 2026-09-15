@@ -19,6 +19,8 @@
     "bundle:pii-12": "node workflows/scripts/bundle-workflow.mjs pii-12-monitoring",
     "bundle:pii-13": "node workflows/scripts/bundle-workflow.mjs pii-13-operations",
     "bundle:pii-14": "node workflows/scripts/bundle-workflow.mjs pii-14-email-delivery",
-    "bundle": "npm run bundle:pii-00 && npm run bundle:pii-01 && npm run bundle:pii-02 && npm run bundle:pii-03 && npm run bundle:pii-04 && npm run bundle:pii-05 && npm run bundle:pii-06 && npm run bundle:pii-07 && npm run bundle:pii-08 && npm run bundle:pii-09 && npm run bundle:pii-10 && npm run bundle:pii-11 && npm run bundle:pii-12 && npm run bundle:pii-13 && npm run bundle:pii-14"
+    "bundle:pii-slack": "node workflows/scripts/bundle-workflow.mjs pii-slack-intake",
+    "bundle:pii-15": "node workflows/scripts/bundle-workflow.mjs pii-15-slack-notify",
+    "bundle": "npm run bundle:pii-00 && npm run bundle:pii-01 && npm run bundle:pii-02 && npm run bundle:pii-03 && npm run bundle:pii-04 && npm run bundle:pii-05 && npm run bundle:pii-06 && npm run bundle:pii-07 && npm run bundle:pii-08 && npm run bundle:pii-09 && npm run bundle:pii-10 && npm run bundle:pii-11 && npm run bundle:pii-12 && npm run bundle:pii-13 && npm run bundle:pii-14 && npm run bundle:pii-slack && npm run bundle:pii-15"
   }
 }

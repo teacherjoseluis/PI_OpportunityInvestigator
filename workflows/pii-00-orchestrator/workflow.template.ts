@@ -172,10 +172,10 @@ const insertResearchCase = node({
     parameters: {
       operation: 'executeQuery',
       query:
-        "INSERT INTO research_cases (request_id, ticker, exchange, research_question, mode, state, requested_by, as_of_date, force_refresh, configuration_version_id) SELECT $1, $2, $3, NULLIF(NULLIF(TRIM($4), ''), 'null'), $5, 'REQUESTED', $6, NULLIF(NULLIF(TRIM($7), ''), 'null')::date, $8, cv.id FROM configuration_versions cv WHERE cv.version_label = $9 AND cv.is_active = true LIMIT 1 RETURNING id AS case_id, request_id, ticker, state, true AS created",
+        "INSERT INTO research_cases (request_id, ticker, exchange, research_question, mode, state, requested_by, as_of_date, force_refresh, configuration_version_id, request_context_json) SELECT $1, $2, $3, NULLIF(NULLIF(TRIM($4), ''), 'null'), $5, 'REQUESTED', $6, NULLIF(NULLIF(TRIM($7), ''), 'null')::date, $8, cv.id, COALESCE(convert_from(decode(NULLIF(NULLIF(TRIM($10), ''), 'null'), 'base64'), 'UTF8')::jsonb, '{}'::jsonb) FROM configuration_versions cv WHERE cv.version_label = $9 AND cv.is_active = true LIMIT 1 RETURNING id AS case_id, request_id, ticker, state, true AS created",
       options: {
         queryReplacement: expr(
-          '{{ $("Validate Investigation Request").item.json.request_id }},{{ $("Validate Investigation Request").item.json.ticker }},{{ $("Validate Investigation Request").item.json.exchange }},{{ $("Validate Investigation Request").item.json.research_question }},{{ $("Validate Investigation Request").item.json.mode }},{{ $("Validate Investigation Request").item.json.requested_by }},{{ $("Validate Investigation Request").item.json.as_of_date }},{{ $("Validate Investigation Request").item.json.force_refresh }},{{ $("Validate Investigation Request").item.json.configuration_version }}',
+          '{{ $("Validate Investigation Request").item.json.request_id }},{{ $("Validate Investigation Request").item.json.ticker }},{{ $("Validate Investigation Request").item.json.exchange }},{{ $("Validate Investigation Request").item.json.research_question }},{{ $("Validate Investigation Request").item.json.mode }},{{ $("Validate Investigation Request").item.json.requested_by }},{{ $("Validate Investigation Request").item.json.as_of_date }},{{ $("Validate Investigation Request").item.json.force_refresh }},{{ $("Validate Investigation Request").item.json.configuration_version }},{{ $("Validate Investigation Request").item.json.request_context_b64 }}',
         ),
         replaceEmptyStrings: true,
       },
@@ -1302,6 +1302,131 @@ const executePii11Report = node({
   },
 });
 
+const executePii14Email = node({
+  type: 'n8n-nodes-base.executeWorkflow',
+  version: 1.3,
+  config: {
+    name: 'Execute PII-14 Email Delivery',
+    parameters: {
+      mode: 'once',
+      source: 'database',
+      workflowId: {
+        __rl: true,
+        mode: 'id',
+        value: 'kf6pC1t7J1XavbiE',
+        cachedResultName: 'PII-14 Email Digest and Report Delivery',
+      },
+      workflowInputs: {
+        mappingMode: 'defineBelow',
+        value: {
+          case_id: expr('{{ $("Execute PII-11 Report Generator").item.json.case_id }}'),
+          mode: expr(
+            '{{ $("Execute PII-11 Report Generator").item.json.publication_ready === true || $("Execute PII-11 Report Generator").item.json.publication_ready === "true" ? "INVESTIGATION_REPORT" : "TEST_DELIVERY" }}',
+          ),
+        },
+        matchingColumns: [],
+        schema: [
+          {
+            id: 'case_id',
+            displayName: 'case_id',
+            required: true,
+            defaultMatch: false,
+            display: true,
+            canBeUsedToMatch: true,
+            type: 'string',
+          },
+          {
+            id: 'mode',
+            displayName: 'mode',
+            required: false,
+            defaultMatch: false,
+            display: true,
+            canBeUsedToMatch: true,
+            type: 'string',
+          },
+          {
+            id: 'recipient',
+            displayName: 'recipient',
+            required: false,
+            defaultMatch: false,
+            display: true,
+            canBeUsedToMatch: true,
+            type: 'string',
+          },
+        ],
+        attemptToConvertTypes: false,
+        convertFieldsToString: true,
+      },
+      options: {
+        waitForSubWorkflow: true,
+      },
+    },
+  },
+});
+
+const executePii15SlackNotify = node({
+  type: 'n8n-nodes-base.executeWorkflow',
+  version: 1.3,
+  config: {
+    name: 'Execute PII-15 Slack Notify',
+    parameters: {
+      mode: 'once',
+      source: 'database',
+      workflowId: {
+        __rl: true,
+        mode: 'id',
+        value: '3Q4goJz1gGKJRLMI',
+        cachedResultName: 'PII-15 Slack Completion Notify',
+      },
+      workflowInputs: {
+        mappingMode: 'defineBelow',
+        value: {
+          case_id: expr('{{ $("Execute PII-11 Report Generator").item.json.case_id }}'),
+          ticker: expr('{{ $("Execute PII-11 Report Generator").item.json.ticker }}'),
+          exchange: expr(
+            '{{ $("Execute PII-11 Report Generator").item.json.exchange }}',
+          ),
+        },
+        matchingColumns: [],
+        schema: [
+          {
+            id: 'case_id',
+            displayName: 'case_id',
+            required: true,
+            defaultMatch: false,
+            display: true,
+            canBeUsedToMatch: true,
+            type: 'string',
+          },
+          {
+            id: 'ticker',
+            displayName: 'ticker',
+            required: true,
+            defaultMatch: false,
+            display: true,
+            canBeUsedToMatch: true,
+            type: 'string',
+          },
+          {
+            id: 'exchange',
+            displayName: 'exchange',
+            required: true,
+            defaultMatch: false,
+            display: true,
+            canBeUsedToMatch: true,
+            type: 'string',
+          },
+        ],
+        attemptToConvertTypes: false,
+        convertFieldsToString: true,
+      },
+      options: {
+        waitForSubWorkflow: true,
+      },
+    },
+  },
+});
+
 const intakeNote = sticky(
   '## PII-00 Intake\nPOST /pii/investigate\nValidate → idempotent case create → 202 ack',
   [investigationWebhook, validateInvestigationRequest, validationPassed],
@@ -1315,7 +1440,7 @@ const persistenceNote = sticky(
 );
 
 const asyncNote = sticky(
-  '## Async continuation\nPII-01 → PII-02 → PII-03 (COLLECTING) → PII-04…PII-09 (ANALYZING) → PII-10 scoring → PII-11 report.',
+  '## Async continuation\nPII-01 → … → PII-11 report → PII-14 email (TEST_DELIVERY unless publication_ready) → PII-15 Slack DM.',
   [
     respondAccepted,
     advanceToIdentityReview,
@@ -1330,6 +1455,8 @@ const asyncNote = sticky(
     executePii09Risk,
     executePii10Scoring,
     executePii11Report,
+    executePii14Email,
+    executePii15SlackNotify,
   ],
   { color: 6 },
 );
@@ -1371,7 +1498,11 @@ export default workflow('pii-00-orchestrator', 'PII-00 Case Orchestrator')
                                             executePii09Risk.to(
                                               riskAdvancedToAnalyzing.onTrue(
                                                 executePii10Scoring.to(
-                                                  scoringAdvancedToReview.onTrue(executePii11Report),
+                                                  scoringAdvancedToReview.onTrue(
+                                                    executePii11Report
+                                                      .to(executePii14Email)
+                                                      .to(executePii15SlackNotify),
+                                                  ),
                                                 ),
                                               ),
                                             ),

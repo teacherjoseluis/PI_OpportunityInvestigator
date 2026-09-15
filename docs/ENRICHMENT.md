@@ -292,5 +292,7 @@ Dependencies: later slices assume earlier ones unless noted.
 ## Status
 
 - **Spec:** signed off.
-- **E1:** implemented, VPS `018` applied, workflows published, REGN smoke passed (`cash_debt_from_filing` PASS, `publication_ready=true`). Await your checklist sign-off.
-- **Next:** Slice **E2** (or Slack `im:write` smoke in parallel).
+- **E1:** done (VPS `018`, published workflows, REGN smoke: `cash_debt_from_filing` PASS, `publication_ready=true`). **Signed off** for product use.
+- **E2–E3 (blobs / full SEC HTML): deferred indefinitely** — owner preference (2026-09-15): keep **high-level facts only** (e.g. companyfacts metrics); do **not** import large filing bodies into workflows or retain bulky raw evidence blobs.
+- **E4–E7:** on hold pending a later need for more high-level structured collectors (not full-document archives).
+- **Next product focus:** Slack completion DM (`im:write`) and ops polish — not object storage.

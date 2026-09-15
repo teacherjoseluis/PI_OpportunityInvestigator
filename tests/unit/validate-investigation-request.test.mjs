@@ -59,6 +59,46 @@ describe('validate-investigation-request', () => {
     assert.equal(result.json.as_of_date, '2026-09-02');
   });
 
+  it('sanitizes optional request_context.slack and base64-encodes it', () => {
+    const [result] = runCodeNode(VALIDATE_SCRIPT, {
+      items: [
+        {
+          ...validFixture,
+          request_context: {
+            source: 'slack',
+            slack: {
+              user_id: 'U123',
+              channel_id: 'C456',
+              team_id: 'T789',
+              user_name: 'joseluis',
+              ignored: 'drop-me',
+            },
+          },
+        },
+      ],
+    });
+
+    assert.equal(result.json.valid, true);
+    assert.equal(result.json.request_context.source, 'slack');
+    assert.equal(result.json.request_context.slack.user_id, 'U123');
+    assert.equal(result.json.request_context.slack.channel_id, 'C456');
+    assert.equal(result.json.request_context.slack.team_id, 'T789');
+    assert.equal(result.json.request_context.slack.user_name, 'joseluis');
+    assert.equal(result.json.request_context.slack.ignored, undefined);
+    assert.ok(result.json.request_context_b64);
+    const decoded = JSON.parse(
+      Buffer.from(result.json.request_context_b64, 'base64').toString('utf8'),
+    );
+    assert.equal(decoded.slack.user_id, 'U123');
+    assert.equal(decoded.source, 'slack');
+  });
+
+  it('defaults request_context to empty object', () => {
+    const [result] = runCodeNode(VALIDATE_SCRIPT, { items: [validFixture] });
+    assert.equal(typeof result.json.request_context, 'object');
+    assert.equal(Object.keys(result.json.request_context).length, 0);
+  });
+
   it('rejects missing ticker', () => {
     const [result] = runCodeNode(VALIDATE_SCRIPT, {
       items: [{ exchange: 'NASDAQ', mode: 'FULL' }],

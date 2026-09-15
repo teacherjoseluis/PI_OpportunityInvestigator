@@ -89,3 +89,53 @@ Example for a future HTTP endpoint:
 - Execution output that includes secrets or PII
 
 Record successful smoke test workflow version and execution ID in `AGENTS.md` milestone log after validation.
+
+## PII Slack Intake (after deploy + publish)
+
+| | URL |
+|---|---|
+| Test | `https://teacherjoseluis.app.n8n.cloud/webhook-test/pii/slack` |
+| Production | `https://teacherjoseluis.app.n8n.cloud/webhook/pii/slack` (requires publish/activate) |
+
+**Slack Slash Command Request URL** must be the **production** URL (Slack cannot use n8n test listen URLs reliably).
+
+Also publish **PII-00** so `/webhook/pii/investigate` accepts the outbound POST.
+
+### Smoke in Slack
+
+```text
+/pii REGN
+```
+
+Expect ephemeral ack, then follow-up with `case_id`. Verify on VPS:
+
+```powershell
+docker compose exec postgres psql -U pii_app -d pii_research -c "SELECT id, ticker, exchange, state, requested_by, created_at FROM research_cases WHERE ticker = 'REGN' ORDER BY created_at DESC LIMIT 3;"
+```
+
+### Local unit coverage
+
+```bash
+npm test
+```
+
+Covers `parse-slack-slash-command` and `build-slack-followup`.
+
+## PII-15 Slack Completion Notify (after deploy)
+
+Requires migration `017` on VPS, published PII-15, updated PII-00 + Slack intake, and Slack bot scope `im:write`.
+
+After `/pii REGN` completes PII-11, expect a DM. Verify:
+
+```sql
+SELECT delivery_type, status, recipient, subject, dedupe_key, sent_at
+FROM slack_deliveries
+ORDER BY created_at DESC
+LIMIT 5;
+
+SELECT request_context_json
+FROM research_cases
+WHERE ticker = 'REGN'
+ORDER BY created_at DESC
+LIMIT 1;
+```

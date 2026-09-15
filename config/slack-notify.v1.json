@@ -1,0 +1,10 @@
+{
+  "enabled": true,
+  "notify_on_report_draft": true,
+  "require_slack_user_id": true,
+  "delivery_type": "COMPLETION",
+  "dedupe_on_report_version": true,
+  "max_message_chars": 3500,
+  "include_scores": true,
+  "include_gates": true
+}

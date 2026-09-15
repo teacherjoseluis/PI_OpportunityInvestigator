@@ -68,6 +68,37 @@ for (const item of $input.all()) {
     }
   }
 
+  let requestContext = body.request_context ?? body.requestContext ?? {};
+  if (requestContext == null || typeof requestContext !== 'object' || Array.isArray(requestContext)) {
+    requestContext = {};
+  } else {
+    const sanitized = {};
+    if (requestContext.source != null) {
+      sanitized.source = String(requestContext.source).trim().slice(0, 64);
+    }
+    const slackIn = requestContext.slack;
+    if (slackIn && typeof slackIn === 'object' && !Array.isArray(slackIn)) {
+      const slack = {};
+      if (slackIn.user_id || slackIn.userId) {
+        slack.user_id = String(slackIn.user_id || slackIn.userId).trim().slice(0, 64);
+      }
+      if (slackIn.channel_id || slackIn.channelId) {
+        slack.channel_id = String(slackIn.channel_id || slackIn.channelId).trim().slice(0, 64);
+      }
+      if (slackIn.team_id || slackIn.teamId) {
+        slack.team_id = String(slackIn.team_id || slackIn.teamId).trim().slice(0, 64);
+      }
+      if (slackIn.user_name || slackIn.userName) {
+        slack.user_name = String(slackIn.user_name || slackIn.userName).trim().slice(0, 128);
+      }
+      if (Object.keys(slack).length > 0) {
+        sanitized.slack = slack;
+        if (!sanitized.source) sanitized.source = 'slack';
+      }
+    }
+    requestContext = sanitized;
+  }
+
   if (errors.length > 0) {
     results.push({
       json: {
@@ -78,6 +109,9 @@ for (const item of $input.all()) {
     });
     continue;
   }
+
+  const requestContextJson = JSON.stringify(requestContext);
+  const requestContextB64 = Buffer.from(requestContextJson, 'utf8').toString('base64');
 
   results.push({
     json: {
@@ -91,6 +125,8 @@ for (const item of $input.all()) {
       as_of_date: asOfDate || null,
       configuration_version: configurationVersion,
       force_refresh: forceRefresh,
+      request_context: requestContext,
+      request_context_b64: requestContextB64,
       correlation_id: requestId,
       n8n_execution_id: $execution.id,
     },

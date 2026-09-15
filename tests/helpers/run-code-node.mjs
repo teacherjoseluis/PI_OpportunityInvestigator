@@ -71,3 +71,13 @@ export const BUILD_ACK_SCRIPT = path.join(
   repoRoot,
   'workflows/shared/code/build-ack-response.js',
 );
+
+export const PARSE_SLACK_SCRIPT = path.join(
+  repoRoot,
+  'workflows/shared/code/parse-slack-slash-command.js',
+);
+
+export const BUILD_SLACK_FOLLOWUP_SCRIPT = path.join(
+  repoRoot,
+  'workflows/shared/code/build-slack-followup.js',
+);

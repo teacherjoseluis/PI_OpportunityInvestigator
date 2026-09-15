@@ -72,5 +72,5 @@ See [docs/SMOKE_TESTS.md](../../docs/SMOKE_TESTS.md) for URLs, fixtures, and DB 
 ## Postgres credential
 
 Uses n8n credential **`Postgres account`** â†’ VPS `108.174.153.74:5433` / `pii_research`.
-- **Wired (local):** PII-10 Scoring Gate (lIjKOZS7qDizvynm) after PII-09 only when 
-ext_state === ANALYZING`r
+- **Wired:** PII-11 Report Generator (`CLiHq1zJ1Euwhrxb`) after PII-10 only when `next_state === AWAITING_HUMAN_REVIEW`
+- **Wired:** PII-15 Slack Notify (`3Q4goJz1gGKJRLMI`) after PII-11

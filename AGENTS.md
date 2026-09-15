@@ -198,29 +198,32 @@ Fill these values as the project is established:
 
 ## Current Status
 
-Project status: Phase 1 through PII-15 hosted. **PII-00…PII-11 + PII-15 published** for Slack/production webhooks. **PII Slack Intake** published: `Co5hmZSuqqk97rhg` (passes `request_context`). **PII-15 Slack Completion Notify** published: `3Q4goJz1gGKJRLMI` — DM after PII-11 when `request_context.slack.user_id` present. PII-14 now published and wired on PII-00 after PII-11 (TEST_DELIVERY unless publication_ready); PII-12/13 remain inactive/standalone. Migrations through `017` on VPS (user-applied); **E1 workflows deployed/published** (PII-03/04/10/11); VPS **`018` E1 XBRL** still needs apply before smoke. Remaining: apply `018` + E1 smoke/sign-off; Slack bot scope `im:write` + reinstall, then smoke `/pii REGN` for completion DM.
+Project status: Phase 1 through PII-15 hosted. **PII-00…PII-11 + PII-15 published** for Slack/production webhooks. **E1 XBRL cash/debt live** (migration `018`, published PII-03/04/10/11; REGN smoke `publication_ready`). **No E2 blob store** — high-level facts only. Remaining: Slack bot scope `im:write` + reinstall, then smoke `/pii REGN` for completion DM.
 
 ### PII-03 enrichment backlog (see ENRICHMENT.md)
 
-1. ~~SEC XBRL cash/debt (E1)~~ — **deployed + smoked** (REGN); await your sign-off
-2. Full SEC filing HTML bodies → **E3** (needs **E2** object storage)
-3. FDA / openFDA collector → **E4**
-4. Company IR / press collector → **E5**
-5. USPTO / patents collector → **E6**
-6. Object storage for raw blobs → **E2**
-7. Broader `evidence_chunks` + analyst sweep → **E7**
+1. ~~SEC XBRL cash/debt (E1)~~ — **done** (deployed + smoked + signed off for high-level facts)
+2. ~~Full SEC filing HTML / object storage (E2–E3)~~ — **declined** (owner: no large blob/HTML imports; high-level facts only)
+3. FDA / openFDA collector → **E4** (on hold)
+4. Company IR / press collector → **E5** (on hold)
+5. USPTO / patents collector → **E6** (on hold)
+6. Broader `evidence_chunks` + analyst sweep → **E7** (on hold)
 
 Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 
 ## Next Steps
 
-1. Sign off E1 per [`docs/ENRICHMENT.md`](docs/ENRICHMENT.md) checklist (smoke notes below); then Slice **E2** or continue Slack.
-2. Add Slack bot scope `im:write` and reinstall **Slack PII bot**; smoke `/pii REGN` → expect completion DM after PII-11.
-3. Optionally upgrade TwelveData to Grow/Pro so `/profile` + `/statistics` succeed without Finnhub fallback.
-4. Rotate webhook secret; review published workflow exposure.
-5. Later: weekly discovery digest; schedule triggers; clean leftover ACAD stuck/stale cases; enrichment E2–E7.
+1. Add Slack bot scope `im:write` and reinstall **Slack PII bot**; smoke `/pii REGN` → expect completion DM after PII-11.
+2. Optionally upgrade TwelveData to Grow/Pro so `/profile` + `/statistics` succeed without Finnhub fallback.
+3. Rotate webhook secret; review published workflow exposure.
+4. Later: weekly discovery digest; schedule triggers; clean leftover ACAD stuck/stale cases; only revisit E4+ if high-level structured sources are wanted (still no full-document blob store).
 
 ## Milestone Log
+
+### 2026-09-15 (E1 sign-off; skip blobs)
+
+- Owner signed off E1 for high-level cash/debt facts; **explicitly declined E2/E3** (no large filing HTML/blob imports; do not retain bulky raw evidence archives).
+- Enrichment backlog updated: E2–E3 declined; E4–E7 on hold. Next focus: Slack `im:write` completion DM.
 
 ### 2026-09-15 (Slice E1 smoke)
 
