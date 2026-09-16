@@ -21,6 +21,23 @@ for (const item of $input.all()) {
     .trim()
     .toUpperCase();
 
+  const modeRaw = String(body.mode || 'COMPLETION')
+    .trim()
+    .toUpperCase();
+  const mode = modeRaw === 'EARLY_EXIT' ? 'EARLY_EXIT' : 'COMPLETION';
+
+  const asOptionalString = (value) => {
+    if (value == null) return null;
+    const s = String(value).trim();
+    return s === '' || s.toLowerCase() === 'null' ? null : s;
+  };
+
+  const stage = asOptionalString(body.stage);
+  const reason = asOptionalString(body.reason);
+  const outcome = asOptionalString(body.outcome);
+  const nextState = asOptionalString(body.next_state);
+  const detail = asOptionalString(body.detail);
+
   if (errors.length > 0) {
     results.push({
       json: {
@@ -39,6 +56,12 @@ for (const item of $input.all()) {
       case_id: caseId,
       ticker: ticker || null,
       exchange: exchange || null,
+      mode,
+      stage,
+      reason,
+      outcome,
+      next_state: nextState,
+      detail,
       n8n_execution_id: $execution.id,
     },
   });

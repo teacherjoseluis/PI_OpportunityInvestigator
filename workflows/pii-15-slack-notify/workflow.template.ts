@@ -25,6 +25,12 @@ const slackNotifyTrigger = trigger({
           { name: 'case_id', type: 'string' },
           { name: 'ticker', type: 'string' },
           { name: 'exchange', type: 'string' },
+          { name: 'mode', type: 'string' },
+          { name: 'stage', type: 'string' },
+          { name: 'reason', type: 'string' },
+          { name: 'outcome', type: 'string' },
+          { name: 'next_state', type: 'string' },
+          { name: 'detail', type: 'string' },
         ],
       },
     },
@@ -34,6 +40,12 @@ const slackNotifyTrigger = trigger({
       case_id: 'a732aa53-a065-4682-b062-5173e2e4f88d',
       ticker: 'REGN',
       exchange: 'NASDAQ',
+      mode: 'COMPLETION',
+      stage: null,
+      reason: null,
+      outcome: null,
+      next_state: null,
+      detail: null,
     },
   ],
 });
@@ -55,6 +67,12 @@ const validateSlackNotifyRequest = node({
       case_id: 'a732aa53-a065-4682-b062-5173e2e4f88d',
       ticker: 'REGN',
       exchange: 'NASDAQ',
+      mode: 'COMPLETION',
+      stage: null,
+      reason: null,
+      outcome: null,
+      next_state: null,
+      detail: null,
       n8n_execution_id: '1',
     },
   ],
@@ -149,6 +167,7 @@ const loadSlackNotifyConfig = node({
         slack_notify: {
           enabled: true,
           notify_on_report_draft: true,
+          notify_on_early_exit: true,
         },
       },
     },
@@ -517,13 +536,13 @@ const buildSlackNotifyResult = node({
 });
 
 const flowNote = sticky(
-  '## PII-15 Slack Notify\nDM completion after PII-11 when request_context.slack.user_id is present.\nCredential: Slack PII bot. Case state unchanged.',
+  '## PII-15 Slack Notify\nDM completion after PII-11, or EARLY_EXIT when eligibility/evidence stops before full analysis (mode=EARLY_EXIT).\nCredential: Slack PII bot. Case state unchanged.',
   [slackNotifyTrigger, validateSlackNotifyRequest, evaluateSlackNotify],
   { color: 4 },
 );
 
 const persistenceNote = sticky(
-  '## Persistence\nslack_deliveries + workflow_runs PII-15.\nDedupe by case + report version + COMPLETION.',
+  '## Persistence\nslack_deliveries + workflow_runs PII-15.\nCOMPLETION dedupe: case + report version. EARLY_EXIT dedupe: case + stage.',
   [sendSlackCompletionDm, insertSlackDelivery, logWorkflowRun],
   { color: 5 },
 );

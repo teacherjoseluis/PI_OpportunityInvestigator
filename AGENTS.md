@@ -146,13 +146,13 @@ Fill these values as the project is established:
 - Primary workflow name and ID: `PII-00 Case Orchestrator` / `4jvmYtTHKufojJRK` (published; version `84997803-a604-4438-b2d6-f1911f616af6`)
 - PII-01 workflow name and ID: `PII-01 Identity Resolver` / `Xf6DjDUMyfOyNX3G` (published; version `de222a9c-c473-4dae-86f8-2017ff9319a7`)
 - PII-02 workflow name and ID: `PII-02 Eligibility Gate` / `hqgFoP7ny6jnycxx` (published; version `567e37d5-1cd7-41cd-9399-9ae3055f69e0`)
-- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `4e4d2fa2-8e7b-465b-b7cb-984f19b9d059`)
-- PII-04 workflow name and ID: `PII-04 Financial and Business Analyst` / `RvIlyuDV0MEsXezL` (published; version `f84c082f-4f5a-4e69-a7b5-9be64c2e1e19`)
+- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `dd3f6f92-dcfd-436e-a0de-be298656f5ed`)
+- PII-04 workflow name and ID: `PII-04 Financial and Business Analyst` / `RvIlyuDV0MEsXezL` (published; version `93d2a4b7-4192-4348-b27e-45d5ae81da26`)
 - PII-05 workflow name and ID: `PII-05 Growth Analyst` / `sdamxDo9SUdo4QxC` (published; version `5eda536b-d371-4b57-a95f-c61b450e91df`)
 - PII-06 workflow name and ID: `PII-06 Pipeline and Clinical Analyst` / `b8CxYW8T8FrGl62x` (published; version `7b992085-7363-4320-897b-cd0b87aeec14`)
 - PII-07 workflow name and ID: `PII-07 Regulatory and Catalyst Analyst` / `4AqBDr5hjZeMLy99` (published; version `024718e7-9cd9-4fe8-ba7b-0598b405f3c4`)
-- PII-08 workflow name and ID: `PII-08 Valuation and Market Analyst` / `1PuOVYf0O3GThRwq` (published; version `f12e1d7e-caab-4c59-b6e0-8fe0e3e505c8`)
-- PII-09 workflow name and ID: `PII-09 Risk and Red-Team Reviewer` / `mioSWLKBMLAaBGzs` (published; version `5db6fefe-25bd-490b-bd93-e51968175985`)
+- PII-08 workflow name and ID: `PII-08 Valuation and Market Analyst` / `1PuOVYf0O3GThRwq` (published; version `d64f67dc-4a25-4527-8175-e258c554b12c`)
+- PII-09 workflow name and ID: `PII-09 Risk and Red-Team Reviewer` / `mioSWLKBMLAaBGzs` (published; version `68b3a70b-5e3d-4942-9df1-46746edda50a`)
 - PII-10 workflow name and ID: `PII-10 Scoring and Quality Gate` / `lIjKOZS7qDizvynm` (published; version `74ad0610-407a-46fe-8e13-cc238cec2dc3`)
 - PII-11 workflow name and ID: `PII-11 Report Generator` / `CLiHq1zJ1Euwhrxb` (published; version `65614b81-f873-4f1c-ad89-05e6df8dcb35`)
 - PII-12 workflow name and ID: `PII-12 Monitoring and Reassessment` / `go396vtpeHKcvtub` (inactive; version `2633c95f-34cf-4051-a384-a0ec7b78762e`)
@@ -199,7 +199,7 @@ Fill these values as the project is established:
 
 ## Current Status
 
-Project status: Phase 1 through PII-15 hosted. **E1 + E4 + E5 + E6 signed off**. **E7 chunk/analyst sweep local** (await deploy). Remaining: deploy E7 when requested; optional TwelveData upgrade; webhook rotation.
+Project status: Phase 1 through PII-15 hosted. **E1 + E4 + E5 + E6 + E7 signed off**. **Slack early-exit notify local** (await deploy PII-00/PII-15 + VPS `023`). Remaining: optional TwelveData upgrade; webhook rotation.
 
 ### PII-03 enrichment backlog (see ENRICHMENT.md)
 
@@ -208,17 +208,38 @@ Project status: Phase 1 through PII-15 hosted. **E1 + E4 + E5 + E6 signed off**.
 3. ~~FDA / openFDA collector (E4)~~ — **done**
 4. ~~Company IR / press (E5)~~ — **done** (Finnhub company-news compact headlines)
 5. ~~USPTO / patents collector (E6)~~ — **done** (ODP Patent File Wrapper compact; credential `USPTO ODP API Key`)
-6. Broader `evidence_chunks` + analyst sweep → **E7** (local implemented; await VPS `022` + deploy)
+6. ~~Broader `evidence_chunks` + analyst sweep (E7)~~ — **done**
 
 Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 
 ## Next Steps
 
-1. Apply VPS migration `022` + deploy PII-03 / PII-04 / PII-08 / PII-09 for E7 when requested.
-2. Optionally upgrade TwelveData (Grow+/Pro+ for `/profile` / `/statistics`); rotate webhook secret.
-3. Day-to-day: Slack `/pii` / webhook investigations with current collectors.
+1. Regenerate report + email on an enriched case (PII-11 → PII-14) to see FDA/news/patents/XBRL claims in the memo.
+2. Optionally upgrade TwelveData; rotate webhook secret.
+3. Day-to-day: Slack `/pii` / webhook for fresh tickers (avoid REGN duplicate_recent_case).
+4. Deploy Slack early-exit notify (local: PII-00 + PII-15 + migration `023`) when ready — DMs on eligibility/evidence stop before full analysis.
 
 ## Milestone Log
+
+### 2026-09-16 (Slack early-exit notify local)
+
+- Local only (not deployed): PII-15 accepts `mode` COMPLETION|EARLY_EXIT + stage/reason/outcome/next_state/detail; EARLY_EXIT DMs without requiring a report; dedupe `slack:EARLY_EXIT:<case_id>:<stage>`.
+- Config `notify_on_early_exit: true`; migration `023_slack_early_exit_notify_v1.sql`.
+- PII-00 wires early-exit Execute PII-15 from eligibility not COLLECTING and evidence not ANALYZING; completion path passes `mode=COMPLETION`.
+- Unit tests + `bundle:pii-15` / `bundle:pii-00`.
+
+### 2026-09-16 (E7 sign-off)
+
+- Owner verified E7 smoke (chunks + net_cash_debt / liquidity claims). Slice E7 signed off for product use.
+
+### 2026-09-16 (Slice E7 deploy + smoke)
+
+- Applied migration `022` soft-close copy via temp Postgres wrapper (archived) when needed; config check confirmed E7 insufficient texts.
+- Published PII-03 `IqoALspzvN3PL5Cq` → `dd3f6f92-dcfd-436e-a0de-be298656f5ed` (Prepare/Has/Upsert Evidence Chunks after SEC/CT/FDA/news/USPTO).
+- Published PII-04 `RvIlyuDV0MEsXezL` → `93d2a4b7-4192-4348-b27e-45d5ae81da26` (dilution soft-close when offering forms present).
+- Published PII-08 `1PuOVYf0O3GThRwq` → `d64f67dc-4a25-4527-8175-e258c554b12c` (Load Financial Metrics + `net_cash_debt`).
+- Published PII-09 `mioSWLKBMLAaBGzs` → `68b3a70b-5e3d-4942-9df1-46746edda50a` (Load Financial Metrics + `liquidity_balance_sheet_inventory`).
+- REGN case `a87fa88d-2508-4150-b01f-da7f03a6d8c0` via temp wrappers (archived): PII-03 wrapper exec `2386` / sub `2387` COLLECTED (`fda` chunks=7, `finnhub_company_news` chunks=25, `uspto_patent` chunks=25); analysts wrapper exec `2388` → PII-08 `2389` ANALYZED (`net_cash_debt` fact, not in insufficient; metrics_count=602); PII-09 `2390` ANALYZED (`liquidity_balance_sheet_inventory`; `financial_financing_depth` not in insufficient); PII-04 `2391` ANALYZED (`dilution` still insufficient — REGN had no offering forms to soft-close).
 
 ### 2026-09-16 (Slice E7 local)
 

@@ -1517,6 +1517,90 @@ const executePii14Email = node({
   },
 });
 
+const pii15InputSchema = [
+  {
+    id: 'case_id',
+    displayName: 'case_id',
+    required: true,
+    defaultMatch: false,
+    display: true,
+    canBeUsedToMatch: true,
+    type: 'string',
+  },
+  {
+    id: 'ticker',
+    displayName: 'ticker',
+    required: false,
+    defaultMatch: false,
+    display: true,
+    canBeUsedToMatch: true,
+    type: 'string',
+  },
+  {
+    id: 'exchange',
+    displayName: 'exchange',
+    required: false,
+    defaultMatch: false,
+    display: true,
+    canBeUsedToMatch: true,
+    type: 'string',
+  },
+  {
+    id: 'mode',
+    displayName: 'mode',
+    required: false,
+    defaultMatch: false,
+    display: true,
+    canBeUsedToMatch: true,
+    type: 'string',
+  },
+  {
+    id: 'stage',
+    displayName: 'stage',
+    required: false,
+    defaultMatch: false,
+    display: true,
+    canBeUsedToMatch: true,
+    type: 'string',
+  },
+  {
+    id: 'reason',
+    displayName: 'reason',
+    required: false,
+    defaultMatch: false,
+    display: true,
+    canBeUsedToMatch: true,
+    type: 'string',
+  },
+  {
+    id: 'outcome',
+    displayName: 'outcome',
+    required: false,
+    defaultMatch: false,
+    display: true,
+    canBeUsedToMatch: true,
+    type: 'string',
+  },
+  {
+    id: 'next_state',
+    displayName: 'next_state',
+    required: false,
+    defaultMatch: false,
+    display: true,
+    canBeUsedToMatch: true,
+    type: 'string',
+  },
+  {
+    id: 'detail',
+    displayName: 'detail',
+    required: false,
+    defaultMatch: false,
+    display: true,
+    canBeUsedToMatch: true,
+    type: 'string',
+  },
+];
+
 const executePii15SlackNotify = node({
   type: 'n8n-nodes-base.executeWorkflow',
   version: 1.3,
@@ -1539,37 +1623,99 @@ const executePii15SlackNotify = node({
           exchange: expr(
             '{{ $("Execute PII-11 Report Generator").item.json.exchange }}',
           ),
+          mode: expr('{{ "COMPLETION" }}'),
+          stage: expr('{{ "" }}'),
+          reason: expr('{{ "" }}'),
+          outcome: expr('{{ "" }}'),
+          next_state: expr('{{ "" }}'),
+          detail: expr('{{ "" }}'),
         },
         matchingColumns: [],
-        schema: [
-          {
-            id: 'case_id',
-            displayName: 'case_id',
-            required: true,
-            defaultMatch: false,
-            display: true,
-            canBeUsedToMatch: true,
-            type: 'string',
-          },
-          {
-            id: 'ticker',
-            displayName: 'ticker',
-            required: true,
-            defaultMatch: false,
-            display: true,
-            canBeUsedToMatch: true,
-            type: 'string',
-          },
-          {
-            id: 'exchange',
-            displayName: 'exchange',
-            required: true,
-            defaultMatch: false,
-            display: true,
-            canBeUsedToMatch: true,
-            type: 'string',
-          },
-        ],
+        schema: pii15InputSchema,
+        attemptToConvertTypes: false,
+        convertFieldsToString: true,
+      },
+      options: {
+        waitForSubWorkflow: true,
+      },
+    },
+  },
+});
+
+const notifySlackEligibilityEarlyExit = node({
+  type: 'n8n-nodes-base.executeWorkflow',
+  version: 1.3,
+  config: {
+    name: 'Notify Slack Eligibility Early Exit',
+    parameters: {
+      mode: 'once',
+      source: 'database',
+      workflowId: {
+        __rl: true,
+        mode: 'id',
+        value: '3Q4goJz1gGKJRLMI',
+        cachedResultName: 'PII-15 Slack Completion Notify',
+      },
+      workflowInputs: {
+        mappingMode: 'defineBelow',
+        value: {
+          case_id: expr('{{ $("Execute PII-02 Eligibility Gate").item.json.case_id }}'),
+          ticker: expr('{{ $("Execute PII-02 Eligibility Gate").item.json.ticker }}'),
+          exchange: expr('{{ $("Execute PII-02 Eligibility Gate").item.json.exchange }}'),
+          mode: expr('{{ "EARLY_EXIT" }}'),
+          stage: expr('{{ "eligibility" }}'),
+          reason: expr('{{ $("Execute PII-02 Eligibility Gate").item.json.reason }}'),
+          outcome: expr('{{ $("Execute PII-02 Eligibility Gate").item.json.outcome }}'),
+          next_state: expr(
+            '{{ $("Execute PII-02 Eligibility Gate").item.json.next_state }}',
+          ),
+          detail: expr('{{ $("Execute PII-02 Eligibility Gate").item.json.reason }}'),
+        },
+        matchingColumns: [],
+        schema: pii15InputSchema,
+        attemptToConvertTypes: false,
+        convertFieldsToString: true,
+      },
+      options: {
+        waitForSubWorkflow: true,
+      },
+    },
+  },
+});
+
+const notifySlackEvidenceEarlyExit = node({
+  type: 'n8n-nodes-base.executeWorkflow',
+  version: 1.3,
+  config: {
+    name: 'Notify Slack Evidence Early Exit',
+    parameters: {
+      mode: 'once',
+      source: 'database',
+      workflowId: {
+        __rl: true,
+        mode: 'id',
+        value: '3Q4goJz1gGKJRLMI',
+        cachedResultName: 'PII-15 Slack Completion Notify',
+      },
+      workflowInputs: {
+        mappingMode: 'defineBelow',
+        value: {
+          case_id: expr('{{ $("Execute PII-03 Evidence Collector").item.json.case_id }}'),
+          ticker: expr('{{ $("Execute PII-03 Evidence Collector").item.json.ticker }}'),
+          exchange: expr(
+            '{{ $("Execute PII-03 Evidence Collector").item.json.exchange }}',
+          ),
+          mode: expr('{{ "EARLY_EXIT" }}'),
+          stage: expr('{{ "evidence" }}'),
+          reason: expr('{{ $("Execute PII-03 Evidence Collector").item.json.reason }}'),
+          outcome: expr('{{ $("Execute PII-03 Evidence Collector").item.json.outcome }}'),
+          next_state: expr(
+            '{{ $("Execute PII-03 Evidence Collector").item.json.next_state }}',
+          ),
+          detail: expr('{{ $("Execute PII-03 Evidence Collector").item.json.reason }}'),
+        },
+        matchingColumns: [],
+        schema: pii15InputSchema,
         attemptToConvertTypes: false,
         convertFieldsToString: true,
       },
@@ -1593,13 +1739,15 @@ const persistenceNote = sticky(
 );
 
 const asyncNote = sticky(
-  '## Async continuation\nPII-01 → … → PII-11 report → PII-14 email (TEST_DELIVERY unless publication_ready) → PII-15 Slack DM.',
+  '## Async continuation\nPII-01 → … → PII-11 report → PII-14 email → PII-15 Slack DM (COMPLETION). Eligibility/evidence early exits also call PII-15 (EARLY_EXIT).',
   [
     respondAccepted,
     advanceToIdentityReview,
     executePii01Identity,
     executePii02Eligibility,
+    notifySlackEligibilityEarlyExit,
     executePii03Evidence,
+    notifySlackEvidenceEarlyExit,
     executePii04Financial,
     executePii05Growth,
     executePii06Pipeline,
@@ -1635,26 +1783,30 @@ export default workflow('pii-00-orchestrator', 'PII-00 Case Orchestrator')
                 .to(executePii01Identity)
                 .to(executePii02Eligibility)
                 .to(
-                  eligibilityAdvancedToCollecting.onTrue(
-                    executePii03Evidence.to(
-                      evidenceAdvancedToAnalyzing.onTrue(
-                        executePii04Financial.to(
-                          financialAdvancedToAnalyzing.onTrue(
-                            executePii05Growth.to(
-                              growthAdvancedToAnalyzing.onTrue(
-                                executePii06Pipeline.to(
-                                  pipelineAdvancedToAnalyzing.onTrue(
-                                    executePii07Regulatory.to(
-                                      regulatoryAdvancedToAnalyzing.onTrue(
-                                        executePii08Valuation.to(
-                                          valuationAdvancedToAnalyzing.onTrue(
-                                            executePii09Risk.to(
-                                              riskAdvancedToAnalyzing.onTrue(
-                                                executePii10Scoring.to(
-                                                  scoringAdvancedToReview.onTrue(
-                                                    executePii11Report
-                                                      .to(executePii14Email)
-                                                      .to(executePii15SlackNotify),
+                  eligibilityAdvancedToCollecting
+                    .onTrue(
+                      executePii03Evidence.to(
+                        evidenceAdvancedToAnalyzing
+                          .onTrue(
+                            executePii04Financial.to(
+                              financialAdvancedToAnalyzing.onTrue(
+                                executePii05Growth.to(
+                                  growthAdvancedToAnalyzing.onTrue(
+                                    executePii06Pipeline.to(
+                                      pipelineAdvancedToAnalyzing.onTrue(
+                                        executePii07Regulatory.to(
+                                          regulatoryAdvancedToAnalyzing.onTrue(
+                                            executePii08Valuation.to(
+                                              valuationAdvancedToAnalyzing.onTrue(
+                                                executePii09Risk.to(
+                                                  riskAdvancedToAnalyzing.onTrue(
+                                                    executePii10Scoring.to(
+                                                      scoringAdvancedToReview.onTrue(
+                                                        executePii11Report
+                                                          .to(executePii14Email)
+                                                          .to(executePii15SlackNotify),
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
                                               ),
@@ -1667,11 +1819,11 @@ export default workflow('pii-00-orchestrator', 'PII-00 Case Orchestrator')
                                 ),
                               ),
                             ),
-                          ),
-                        ),
+                          )
+                          .onFalse(notifySlackEvidenceEarlyExit),
                       ),
-                    ),
-                  ),
+                    )
+                    .onFalse(notifySlackEligibilityEarlyExit),
                 ),
             ),
         ),

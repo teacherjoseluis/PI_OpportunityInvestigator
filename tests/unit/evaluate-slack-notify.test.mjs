@@ -22,11 +22,37 @@ describe('validate-slack-notify-request', () => {
     });
     assert.equal(result.json.valid, true);
     assert.equal(result.json.case_id, caseId);
+    assert.equal(result.json.mode, 'COMPLETION');
   });
 
   it('rejects missing case_id', () => {
     const [result] = runCodeNode(VALIDATE, { items: [{ ticker: 'REGN' }] });
     assert.equal(result.json.valid, false);
+  });
+
+  it('passes through EARLY_EXIT mode and stage fields', () => {
+    const [result] = runCodeNode(VALIDATE, {
+      items: [
+        {
+          case_id: caseId,
+          ticker: 'REGN',
+          exchange: 'NASDAQ',
+          mode: 'early_exit',
+          stage: 'eligibility',
+          reason: 'market_cap_range',
+          outcome: 'FAIL',
+          next_state: 'INCOMPLETE',
+          detail: 'cap below min',
+        },
+      ],
+    });
+    assert.equal(result.json.valid, true);
+    assert.equal(result.json.mode, 'EARLY_EXIT');
+    assert.equal(result.json.stage, 'eligibility');
+    assert.equal(result.json.reason, 'market_cap_range');
+    assert.equal(result.json.outcome, 'FAIL');
+    assert.equal(result.json.next_state, 'INCOMPLETE');
+    assert.equal(result.json.detail, 'cap below min');
   });
 });
 
@@ -39,6 +65,12 @@ describe('evaluate-slack-notify', () => {
           case_id: caseId,
           ticker: 'REGN',
           exchange: 'NASDAQ',
+          mode: overrides.mode || 'COMPLETION',
+          stage: overrides.stage || null,
+          reason: overrides.requestReason || null,
+          outcome: overrides.requestOutcome || null,
+          next_state: overrides.requestNextState || null,
+          detail: overrides.detail || null,
           n8n_execution_id: 'test-exec-1',
         },
       ],
@@ -48,8 +80,10 @@ describe('evaluate-slack-notify', () => {
             slack_notify: {
               enabled: true,
               notify_on_report_draft: true,
+              notify_on_early_exit: true,
               include_scores: true,
               include_gates: true,
+              ...(overrides.cfg || {}),
             },
           },
         },
@@ -118,6 +152,78 @@ describe('evaluate-slack-notify', () => {
     });
     assert.equal(result.json.should_send, false);
     assert.equal(result.json.outcome, 'SKIPPED_DUPLICATE');
+  });
+
+  it('EARLY_EXIT sends without report and mentions market_cap_range / eligibility', () => {
+    const [result] = runCodeNode(EVALUATE, {
+      items: [{}],
+      nodes: nodes({
+        mode: 'EARLY_EXIT',
+        stage: 'eligibility',
+        requestReason: 'market_cap_range',
+        requestOutcome: 'FAIL',
+        requestNextState: 'INCOMPLETE',
+        caseRow: {
+          report_id: null,
+          version_number: null,
+          case_state: 'INCOMPLETE',
+          outcome_class: null,
+          scores_json: null,
+          outcome_json: null,
+        },
+      }),
+    });
+    assert.equal(result.json.should_send, true);
+    assert.equal(result.json.outcome, 'SENT');
+    assert.equal(result.json.delivery_type, 'EARLY_EXIT');
+    assert.equal(result.json.report_id, null);
+    assert.match(result.json.message_text, /market_cap_range/);
+    assert.match(result.json.message_text, /eligibility/);
+    assert.match(result.json.message_text, /Market cap is outside/);
+    assert.match(result.json.message_text, /No research email or report/);
+    assert.equal(result.json.dedupe_key, `slack:EARLY_EXIT:${caseId}:eligibility`);
+  });
+
+  it('EARLY_EXIT skips without slack context', () => {
+    const [result] = runCodeNode(EVALUATE, {
+      items: [{}],
+      nodes: nodes({
+        mode: 'EARLY_EXIT',
+        stage: 'eligibility',
+        requestReason: 'market_cap_range',
+        caseRow: {
+          request_context_json: {},
+          report_id: null,
+          version_number: null,
+        },
+      }),
+    });
+    assert.equal(result.json.should_send, false);
+    assert.equal(result.json.reason, 'no_slack_context');
+  });
+
+  it('EARLY_EXIT duplicate dedupe', () => {
+    const [result] = runCodeNode(EVALUATE, {
+      items: [{}],
+      nodes: nodes({
+        mode: 'EARLY_EXIT',
+        stage: 'evidence',
+        requestReason: 'no_evidence_collected',
+        caseRow: {
+          report_id: null,
+          version_number: null,
+        },
+        prior: [
+          {
+            dedupe_key: `slack:EARLY_EXIT:${caseId}:evidence`,
+            status: 'SENT',
+          },
+        ],
+      }),
+    });
+    assert.equal(result.json.should_send, false);
+    assert.equal(result.json.outcome, 'SKIPPED_DUPLICATE');
+    assert.equal(result.json.dedupe_key, `slack:EARLY_EXIT:${caseId}:evidence`);
   });
 });
 

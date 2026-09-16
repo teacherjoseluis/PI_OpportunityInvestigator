@@ -1,6 +1,7 @@
 {
   "enabled": true,
   "notify_on_report_draft": true,
+  "notify_on_early_exit": true,
   "require_slack_user_id": true,
   "delivery_type": "COMPLETION",
   "dedupe_on_report_version": true,
