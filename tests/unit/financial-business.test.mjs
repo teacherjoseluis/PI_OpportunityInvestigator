@@ -113,6 +113,48 @@ describe('evaluate-financial-business', () => {
     assert.ok(cashClaim.claim_text.includes('310,000,000'));
   });
 
+  it('soft-closes dilution when offering forms are present', () => {
+    const withOffering = [
+      ...evidence,
+      {
+        id: '11111111-1111-4111-8111-111111111105',
+        source_type: 'sec_edgar_filing',
+        metadata_json: {
+          form: 'S-3',
+          accessionNumber: '0001070494-25-000070',
+          filingDate: '2025-07-01',
+        },
+      },
+    ];
+    const [result] = runCodeNode(EVALUATE, {
+      items: [{ financial_config: financialConfig }],
+      nodes: {
+        'Validate Financial Request': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            ticker: 'ACAD',
+            exchange: 'NASDAQ',
+            n8n_execution_id: 'exec-dilution',
+          },
+        ],
+        'Load Case And Company': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            company_id: '7e2399f9-c323-41e5-8291-e354b3375527',
+            legal_name: 'ACADIA PHARMACEUTICALS INC',
+            ticker: 'ACAD',
+          },
+        ],
+        'Load Analysis Config': [{ gates_json: { analysis: { financial: financialConfig } } }],
+        'Load Evidence Documents': withOffering,
+      },
+    });
+
+    assert.equal(result.json.outcome, 'ANALYZED');
+    assert.ok(result.json.claims.some((c) => c.topic_key === 'offering_forms_present'));
+    assert.ok(!result.json.insufficient_topics.includes('dilution'));
+  });
+
   it('returns INSUFFICIENT when no filings exist', () => {
     const [result] = runCodeNode(EVALUATE, {
       items: [{}],

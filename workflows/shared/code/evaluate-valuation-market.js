@@ -1,5 +1,5 @@
 // Canonical source for PII-08 "Evaluate Valuation Market" Code node.
-// Deterministic valuation/market claims from SEC metadata only (no invented multiples).
+// Deterministic valuation/market claims from SEC metadata + XBRL metrics when present.
 
 function nodeJson(name) {
   try {
@@ -69,8 +69,45 @@ if (!evidenceRows.length) {
   if (Array.isArray(bundled)) evidenceRows = bundled;
 }
 
+let metricRows = nodeAll('Load Financial Metrics');
+if (!metricRows.length) {
+  const bundledMetrics = $input.first().json.financial_metrics;
+  if (Array.isArray(bundledMetrics)) metricRows = bundledMetrics;
+}
+
+function metricMap(rows) {
+  const map = {};
+  for (const row of rows) {
+    const key = String(row.metric_key || '');
+    if (!key) continue;
+    const val = row.metric_value == null || row.metric_value === '' ? null : Number(row.metric_value);
+    if (val == null || Number.isNaN(val)) continue;
+    map[key] = {
+      value: val,
+      currency: row.currency || 'USD',
+      period_label: row.period_label || null,
+      period_end: row.period_end || null,
+      source_evidence_id: row.source_evidence_id || null,
+    };
+  }
+  return map;
+}
+
+const metrics = metricMap(metricRows);
+const hasCashDebtMetrics = Boolean(
+  metrics.cash_and_equivalents ||
+    metrics.marketable_securities_current ||
+    metrics.liquid_assets ||
+    metrics.total_debt ||
+    metrics.net_cash ||
+    metrics.short_term_debt ||
+    metrics.long_term_debt,
+);
+
 const filings = evidenceRows.filter((row) => row.source_type === 'sec_edgar_filing');
+const companyfactsDocs = evidenceRows.filter((row) => row.source_type === 'sec_companyfacts');
 const claims = [];
+const satisfiedInsufficient = new Set();
 
 const periodic = filings.filter((f) =>
   formMatches(parseMeta(f.metadata_json).form, ['10-K', '10-Q']),
@@ -148,9 +185,59 @@ if (eventFilings.length) {
   });
 }
 
+if (hasCashDebtMetrics) {
+  const cash = metrics.cash_and_equivalents;
+  const mkt = metrics.marketable_securities_current;
+  const liquid = metrics.liquid_assets;
+  const debt = metrics.total_debt;
+  const net = metrics.net_cash;
+  const periodEnd =
+    (cash && cash.period_end) ||
+    (liquid && liquid.period_end) ||
+    (debt && debt.period_end) ||
+    (net && net.period_end) ||
+    null;
+  const evidenceIds = [
+    ...companyfactsDocs.map((d) => d.id),
+    cash && cash.source_evidence_id,
+    debt && debt.source_evidence_id,
+    net && net.source_evidence_id,
+  ].filter(Boolean);
+  const uniqueEvidence = [...new Set(evidenceIds)].slice(0, 5);
+
+  function fmtUsd(n) {
+    return Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  }
+
+  const parts = [];
+  if (cash) parts.push('cash and equivalents ' + fmtUsd(cash.value) + ' USD');
+  if (mkt) parts.push('current marketable securities ' + fmtUsd(mkt.value) + ' USD');
+  if (liquid && !cash) parts.push('liquid assets ' + fmtUsd(liquid.value) + ' USD');
+  if (debt) parts.push('total debt ' + fmtUsd(debt.value) + ' USD');
+  if (net) parts.push('net cash ' + fmtUsd(net.value) + ' USD');
+
+  claims.push({
+    topic_key: 'net_cash_debt',
+    claim_text:
+      'SEC XBRL companyfacts (period end ' +
+      (periodEnd || 'unknown') +
+      '): ' +
+      parts.join('; ') +
+      '.',
+    claim_category: claimCategory,
+    claim_kind: 'fact',
+    confidence: 88,
+    materiality: 'HIGH',
+    extraction_method: 'deterministic_xbrl_metrics',
+    evidence_ids: uniqueEvidence,
+  });
+  satisfiedInsufficient.add('net_cash_debt');
+}
+
 const insufficient_topics = [];
 for (const topic of insufficientTopics) {
   const key = topic.key || topic;
+  if (satisfiedInsufficient.has(key)) continue;
   const text =
     topic.text ||
     'INSUFFICIENT_EVIDENCE: ' + key + ' requires richer valuation/market evidence sources.';
@@ -175,6 +262,7 @@ const structuralKeys = new Set([
   'periodic_filings_valuation_anchor',
   'offering_forms_dilution_context',
   'material_event_market_context',
+  'net_cash_debt',
 ]);
 const structuralCount = claims.filter((c) => structuralKeys.has(c.topic_key)).length;
 
@@ -207,6 +295,7 @@ const summary = {
   periodic_count: periodic.length,
   offering_count: offering.length,
   event_filings_count: eventFilings.length,
+  metrics_count: metricRows.length,
 };
 const metadata_b64 = Buffer.from(JSON.stringify(summary), 'utf8').toString('base64');
 
@@ -229,6 +318,7 @@ return [
         periodic_count: periodic.length,
         offering_count: offering.length,
         event_filings_count: eventFilings.length,
+        metrics_count: metricRows.length,
         claim_count: claims.length,
         structural_claim_count: structuralCount,
       },

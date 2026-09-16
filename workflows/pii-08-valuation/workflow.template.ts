@@ -146,6 +146,29 @@ const loadEvidenceDocuments = node({
   },
 });
 
+const loadFinancialMetrics = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Load Financial Metrics',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query:
+        "SELECT fm.metric_key, fm.metric_value, fm.currency, fm.unit, fm.assumption_set, fm.source_evidence_id, fm.calculation_notes, fp.period_label, fp.period_end, fp.period_start, fp.fiscal_year, fp.fiscal_quarter FROM financial_metrics fm JOIN financial_periods fp ON fp.id = fm.financial_period_id WHERE fp.case_id = $1::uuid OR fp.company_id = NULLIF(NULLIF(TRIM($2), ''), 'null')::uuid ORDER BY fp.period_end DESC NULLS LAST, fm.metric_key ASC",
+      options: {
+        queryReplacement: expr(
+          '{{ $("Validate Valuation Request").item.json.case_id }},{{ $("Load Case And Company").item.json.company_id }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
 const loadAnalysisConfig = node({
   type: 'n8n-nodes-base.postgres',
   version: 2.7,
@@ -524,12 +547,14 @@ export default workflow('pii-08-valuation', 'PII-08 Valuation and Market Analyst
       .onTrue(
         loadCaseAndCompany.to(
           loadEvidenceDocuments.to(
-            loadAnalysisConfig.to(
-              evaluateValuationMarket.to(
-                expandValuationClaims.to(
-                  hasClaims
-                    .onTrue(insertValuationClaims.to(afterClaimsPath))
-                    .onFalse(prepareZeroClaims.to(finishPath)),
+            loadFinancialMetrics.to(
+              loadAnalysisConfig.to(
+                evaluateValuationMarket.to(
+                  expandValuationClaims.to(
+                    hasClaims
+                      .onTrue(insertValuationClaims.to(afterClaimsPath))
+                      .onFalse(prepareZeroClaims.to(finishPath)),
+                  ),
                 ),
               ),
             ),

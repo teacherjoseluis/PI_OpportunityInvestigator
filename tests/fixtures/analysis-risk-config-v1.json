@@ -20,7 +20,7 @@
   "insufficient_topics": [
     {
       "key": "financial_financing_depth",
-      "text": "INSUFFICIENT_EVIDENCE: Cash runway, covenant, and financing-need depth require XBRL/filing-body liquidity facts (PII-03 circle-back)."
+      "text": "INSUFFICIENT_EVIDENCE: Balance-sheet cash/debt inventory closes when E1 XBRL metrics exist (E7); runway, covenants, and financing-need depth still need fuller liquidity analysis."
     },
     {
       "key": "clinical_efficacy_safety",

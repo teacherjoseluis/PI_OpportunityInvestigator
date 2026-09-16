@@ -108,6 +108,7 @@ const hasCashDebtMetrics = Boolean(
 
 const claims = [];
 const formSeen = new Map();
+const resolvedInsufficient = new Set();
 
 for (const filing of filings) {
   const meta = parseMeta(filing.metadata_json);
@@ -201,9 +202,9 @@ if (offeringForms.length) {
     extraction_method: 'deterministic_sec_metadata',
     evidence_ids: evidenceIds,
   });
+  resolvedInsufficient.add('dilution');
 }
 
-const resolvedInsufficient = new Set();
 if (hasCashDebtMetrics) {
   const cash = metrics.cash_and_equivalents;
   const mkt = metrics.marketable_securities_current;

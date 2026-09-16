@@ -146,13 +146,13 @@ Fill these values as the project is established:
 - Primary workflow name and ID: `PII-00 Case Orchestrator` / `4jvmYtTHKufojJRK` (published; version `84997803-a604-4438-b2d6-f1911f616af6`)
 - PII-01 workflow name and ID: `PII-01 Identity Resolver` / `Xf6DjDUMyfOyNX3G` (published; version `de222a9c-c473-4dae-86f8-2017ff9319a7`)
 - PII-02 workflow name and ID: `PII-02 Eligibility Gate` / `hqgFoP7ny6jnycxx` (published; version `567e37d5-1cd7-41cd-9399-9ae3055f69e0`)
-- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `bfe2cf6f-f083-4fc4-913d-c3c51260bdd0`)
+- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `4e4d2fa2-8e7b-465b-b7cb-984f19b9d059`)
 - PII-04 workflow name and ID: `PII-04 Financial and Business Analyst` / `RvIlyuDV0MEsXezL` (published; version `f84c082f-4f5a-4e69-a7b5-9be64c2e1e19`)
 - PII-05 workflow name and ID: `PII-05 Growth Analyst` / `sdamxDo9SUdo4QxC` (published; version `5eda536b-d371-4b57-a95f-c61b450e91df`)
 - PII-06 workflow name and ID: `PII-06 Pipeline and Clinical Analyst` / `b8CxYW8T8FrGl62x` (published; version `7b992085-7363-4320-897b-cd0b87aeec14`)
 - PII-07 workflow name and ID: `PII-07 Regulatory and Catalyst Analyst` / `4AqBDr5hjZeMLy99` (published; version `024718e7-9cd9-4fe8-ba7b-0598b405f3c4`)
 - PII-08 workflow name and ID: `PII-08 Valuation and Market Analyst` / `1PuOVYf0O3GThRwq` (published; version `f12e1d7e-caab-4c59-b6e0-8fe0e3e505c8`)
-- PII-09 workflow name and ID: `PII-09 Risk and Red-Team Reviewer` / `mioSWLKBMLAaBGzs` (published; version `d47ca67c-033a-4103-bae9-5b9ddbd4a9e3`)
+- PII-09 workflow name and ID: `PII-09 Risk and Red-Team Reviewer` / `mioSWLKBMLAaBGzs` (published; version `5db6fefe-25bd-490b-bd93-e51968175985`)
 - PII-10 workflow name and ID: `PII-10 Scoring and Quality Gate` / `lIjKOZS7qDizvynm` (published; version `74ad0610-407a-46fe-8e13-cc238cec2dc3`)
 - PII-11 workflow name and ID: `PII-11 Report Generator` / `CLiHq1zJ1Euwhrxb` (published; version `65614b81-f873-4f1c-ad89-05e6df8dcb35`)
 - PII-12 workflow name and ID: `PII-12 Monitoring and Reassessment` / `go396vtpeHKcvtub` (inactive; version `2633c95f-34cf-4051-a384-a0ec7b78762e`)
@@ -199,7 +199,7 @@ Fill these values as the project is established:
 
 ## Current Status
 
-Project status: Phase 1 through PII-15 hosted. **E1 + E4 + E5 signed off**. **E6 USPTO patents local** (await deploy). Remaining: deploy E6 when requested; optional TwelveData upgrade; webhook rotation; E7 later.
+Project status: Phase 1 through PII-15 hosted. **E1 + E4 + E5 + E6 signed off**. **E7 chunk/analyst sweep local** (await deploy). Remaining: deploy E7 when requested; optional TwelveData upgrade; webhook rotation.
 
 ### PII-03 enrichment backlog (see ENRICHMENT.md)
 
@@ -207,25 +207,44 @@ Project status: Phase 1 through PII-15 hosted. **E1 + E4 + E5 signed off**. **E6
 2. ~~Full SEC filing HTML / object storage (E2–E3)~~ — **declined**
 3. ~~FDA / openFDA collector (E4)~~ — **done**
 4. ~~Company IR / press (E5)~~ — **done** (Finnhub company-news compact headlines)
-5. USPTO / patents collector → **E6** (local implemented; ODP Patent File Wrapper + credential `USPTO ODP API Key`)
-6. Broader `evidence_chunks` + analyst sweep → **E7** (on hold)
+5. ~~USPTO / patents collector (E6)~~ — **done** (ODP Patent File Wrapper compact; credential `USPTO ODP API Key`)
+6. Broader `evidence_chunks` + analyst sweep → **E7** (local implemented; await VPS `022` + deploy)
 
 Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 
 ## Next Steps
 
-1. Apply VPS migration `021` + deploy PII-03 / PII-09 for E6 when requested.
+1. Apply VPS migration `022` + deploy PII-03 / PII-04 / PII-08 / PII-09 for E7 when requested.
 2. Optionally upgrade TwelveData (Grow+/Pro+ for `/profile` / `/statistics`); rotate webhook secret.
-3. Later: E7 chunk consistency + analyst insufficient sweep; weekly discovery digest.
+3. Day-to-day: Slack `/pii` / webhook investigations with current collectors.
 
 ## Milestone Log
+
+### 2026-09-16 (Slice E7 local)
+
+- Implemented **E7 chunk backfill + analyst sweep** (no new collectors/blobs): migration `022_chunk_backfill_analyst_sweep_v1.sql`.
+- PII-03: after SEC/CT/FDA/news/USPTO document upserts, write `evidence_chunks` from existing `chunk_text` (XBRL path unchanged).
+- PII-08: `net_cash_debt` fact from `financial_metrics` when XBRL present; skip insufficient.
+- PII-09: `liquidity_balance_sheet_inventory` + skip `financial_financing_depth` when XBRL metrics present.
+- PII-04: soft-close `dilution` insufficient when offering forms already signaled.
+- Unit tests + `bundle:pii-03/04/08/09`. **Not deployed** until explicitly requested.
+
+### 2026-09-16 (E6 sign-off)
+
+- Owner verified E6 smoke checks (USPTO patent evidence + risk patent inventory claim). Slice E6 signed off for product use.
+
+### 2026-09-16 (Slice E6 deploy + smoke)
+
+- VPS migration `021` already applied (owner). Published PII-03 `IqoALspzvN3PL5Cq` → `4e4d2fa2-8e7b-465b-b7cb-984f19b9d059` (news → USPTO path → Evaluate; credential `USPTO ODP API Key` / `GQZs1uccM2RkmRz1`).
+- Published PII-09 `mioSWLKBMLAaBGzs` → `5db6fefe-25bd-490b-bd93-e51968175985` (`patent_portfolio_inventory` + skip `patent_exclusivity` insufficient).
+- REGN case `a87fa88d-2508-4150-b01f-da7f03a6d8c0` via manual wrapper (archived): PII-03 exec `2379` COLLECTED (`patents_stored_count=25`, `news_stored_count=25`, `fda_stored_count=7`, `uspto_patents` ok); PII-09 exec `2380` ANALYZED (`patents_count=25`, `claim_count=13`, `patent_portfolio_inventory` present; `patent_exclusivity` not in insufficient list).
 
 ### 2026-09-16 (Slice E6 local)
 
 - Implemented **E6 USPTO ODP Patent File Wrapper compact facts** (no PDF/HTML): `uspto_patents` enabled (`patent_file_wrapper_compact`); migration `021_collection_uspto_patents_v1.sql`.
 - PII-03: Prepare → Fetch `/api/v1/patent/applications/search` (credential `USPTO ODP API Key`) → normalize → upsert `uspto_patent`; coverage `patents_*`.
 - PII-09: `patent_portfolio_inventory` + skips `patent_exclusivity` insufficient when USPTO rows exist.
-- Unit tests + `bundle:pii-03` / `bundle:pii-09`. **Not deployed** until explicitly requested.
+- Unit tests + `bundle:pii-03` / `bundle:pii-09`. Deployed same day (see Slice E6 deploy + smoke).
 
 ### 2026-09-15 (E5 sign-off)
 

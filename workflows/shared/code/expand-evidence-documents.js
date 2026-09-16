@@ -46,6 +46,10 @@ return docs.map((doc) => ({
     content_sha256: doc.content_sha256,
     metadata_b64: doc.metadata_b64,
     chunk_text: doc.chunk_text || '',
+    chunk_index: doc.chunk_index == null ? 0 : doc.chunk_index,
+    chunk_token_estimate:
+      doc.chunk_token_estimate ||
+      (doc.chunk_text ? Math.max(1, Math.ceil(String(doc.chunk_text).length / 4)) : null),
     parent_ok: item.ok === true,
     parent_document_count: docs.length,
   },

@@ -69,6 +69,10 @@ const embedMap = {
     repoRoot,
     'workflows/shared/code/expand-evidence-documents.js',
   ),
+  PREPARE_EVIDENCE_CHUNK_UPSERTS: path.join(
+    repoRoot,
+    'workflows/shared/code/prepare-evidence-chunk-upsert.js',
+  ),
   COUNT_SEC_UPSERTS: path.join(repoRoot, 'workflows/shared/code/count-sec-upserts.js'),
   COUNT_CTGOV_UPSERTS: path.join(repoRoot, 'workflows/shared/code/count-ctgov-upserts.js'),
   PREPARE_CTGOV_ZERO_COUNT: path.join(

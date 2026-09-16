@@ -22,7 +22,7 @@
     },
     {
       "key": "dilution",
-      "text": "INSUFFICIENT_EVIDENCE: Dilution and share-count impact cannot be quantified without offering details and XBRL share counts (PII-03 circle-back)."
+      "text": "INSUFFICIENT_EVIDENCE: Dilution magnitude and share-count impact remain unquantified without offering details and XBRL share counts; capital-markets form signals alone (E7 soft-close) do not quantify dilution."
     }
   ]
 }

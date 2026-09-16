@@ -1,6 +1,13 @@
 // Count USPTO patent upsert results for PII-03 coverage.
 
-const items = $input.all().filter((row) => row.json && row.json.evidence_id);
+let items = [];
+try {
+  items = $('Upsert USPTO Evidence')
+    .all()
+    .filter((row) => row.json && row.json.evidence_id);
+} catch {
+  items = $input.all().filter((row) => row.json && row.json.evidence_id);
+}
 let caseId = null;
 let companyId = null;
 

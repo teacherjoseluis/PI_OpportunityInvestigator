@@ -1,6 +1,13 @@
 // Count CT.gov upsert results for PII-03.
 
-const items = $input.all().filter((row) => row.json && row.json.evidence_id);
+let items = [];
+try {
+  items = $('Upsert CT.gov Evidence')
+    .all()
+    .filter((row) => row.json && row.json.evidence_id);
+} catch {
+  items = $input.all().filter((row) => row.json && row.json.evidence_id);
+}
 let caseId = null;
 let companyId = null;
 let secStored = 0;

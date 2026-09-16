@@ -274,27 +274,34 @@ Dependencies: later slices assume earlier ones unless noted.
 
 **Sign-off**
 
-- [ ] Patent evidence persisted
-- [ ] Risk claims improved as above
-- [ ] Milestone in `AGENTS.md`
+- [x] Patent evidence persisted
+- [x] Risk claims improved as above
+- [x] Milestone in `AGENTS.md`
 
 ---
 
 ### Slice E7 — Chunk backfill + analyst sweep
 
+**Status:** local implemented (not deployed until requested)
+
 **Depends on:** E1 at minimum; better after E3–E6
 
-**Scope**
+**Scope (local)**
 
-- Ensure all enabled collectors write `evidence_chunks` consistently.
-- Sweep remaining `insufficient_topics` across PII-05…PII-09 that enrichment can close.
-- Full-chain webhook smoke; production email path when publication gates pass.
+- Ensure all enabled non-XBRL collectors write `evidence_chunks` after document upsert (SEC, CT.gov, FDA, company-news, USPTO) via shared `prepare-evidence-chunk-upsert.js`.
+- Soft-close analyst insufficient topics when enrichment already provides inventory signals:
+  - PII-08 `net_cash_debt` from XBRL `financial_metrics`
+  - PII-09 `liquidity_balance_sheet_inventory` → skip `financial_financing_depth`
+  - PII-04 soft-close `dilution` when capital-markets forms present
+- Migration `022_chunk_backfill_analyst_sweep_v1.sql` softens insufficient topic copy (no collector enable).
 
 **Smoke checklist (you)**
 
-1. End-to-end webhook for a fresh ticker → report.
-2. `publication_ready` / COMPLETE behavior documented against remaining gates.
-3. Optional production `INVESTIGATION_REPORT` email when ready.
+1. Apply migration `022` on VPS.
+2. Deploy updated PII-03 / PII-08 / PII-09 (and optionally PII-04) when requested.
+3. End-to-end webhook for a fresh ticker → report; confirm chunks + soft-closed topics.
+4. `publication_ready` / COMPLETE behavior documented against remaining gates.
+5. Optional production `INVESTIGATION_REPORT` email when ready.
 
 **Sign-off**
 
@@ -341,6 +348,6 @@ Dependencies: later slices assume earlier ones unless noted.
 - **E2–E3 (blobs / full SEC HTML): deferred indefinitely** — owner preference (2026-09-15): keep **high-level facts only**; do **not** import large filing bodies or retain bulky raw evidence blobs.
 - **E4:** **signed off** (VPS `019`; PII-03 `a4df2f33…`, PII-07 `024718e7…`; REGN `fda_stored_count=7`; owner verified checks).
 - **E5:** **signed off** (PII-03 `bfe2cf6f…`, PII-05 `5eda536b…`; REGN `news_stored_count=25`; owner verified checks).
-- **E6:** **local implemented** (USPTO ODP Patent File Wrapper compact; await VPS `021` + deploy PII-03/PII-09). Credential name: `USPTO ODP API Key`.
-- **E7:** on hold.
-- **Next:** apply `021` + deploy E6 when requested.
+- **E6:** **signed off** (VPS `021`; PII-03 `4e4d2fa2…`, PII-09 `5db6fefe…`; REGN `patents_stored_count=25`; owner verified checks).
+- **E7:** local implemented (chunk upserts + analyst soft-closes; migration `022`). **Not deployed** until requested.
+- **Next:** deploy E7 when approved; optional TwelveData upgrade / webhook rotation; product use with current collectors.

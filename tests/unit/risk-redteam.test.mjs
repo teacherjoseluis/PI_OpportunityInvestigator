@@ -120,6 +120,68 @@ describe('evaluate-risk-redteam', () => {
       !result.json.claims.some((c) => c.topic_key === 'insufficient_patent_exclusivity'),
     );
   });
+
+  it('emits liquidity inventory and skips financial_financing_depth when XBRL metrics exist', () => {
+    const [result] = runCodeNode(EVALUATE, {
+      items: [{ risk_config: riskConfig }],
+      nodes: {
+        'Validate Risk Request': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            ticker: 'ACAD',
+            exchange: 'NASDAQ',
+            n8n_execution_id: 'exec-xbrl',
+          },
+        ],
+        'Load Case And Company': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            company_id: '7e2399f9-c323-41e5-8291-e354b3375527',
+            legal_name: 'ACADIA PHARMACEUTICALS INC',
+            ticker: 'ACAD',
+          },
+        ],
+        'Load Analysis Config': [{ gates_json: { analysis: { risk: riskConfig } } }],
+        'Load Evidence Documents': [
+          ...evidence,
+          {
+            id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            source_type: 'sec_companyfacts',
+            title: 'SEC companyfacts cash/debt',
+            metadata_json: { collector: 'sec_filing_bodies' },
+          },
+        ],
+        'Load Financial Metrics': [
+          {
+            metric_key: 'cash_and_equivalents',
+            metric_value: 310000000,
+            currency: 'USD',
+            period_end: '2024-12-31',
+            source_evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+          {
+            metric_key: 'total_debt',
+            metric_value: 40000000,
+            currency: 'USD',
+            period_end: '2024-12-31',
+            source_evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+          {
+            metric_key: 'net_cash',
+            metric_value: 270000000,
+            currency: 'USD',
+            period_end: '2024-12-31',
+            source_evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+        ],
+      },
+    });
+
+    assert.equal(result.json.outcome, 'ANALYZED');
+    assert.ok(result.json.claims.some((c) => c.topic_key === 'liquidity_balance_sheet_inventory'));
+    assert.ok(!result.json.insufficient_topics.includes('financial_financing_depth'));
+    assert.equal(result.json.counts.metrics_count, 3);
+  });
 });
 
 describe('build-risk-result', () => {

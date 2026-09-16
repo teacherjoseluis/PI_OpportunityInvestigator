@@ -17,6 +17,7 @@ const normalizeFdaOpenfdaEvidenceCode = `__NORMALIZE_FDA_OPENFDA_EVIDENCE__`;
 const prepareCompanyNewsQueryCode = `__PREPARE_COMPANY_NEWS_QUERY__`;
 const normalizeCompanyNewsEvidenceCode = `__NORMALIZE_COMPANY_NEWS_EVIDENCE__`;
 const expandEvidenceDocumentsCode = `__EXPAND_EVIDENCE_DOCUMENTS__`;
+const prepareEvidenceChunkUpsertsCode = `__PREPARE_EVIDENCE_CHUNK_UPSERTS__`;
 const countSecUpsertsCode = `__COUNT_SEC_UPSERTS__`;
 const countCtgovUpsertsCode = `__COUNT_CTGOV_UPSERTS__`;
 const prepareCtgovZeroCountCode = `__PREPARE_CTGOV_ZERO_COUNT__`;
@@ -258,6 +259,9 @@ const hasSecDocs = ifElse({
 const upsertEvidenceSql =
   "INSERT INTO evidence_documents (case_id, company_id, source_type, publisher, canonical_url, stable_source_id, title, publication_date, content_sha256, authority_tier, access_status, parsing_status, raw_content_location, metadata_json) VALUES ($1::uuid, NULLIF(NULLIF(TRIM($2), ''), 'null')::uuid, $3, $4, $5, $6, $7, CASE WHEN NULLIF(NULLIF(TRIM($8), ''), 'null') IS NULL THEN NULL WHEN TRIM($8) ~ '^\\d{4}-\\d{2}-\\d{2}' THEN LEFT(TRIM($8), 10)::date WHEN TRIM($8) ~ '^\\d{4}-\\d{2}$' THEN (TRIM($8) || '-01')::date WHEN TRIM($8) ~ '^\\d{4}$' THEN (TRIM($8) || '-01-01')::date ELSE NULL END, $9, 'primary', 'retrieved', 'metadata_only', 'inline:metadata_json', convert_from(decode($10, 'base64'), 'UTF8')::jsonb) ON CONFLICT (content_sha256) WHERE content_sha256 IS NOT NULL DO UPDATE SET case_id = COALESCE(EXCLUDED.case_id, evidence_documents.case_id), company_id = COALESCE(EXCLUDED.company_id, evidence_documents.company_id), updated_at = NOW() RETURNING id AS evidence_id, case_id, source_type, stable_source_id";
 
+const upsertEvidenceChunkSql =
+  "INSERT INTO evidence_chunks (evidence_id, chunk_index, chunk_text, token_estimate, metadata_json) VALUES ($1::uuid, COALESCE(NULLIF(NULLIF(TRIM($2), ''), 'null')::integer, 0), $3, NULLIF(NULLIF(TRIM($4), ''), 'null')::integer, convert_from(decode($5, 'base64'), 'UTF8')::jsonb) ON CONFLICT (evidence_id, chunk_index) DO UPDATE SET chunk_text = EXCLUDED.chunk_text, token_estimate = EXCLUDED.token_estimate, metadata_json = EXCLUDED.metadata_json RETURNING id AS chunk_id, evidence_id";
+
 const upsertSecEvidence = node({
   type: 'n8n-nodes-base.postgres',
   version: 2.7,
@@ -270,6 +274,65 @@ const upsertSecEvidence = node({
       options: {
         queryReplacement: expr(
           '{{ $json.case_id }},{{ $json.company_id }},{{ $json.source_type }},{{ $json.publisher }},{{ $json.canonical_url }},{{ $json.stable_source_id }},{{ $json.title_safe }},{{ $json.publication_date }},{{ $json.content_sha256 }},{{ $json.metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const prepareSecEvidenceChunks = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare SEC Evidence Chunks',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareEvidenceChunkUpsertsCode,
+    },
+  },
+});
+
+const hasSecChunks = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Has SEC Chunks?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_chunk }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const upsertSecEvidenceChunks = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert SEC Evidence Chunks',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertEvidenceChunkSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.evidence_id }},{{ $json.chunk_index }},{{ $json.chunk_text }},{{ $json.chunk_token_estimate }},{{ $json.chunk_metadata_b64 }}',
         ),
         replaceEmptyStrings: true,
       },
@@ -506,8 +569,7 @@ const upsertXbrlEvidenceChunk = node({
     alwaysOutputData: true,
     parameters: {
       operation: 'executeQuery',
-      query:
-        "INSERT INTO evidence_chunks (evidence_id, chunk_index, chunk_text, token_estimate, metadata_json) VALUES ($1::uuid, COALESCE(NULLIF(NULLIF(TRIM($2), ''), 'null')::integer, 0), $3, NULLIF(NULLIF(TRIM($4), ''), 'null')::integer, convert_from(decode($5, 'base64'), 'UTF8')::jsonb) ON CONFLICT (evidence_id, chunk_index) DO UPDATE SET chunk_text = EXCLUDED.chunk_text, token_estimate = EXCLUDED.token_estimate, metadata_json = EXCLUDED.metadata_json RETURNING id AS chunk_id, evidence_id",
+      query: upsertEvidenceChunkSql,
       options: {
         queryReplacement: expr(
           '{{ $("Prepare XBRL Financial Upserts").item.json.evidence_id }},{{ $("Prepare XBRL Financial Upserts").item.json.chunk_index }},{{ $("Prepare XBRL Financial Upserts").item.json.chunk_text }},{{ $("Prepare XBRL Financial Upserts").item.json.chunk_token_estimate }},{{ $("Prepare XBRL Financial Upserts").item.json.chunk_metadata_b64 }}',
@@ -652,6 +714,65 @@ const upsertCtgovEvidence = node({
       options: {
         queryReplacement: expr(
           '{{ $json.case_id }},{{ $json.company_id }},{{ $json.source_type }},{{ $json.publisher }},{{ $json.canonical_url }},{{ $json.stable_source_id }},{{ $json.title_safe }},{{ $json.publication_date }},{{ $json.content_sha256 }},{{ $json.metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const prepareCtgovEvidenceChunks = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare CT.gov Evidence Chunks',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareEvidenceChunkUpsertsCode,
+    },
+  },
+});
+
+const hasCtgovChunks = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Has CT.gov Chunks?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_chunk }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const upsertCtgovEvidenceChunks = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert CT.gov Evidence Chunks',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertEvidenceChunkSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.evidence_id }},{{ $json.chunk_index }},{{ $json.chunk_text }},{{ $json.chunk_token_estimate }},{{ $json.chunk_metadata_b64 }}',
         ),
         replaceEmptyStrings: true,
       },
@@ -827,6 +948,65 @@ const upsertFdaEvidence = node({
       options: {
         queryReplacement: expr(
           '{{ $json.case_id }},{{ $json.company_id }},{{ $json.source_type }},{{ $json.publisher }},{{ $json.canonical_url }},{{ $json.stable_source_id }},{{ $json.title_safe }},{{ $json.publication_date }},{{ $json.content_sha256 }},{{ $json.metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const prepareFdaEvidenceChunks = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare FDA Evidence Chunks',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareEvidenceChunkUpsertsCode,
+    },
+  },
+});
+
+const hasFdaChunks = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Has FDA Chunks?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_chunk }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const upsertFdaEvidenceChunks = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert FDA Evidence Chunks',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertEvidenceChunkSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.evidence_id }},{{ $json.chunk_index }},{{ $json.chunk_text }},{{ $json.chunk_token_estimate }},{{ $json.chunk_metadata_b64 }}',
         ),
         replaceEmptyStrings: true,
       },
@@ -1027,6 +1207,65 @@ const upsertCompanyNewsEvidence = node({
   },
 });
 
+const prepareCompanyNewsEvidenceChunks = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare Company News Evidence Chunks',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareEvidenceChunkUpsertsCode,
+    },
+  },
+});
+
+const hasCompanyNewsChunks = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Has Company News Chunks?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_chunk }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const upsertCompanyNewsEvidenceChunks = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert Company News Evidence Chunks',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertEvidenceChunkSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.evidence_id }},{{ $json.chunk_index }},{{ $json.chunk_text }},{{ $json.chunk_token_estimate }},{{ $json.chunk_metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
 const countCompanyNewsUpserts = node({
   type: 'n8n-nodes-base.code',
   version: 2,
@@ -1208,6 +1447,65 @@ const upsertUsptoEvidence = node({
       options: {
         queryReplacement: expr(
           '{{ $json.case_id }},{{ $json.company_id }},{{ $json.source_type }},{{ $json.publisher }},{{ $json.canonical_url }},{{ $json.stable_source_id }},{{ $json.title_safe }},{{ $json.publication_date }},{{ $json.content_sha256 }},{{ $json.metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const prepareUsptoEvidenceChunks = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare USPTO Evidence Chunks',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareEvidenceChunkUpsertsCode,
+    },
+  },
+});
+
+const hasUsptoChunks = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Has USPTO Chunks?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_chunk }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const upsertUsptoEvidenceChunks = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert USPTO Evidence Chunks',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertEvidenceChunkSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.evidence_id }},{{ $json.chunk_index }},{{ $json.chunk_text }},{{ $json.chunk_token_estimate }},{{ $json.chunk_metadata_b64 }}',
         ),
         replaceEmptyStrings: true,
       },
@@ -1437,7 +1735,7 @@ const collectorsNote = sticky(
 );
 
 const coverageNote = sticky(
-  '## Coverage\nmin_sec_documents default 1 → ANALYZING.\nXBRL/FDA/news/USPTO failure is partial (does not block ANALYZING when SEC/CT ok).',
+  '## Coverage\nmin_sec_documents default 1 → ANALYZING.\nXBRL/FDA/news/USPTO failure is partial (does not block ANALYZING when SEC/CT ok).\nE7: non-XBRL collectors write evidence_chunks after document upsert when chunk_text present.',
   [evaluateCollectionCoverage, advanceCaseState, buildCollectionResult],
   { color: 6 },
 );
@@ -1456,7 +1754,15 @@ const patentsAndFinish = prepareUsptoQuery.to(
         normalizeUsptoPatentsEvidence.to(
           expandUsptoDocuments.to(
             hasUsptoDocs
-              .onTrue(upsertUsptoEvidence.to(countUsptoUpserts.to(finishPath)))
+              .onTrue(
+                upsertUsptoEvidence.to(
+                  prepareUsptoEvidenceChunks.to(
+                    hasUsptoChunks
+                      .onTrue(upsertUsptoEvidenceChunks.to(countUsptoUpserts.to(finishPath)))
+                      .onFalse(countUsptoUpserts.to(finishPath)),
+                  ),
+                ),
+              )
               .onFalse(prepareUsptoZeroCount.to(finishPath)),
           ),
         ),
@@ -1472,7 +1778,19 @@ const newsAndFinish = prepareCompanyNewsQuery.to(
         normalizeCompanyNewsEvidence.to(
           expandCompanyNewsDocuments.to(
             hasCompanyNewsDocs
-              .onTrue(upsertCompanyNewsEvidence.to(countCompanyNewsUpserts.to(patentsAndFinish)))
+              .onTrue(
+                upsertCompanyNewsEvidence.to(
+                  prepareCompanyNewsEvidenceChunks.to(
+                    hasCompanyNewsChunks
+                      .onTrue(
+                        upsertCompanyNewsEvidenceChunks.to(
+                          countCompanyNewsUpserts.to(patentsAndFinish),
+                        ),
+                      )
+                      .onFalse(countCompanyNewsUpserts.to(patentsAndFinish)),
+                  ),
+                ),
+              )
               .onFalse(prepareCompanyNewsZeroCount.to(patentsAndFinish)),
           ),
         ),
@@ -1488,7 +1806,15 @@ const fdaAndFinish = prepareOpenfdaQuery.to(
         normalizeFdaOpenfdaEvidence.to(
           expandFdaDocuments.to(
             hasFdaDocs
-              .onTrue(upsertFdaEvidence.to(countFdaUpserts.to(newsAndFinish)))
+              .onTrue(
+                upsertFdaEvidence.to(
+                  prepareFdaEvidenceChunks.to(
+                    hasFdaChunks
+                      .onTrue(upsertFdaEvidenceChunks.to(countFdaUpserts.to(newsAndFinish)))
+                      .onFalse(countFdaUpserts.to(newsAndFinish)),
+                  ),
+                ),
+              )
               .onFalse(prepareFdaZeroCount.to(newsAndFinish)),
           ),
         ),
@@ -1501,7 +1827,15 @@ const ctgovAndFinish = fetchCtgovStudies.to(
   normalizeCtgovEvidence.to(
     expandCtgovDocuments.to(
       hasCtgovDocs
-        .onTrue(upsertCtgovEvidence.to(countCtgovUpserts.to(fdaAndFinish)))
+        .onTrue(
+          upsertCtgovEvidence.to(
+            prepareCtgovEvidenceChunks.to(
+              hasCtgovChunks
+                .onTrue(upsertCtgovEvidenceChunks.to(countCtgovUpserts.to(fdaAndFinish)))
+                .onFalse(countCtgovUpserts.to(fdaAndFinish)),
+            ),
+          ),
+        )
         .onFalse(prepareCtgovZeroCount.to(fdaAndFinish)),
     ),
   ),
@@ -1540,7 +1874,15 @@ export default workflow('pii-03-evidence', 'PII-03 Evidence Collector')
               normalizeSecEvidence.to(
                 expandSecDocuments.to(
                   hasSecDocs
-                    .onTrue(upsertSecEvidence.to(countSecUpserts.to(xbrlAndFinish)))
+                    .onTrue(
+                      upsertSecEvidence.to(
+                        prepareSecEvidenceChunks.to(
+                          hasSecChunks
+                            .onTrue(upsertSecEvidenceChunks.to(countSecUpserts.to(xbrlAndFinish)))
+                            .onFalse(countSecUpserts.to(xbrlAndFinish)),
+                        ),
+                      ),
+                    )
                     .onFalse(prepareSecZeroCount.to(xbrlAndFinish)),
                 ),
               ),

@@ -11,7 +11,7 @@
     },
     {
       "key": "net_cash_debt",
-      "text": "INSUFFICIENT_EVIDENCE: Net cash/debt needs XBRL or filing-body balance-sheet facts (PII-03 circle-back)."
+      "text": "INSUFFICIENT_EVIDENCE: Net cash/debt inventory closes when E1 XBRL financial_metrics exist (E7); EV-adjusted multiples and market prices still need licensed market data."
     },
     {
       "key": "revenue_and_earnings_multiples",
