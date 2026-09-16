@@ -305,9 +305,9 @@ Dependencies: later slices assume earlier ones unless noted.
 
 **Sign-off**
 
-- [ ] Chunk policy consistent
-- [ ] Analyst insufficient list reduced as documented
-- [ ] Full-chain smoke + `AGENTS.md` milestone
+- [x] Chunk policy consistent
+- [x] Analyst insufficient list reduced as documented
+- [x] Full-chain smoke + `AGENTS.md` milestone
 
 ---
 
@@ -349,5 +349,5 @@ Dependencies: later slices assume earlier ones unless noted.
 - **E4:** **signed off** (VPS `019`; PII-03 `a4df2f33…`, PII-07 `024718e7…`; REGN `fda_stored_count=7`; owner verified checks).
 - **E5:** **signed off** (PII-03 `bfe2cf6f…`, PII-05 `5eda536b…`; REGN `news_stored_count=25`; owner verified checks).
 - **E6:** **signed off** (VPS `021`; PII-03 `4e4d2fa2…`, PII-09 `5db6fefe…`; REGN `patents_stored_count=25`; owner verified checks).
-- **E7:** local implemented (chunk upserts + analyst soft-closes; migration `022`). **Not deployed** until requested.
-- **Next:** deploy E7 when approved; optional TwelveData upgrade / webhook rotation; product use with current collectors.
+- **E7:** **signed off** (VPS `022`; PII-03 `dd3f6f92…`, PII-04 `93d2a4b7…`, PII-08 `d64f67dc…`, PII-09 `68b3a70b…`; REGN chunks + `net_cash_debt` / liquidity claims; owner verified).
+- **Next:** regenerate PII-11 report + PII-14 email on an enriched case; optional TwelveData upgrade / webhook rotation; deploy Slack early-exit notify (local `023` + PII-00/PII-15) when requested.
