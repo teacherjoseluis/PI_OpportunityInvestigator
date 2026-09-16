@@ -73,6 +73,53 @@ describe('evaluate-risk-redteam', () => {
     assert.ok(result.json.claims.some((c) => c.topic_key === 'clinical_execution_risk_signal'));
     assert.ok(result.json.claims.every((c) => c.claim_category === 'risk_red_team'));
   });
+
+  it('writes patent inventory and skips patent_exclusivity insufficient when USPTO rows exist', () => {
+    const withPatents = [
+      ...evidence,
+      {
+        id: 'pat-1',
+        source_type: 'uspto_patent',
+        title: 'US12345678 — Anti-VEGF antibody compositions',
+        metadata_json: {
+          patent_number: '12345678',
+          application_number: '16123456',
+          invention_title: 'Anti-VEGF antibody compositions and methods',
+        },
+      },
+    ];
+    const [result] = runCodeNode(EVALUATE, {
+      items: [{ risk_config: riskConfig }],
+      nodes: {
+        'Validate Risk Request': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            ticker: 'ACAD',
+            exchange: 'NASDAQ',
+            n8n_execution_id: 'exec-1',
+          },
+        ],
+        'Load Case And Company': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            company_id: '7e2399f9-c323-41e5-8291-e354b3375527',
+            legal_name: 'ACADIA PHARMACEUTICALS INC',
+            ticker: 'ACAD',
+          },
+        ],
+        'Load Analysis Config': [{ gates_json: { analysis: { risk: riskConfig } } }],
+        'Load Evidence Documents': withPatents,
+      },
+    });
+
+    assert.equal(result.json.outcome, 'ANALYZED');
+    assert.ok(result.json.claims.some((c) => c.topic_key === 'patent_portfolio_inventory'));
+    assert.equal(result.json.counts.patents_count, 1);
+    assert.ok(!result.json.insufficient_topics.includes('patent_exclusivity'));
+    assert.ok(
+      !result.json.claims.some((c) => c.topic_key === 'insufficient_patent_exclusivity'),
+    );
+  });
 });
 
 describe('build-risk-result', () => {

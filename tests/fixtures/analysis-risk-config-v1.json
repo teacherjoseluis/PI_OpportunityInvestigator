@@ -40,7 +40,7 @@
     },
     {
       "key": "patent_exclusivity",
-      "text": "INSUFFICIENT_EVIDENCE: Patent and exclusivity risk need USPTO/Orange Book (or equivalent) collectors (PII-03 backlog)."
+      "text": "INSUFFICIENT_EVIDENCE: Orange Book exclusivity, claim scope, and patent litigation still need deeper IP sources; E6 USPTO File Wrapper can inventory applications/patents but not exclusivity economics."
     },
     {
       "key": "manufacturing_supply",

@@ -68,6 +68,7 @@ if (!evidenceRows.length) {
 
 const filings = evidenceRows.filter((row) => row.source_type === 'sec_edgar_filing');
 const trials = evidenceRows.filter((row) => row.source_type === 'clinicaltrials_gov');
+const fdaApps = evidenceRows.filter((row) => row.source_type === 'fda_drugsfda');
 
 const claims = [];
 const eventFilings = [];
@@ -158,14 +159,102 @@ if (trials.length) {
   });
 }
 
+if (fdaApps.length) {
+  const brandSet = new Set();
+  const appSummaries = [];
+  const origApprovals = [];
+  for (const row of fdaApps) {
+    const meta = parseMeta(row.metadata_json);
+    const brands = Array.isArray(meta.brand_names) ? meta.brand_names : [];
+    for (const b of brands) {
+      if (b) brandSet.add(String(b));
+    }
+    const appNo = meta.application_number || row.stable_source_id || null;
+    if (appNo) {
+      appSummaries.push(
+        String(appNo) + (brands.length ? ' (' + brands.slice(0, 2).join('/') + ')' : ''),
+      );
+    }
+    if (meta.original_approval_date) {
+      origApprovals.push({
+        application_number: appNo,
+        date: meta.original_approval_date,
+        brands,
+        priority: meta.original_review_priority || null,
+      });
+    }
+  }
+
+  const brandList = [...brandSet].slice(0, 12);
+  claims.push({
+    topic_key: 'approved_product_inventory',
+    claim_text:
+      'openFDA Drugs@FDA lists ' +
+      fdaApps.length +
+      ' application(s) linked to this sponsor/manufacturer search' +
+      (brandList.length ? ': brands ' + brandList.join(', ') : '') +
+      (appSummaries.length ? '; apps ' + appSummaries.slice(0, 8).join('; ') : '') +
+      '. Compact metadata only — labels/PDFs not archived.',
+    claim_category: claimCategory,
+    claim_kind: 'fact',
+    confidence: 85,
+    materiality: 'HIGH',
+    extraction_method: 'deterministic_openfda_drugsfda',
+    evidence_ids: fdaApps
+      .map((r) => r.id)
+      .filter(Boolean)
+      .slice(0, 8),
+  });
+
+  if (origApprovals.length) {
+    const dated = origApprovals
+      .slice()
+      .sort((a, b) => (a.date < b.date ? -1 : 1))
+      .slice(0, 8)
+      .map((a) => {
+        const label = a.brands && a.brands.length ? a.brands[0] + ' ' : '';
+        return (
+          label +
+          (a.application_number || '') +
+          ' ORIG-AP ' +
+          a.date +
+          (a.priority ? ' (' + a.priority + ')' : '')
+        );
+      });
+    claims.push({
+      topic_key: 'fda_origin_approvals',
+      claim_text:
+        'Historical Drugs@FDA original approvals (ORIG+AP) observed: ' +
+        dated.join('; ') +
+        '. Not a forward decision calendar.',
+      claim_category: claimCategory,
+      claim_kind: 'fact',
+      confidence: 80,
+      materiality: 'MEDIUM',
+      extraction_method: 'deterministic_openfda_drugsfda',
+      evidence_ids: fdaApps
+        .map((r) => r.id)
+        .filter(Boolean)
+        .slice(0, 8),
+    });
+  }
+}
+
+const satisfiedInsufficient = new Set();
+if (fdaApps.length) {
+  // Historical inventory/approvals replace the old "need openFDA" calendar gap signal.
+  satisfiedInsufficient.add('fda_decision_calendar');
+}
+
 const insufficient_topics = [];
 for (const topic of insufficientTopics) {
   const key = topic.key || topic;
+  if (satisfiedInsufficient.has(key)) continue;
   const text =
     topic.text ||
     'INSUFFICIENT_EVIDENCE: ' + key + ' requires richer regulatory/catalyst evidence sources.';
   insufficient_topics.push(key);
-  const linkIds = [...eventFilings, ...trials, ...filings]
+  const linkIds = [...eventFilings, ...trials, ...filings, ...fdaApps]
     .map((r) => r.id)
     .filter(Boolean)
     .slice(0, 2);
@@ -185,6 +274,8 @@ const structuralKeys = new Set([
   'material_event_forms_present',
   'periodic_regulatory_context_anchor',
   'clinical_status_catalyst_signal',
+  'approved_product_inventory',
+  'fda_origin_approvals',
 ]);
 const structuralCount = claims.filter((c) => structuralKeys.has(c.topic_key)).length;
 
@@ -216,6 +307,7 @@ const summary = {
   filings_count: filings.length,
   trials_count: trials.length,
   event_filings_count: eventFilings.length,
+  fda_apps_count: fdaApps.length,
 };
 const metadata_b64 = Buffer.from(JSON.stringify(summary), 'utf8').toString('base64');
 
@@ -237,6 +329,7 @@ return [
         filings_count: filings.length,
         trials_count: trials.length,
         event_filings_count: eventFilings.length,
+        fda_apps_count: fdaApps.length,
         claim_count: claims.length,
         structural_claim_count: structuralCount,
       },

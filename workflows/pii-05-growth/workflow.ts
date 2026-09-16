@@ -133,6 +133,10 @@ if (!evidenceRows.length) {
 
 const filings = evidenceRows.filter((row) => row.source_type === 'sec_edgar_filing');
 const trials = evidenceRows.filter((row) => row.source_type === 'clinicaltrials_gov');
+const newsRows = evidenceRows.filter((row) => row.source_type === 'finnhub_company_news');
+
+const partnershipRe =
+  /\\b(partnership|partner(ed|s|ing)?|licen[cs](e|ing|es)|collaboration|collaborat\\w*|alliance|royalt(y|ies)|co-develop)\\b/i;
 
 const claims = [];
 const eventFilings = [];
@@ -230,14 +234,79 @@ if (filings.some((f) => formMatches(parseMeta(f.metadata_json).form, ['10-K', '1
   });
 }
 
+if (newsRows.length) {
+  const headlines = newsRows
+    .map((r) => parseMeta(r.metadata_json).headline || r.title)
+    .filter(Boolean)
+    .slice(0, 5);
+  claims.push({
+    topic_key: 'recent_company_news_inventory',
+    claim_text:
+      'Finnhub company-news returned ' +
+      newsRows.length +
+      ' recent headline(s)' +
+      (headlines.length ? ': ' + headlines.join(' | ') : '') +
+      '. Compact headlines only — article bodies not archived.',
+    claim_category: claimCategory,
+    claim_kind: 'fact',
+    confidence: 80,
+    materiality: 'MEDIUM',
+    extraction_method: 'deterministic_finnhub_company_news',
+    evidence_ids: newsRows
+      .map((r) => r.id)
+      .filter(Boolean)
+      .slice(0, 8),
+  });
+
+  const partnerHits = newsRows.filter((r) => {
+    const meta = parseMeta(r.metadata_json);
+    const blob = String(meta.headline || '') + ' ' + String(meta.summary || '');
+    return partnershipRe.test(blob);
+  });
+  if (partnerHits.length) {
+    const samples = partnerHits
+      .map((r) => parseMeta(r.metadata_json).headline)
+      .filter(Boolean)
+      .slice(0, 3);
+    claims.push({
+      topic_key: 'partnerships_licensing_headline_signal',
+      claim_text:
+        'Company-news headlines mention partnership/licensing themes (x' +
+        partnerHits.length +
+        ')' +
+        (samples.length ? ': ' + samples.join(' | ') : '') +
+        '. Terms, economics, and confirmation still need filing-body evidence.',
+      claim_category: claimCategory,
+      claim_kind: 'inference',
+      confidence: 60,
+      materiality: 'MEDIUM',
+      extraction_method: 'deterministic_finnhub_company_news',
+      evidence_ids: partnerHits
+        .map((r) => r.id)
+        .filter(Boolean)
+        .slice(0, 5),
+    });
+  }
+}
+
+const satisfiedInsufficient = new Set();
+if (newsRows.some((r) => {
+  const meta = parseMeta(r.metadata_json);
+  return partnershipRe.test(String(meta.headline || '') + ' ' + String(meta.summary || ''));
+})) {
+  // Headline signal replaces pure "no IR source" insufficiency; economics remain caveated in claim text.
+  satisfiedInsufficient.add('partnerships_licensing');
+}
+
 const insufficient_topics = [];
 for (const topic of insufficientTopics) {
   const key = topic.key || topic;
+  if (satisfiedInsufficient.has(key)) continue;
   const text =
     topic.text ||
     'INSUFFICIENT_EVIDENCE: ' + key + ' requires richer growth evidence sources.';
   insufficient_topics.push(key);
-  const linkIds = [...eventFilings, ...trials, ...filings]
+  const linkIds = [...eventFilings, ...trials, ...filings, ...newsRows]
     .map((r) => r.id)
     .filter(Boolean)
     .slice(0, 2);
@@ -257,9 +326,10 @@ const structuralCount = claims.filter(
   (c) =>
     c.topic_key === 'clinical_activity_growth_dependence' ||
     c.topic_key === 'material_event_filings_present' ||
-    c.topic_key === 'periodic_filings_for_growth_context',
+    c.topic_key === 'periodic_filings_for_growth_context' ||
+    c.topic_key === 'recent_company_news_inventory' ||
+    c.topic_key === 'partnerships_licensing_headline_signal',
 ).length;
-
 let outcome;
 let next_state;
 let reason;
@@ -288,6 +358,7 @@ const summary = {
   filings_count: filings.length,
   trials_count: trials.length,
   event_filings_count: eventFilings.length,
+  news_count: newsRows.length,
 };
 const metadata_b64 = Buffer.from(JSON.stringify(summary), 'utf8').toString('base64');
 
@@ -309,6 +380,7 @@ return [
         filings_count: filings.length,
         trials_count: trials.length,
         event_filings_count: eventFilings.length,
+        news_count: newsRows.length,
         claim_count: claims.length,
         structural_claim_count: structuralCount,
       },

@@ -1,0 +1,22 @@
+[
+  {
+    "category": "company",
+    "datetime": 1726400000,
+    "headline": "Regeneron and partner expand collaboration on rare disease program",
+    "id": 900001,
+    "related": "REGN",
+    "source": "Reuters",
+    "summary": "The companies announced an expanded licensing collaboration for a clinical-stage asset.",
+    "url": "https://example.com/news/regn-partner-1"
+  },
+  {
+    "category": "company",
+    "datetime": 1726300000,
+    "headline": "REGN shares rise after quarterly update",
+    "id": 900002,
+    "related": "REGN",
+    "source": "Yahoo",
+    "summary": "Investors digested the latest earnings commentary.",
+    "url": "https://example.com/news/regn-earnings-1"
+  }
+]

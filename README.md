@@ -4,9 +4,7 @@ Local source of truth for the n8n research automation. Hosted n8n remains the ex
 
 ## Current focus
 
-Phase 0 database foundation only. Workflows are deferred until Postgres is deployed and reachable from n8n.
-
-See [docs/DATABASE.md](docs/DATABASE.md).
+Phase 1 workflows are hosted; evidence enrichment (XBRL cash/debt and related collectors) is sliced in [docs/ENRICHMENT.md](docs/ENRICHMENT.md). Postgres setup remains in [docs/DATABASE.md](docs/DATABASE.md).
 
 ## Quick start (local Postgres)
 
@@ -34,4 +32,6 @@ Unit tests cover shared Code node logic under `workflows/shared/code/`. Full web
 - `docker-compose.yml` — Postgres + migrate runner
 - `db/migrations/` — SQL schema versions
 - `docs/DATABASE.md` — local and VPS database instructions
+- `docs/ENRICHMENT.md` — evidence enrichment slices (XBRL, blobs, FDA/IR/patents)
+- `docs/SMOKE_TESTS.md` — hosted webhook smoke helpers
 - `workflows/` — n8n Workflow SDK sources (PII-00+)

@@ -60,6 +60,11 @@ const embedMap = {
     repoRoot,
     'workflows/shared/code/normalize-ctgov-evidence.js',
   ),
+  PREPARE_OPENFDA_QUERY: path.join(repoRoot, 'workflows/shared/code/prepare-openfda-query.js'),
+  NORMALIZE_FDA_OPENFDA_EVIDENCE: path.join(
+    repoRoot,
+    'workflows/shared/code/normalize-fda-openfda-evidence.js',
+  ),
   EXPAND_EVIDENCE_DOCUMENTS: path.join(
     repoRoot,
     'workflows/shared/code/expand-evidence-documents.js',
@@ -78,6 +83,37 @@ const embedMap = {
   PREPARE_XBRL_ZERO_COUNT: path.join(
     repoRoot,
     'workflows/shared/code/prepare-xbrl-zero-count.js',
+  ),
+  COUNT_FDA_UPSERTS: path.join(repoRoot, 'workflows/shared/code/count-fda-upserts.js'),
+  PREPARE_FDA_ZERO_COUNT: path.join(
+    repoRoot,
+    'workflows/shared/code/prepare-fda-zero-count.js',
+  ),
+  PREPARE_COMPANY_NEWS_QUERY: path.join(
+    repoRoot,
+    'workflows/shared/code/prepare-company-news-query.js',
+  ),
+  NORMALIZE_COMPANY_NEWS_EVIDENCE: path.join(
+    repoRoot,
+    'workflows/shared/code/normalize-company-news-evidence.js',
+  ),
+  COUNT_COMPANY_NEWS_UPSERTS: path.join(
+    repoRoot,
+    'workflows/shared/code/count-company-news-upserts.js',
+  ),
+  PREPARE_COMPANY_NEWS_ZERO_COUNT: path.join(
+    repoRoot,
+    'workflows/shared/code/prepare-company-news-zero-count.js',
+  ),
+  PREPARE_USPTO_QUERY: path.join(repoRoot, 'workflows/shared/code/prepare-uspto-query.js'),
+  NORMALIZE_USPTO_PATENTS_EVIDENCE: path.join(
+    repoRoot,
+    'workflows/shared/code/normalize-uspto-patents-evidence.js',
+  ),
+  COUNT_USPTO_UPSERTS: path.join(repoRoot, 'workflows/shared/code/count-uspto-upserts.js'),
+  PREPARE_USPTO_ZERO_COUNT: path.join(
+    repoRoot,
+    'workflows/shared/code/prepare-uspto-zero-count.js',
   ),
   EVALUATE_COLLECTION_COVERAGE: path.join(
     repoRoot,

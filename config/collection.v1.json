@@ -1,6 +1,10 @@
 {
   "sec_recent_filings_limit": 10,
   "ctgov_page_size": 20,
+  "openfda_limit": 25,
+  "company_news_lookback_days": 90,
+  "company_news_limit": 25,
+  "uspto_patents_limit": 25,
   "min_sec_documents": 1,
   "partial_requires_human_review": false,
   "collectors": {
@@ -13,16 +17,23 @@
       "description": "ClinicalTrials.gov API v2 studies by sponsor/lead"
     },
     "fda_openfda": {
-      "enabled": false,
-      "description": "Deferred — FDA / openFDA labels and approvals"
+      "enabled": true,
+      "description": "Slice E4 — openFDA Drugs@FDA compact application facts (no label/PDF blobs)",
+      "mode": "drugsfda_compact",
+      "limit": 25
     },
     "company_ir": {
-      "enabled": false,
-      "description": "Deferred — company investor-relations releases"
+      "enabled": true,
+      "description": "Slice E5 — Finnhub company-news compact headlines (no article HTML blobs)",
+      "mode": "finnhub_company_news",
+      "lookback_days": 90,
+      "limit": 25
     },
     "uspto_patents": {
-      "enabled": false,
-      "description": "Deferred — USPTO / patent sources"
+      "enabled": true,
+      "description": "Slice E6 — USPTO ODP Patent File Wrapper compact application/patent facts (no PDF/HTML blobs)",
+      "mode": "patent_file_wrapper_compact",
+      "limit": 25
     },
     "sec_filing_bodies": {
       "enabled": true,

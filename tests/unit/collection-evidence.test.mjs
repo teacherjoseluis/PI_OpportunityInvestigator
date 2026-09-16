@@ -117,6 +117,102 @@ describe('evaluate-collection-coverage', () => {
     assert.equal(xbrlStatus.metric_count, 6);
   });
 
+  it('reports fda_openfda status when Drugs@FDA rows are stored', () => {
+    const [result] = runCodeNode(COVERAGE, {
+      items: [
+        {
+          sec_stored_count: 4,
+          ct_stored_count: 2,
+          xbrl_stored_count: 1,
+          fda_stored_count: 3,
+        },
+      ],
+      nodes: {
+        'Validate Collection Request': [
+          {
+            case_id: '91815cf2-865d-4173-8263-f490cc129608',
+            ticker: 'REGN',
+            exchange: 'NASDAQ',
+            n8n_execution_id: '1',
+          },
+        ],
+        'Load Collection Config': [
+          {
+            gates_json: {
+              collection: {
+                min_sec_documents: 1,
+                collectors: {
+                  sec_filing_bodies: { enabled: true },
+                  fda_openfda: { enabled: true, mode: 'drugsfda_compact' },
+                },
+              },
+            },
+          },
+        ],
+        'Normalize SEC Evidence': [{ ok: true, document_count: 4, cik: '0000000000' }],
+        'Normalize CT.gov Evidence': [{ ok: true, document_count: 2 }],
+        'Normalize SEC XBRL Facts': [{ ok: true, document_count: 1 }],
+        'Normalize OpenFDA Evidence': [{ ok: true, document_count: 3 }],
+        'Prepare OpenFDA Query': [{ enabled: true, skip_fetch: false }],
+        'Expand SEC Documents': [{ skip_upsert: false }],
+        'Expand CT.gov Documents': [{ skip_upsert: false }],
+        'Count SEC Upserts': [{ sec_stored_count: 4 }],
+        'Count CT.gov Upserts': [{ ct_stored_count: 2 }],
+        'Count XBRL Upserts': [{ xbrl_stored_count: 1, xbrl_metric_count: 6 }],
+        'Count FDA Upserts': [{ fda_stored_count: 3, fda_ok: true }],
+      },
+    });
+
+    assert.equal(result.json.outcome, 'COLLECTED');
+    assert.equal(result.json.counts.fda_stored_count, 3);
+    const fdaStatus = result.json.collector_status.find((c) => c.key === 'fda_openfda');
+    assert.equal(fdaStatus.ok, true);
+    assert.equal(fdaStatus.document_count, 3);
+  });
+
+  it('reports company_ir status when Finnhub news rows are stored', () => {
+    const [result] = runCodeNode(COVERAGE, {
+      items: [{ sec_stored_count: 4, ct_stored_count: 2, news_stored_count: 5 }],
+      nodes: {
+        'Validate Collection Request': [
+          {
+            case_id: '91815cf2-865d-4173-8263-f490cc129608',
+            ticker: 'REGN',
+            exchange: 'NASDAQ',
+            n8n_execution_id: '1',
+          },
+        ],
+        'Load Collection Config': [
+          {
+            gates_json: {
+              collection: {
+                min_sec_documents: 1,
+                collectors: {
+                  company_ir: { enabled: true, mode: 'finnhub_company_news' },
+                },
+              },
+            },
+          },
+        ],
+        'Normalize SEC Evidence': [{ ok: true, document_count: 4, cik: '0000000000' }],
+        'Normalize CT.gov Evidence': [{ ok: true, document_count: 2 }],
+        'Normalize Company News Evidence': [{ ok: true, document_count: 5 }],
+        'Prepare Company News Query': [{ enabled: true, skip_fetch: false }],
+        'Expand SEC Documents': [{ skip_upsert: false }],
+        'Expand CT.gov Documents': [{ skip_upsert: false }],
+        'Count SEC Upserts': [{ sec_stored_count: 4 }],
+        'Count CT.gov Upserts': [{ ct_stored_count: 2 }],
+        'Count Company News Upserts': [{ news_stored_count: 5, news_ok: true }],
+      },
+    });
+
+    assert.equal(result.json.outcome, 'COLLECTED');
+    assert.equal(result.json.counts.news_stored_count, 5);
+    const newsStatus = result.json.collector_status.find((c) => c.key === 'company_ir');
+    assert.equal(newsStatus.ok, true);
+    assert.equal(newsStatus.document_count, 5);
+  });
+
   it('fails when no evidence was stored', () => {
     const [result] = runCodeNode(COVERAGE, {
       items: [{ sec_stored_count: 0, ct_stored_count: 0 }],

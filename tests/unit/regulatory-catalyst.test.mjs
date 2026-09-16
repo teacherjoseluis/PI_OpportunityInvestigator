@@ -76,6 +76,59 @@ describe('evaluate-regulatory-catalyst', () => {
     assert.ok(result.json.claims.some((c) => c.topic_key === 'clinical_status_catalyst_signal'));
     assert.ok(result.json.claims.every((c) => c.claim_category === 'regulatory_catalyst'));
   });
+
+  it('emits FDA inventory facts and skips fda_decision_calendar insufficient', () => {
+    const fdaEvidence = [
+      ...evidence,
+      {
+        id: '11111111-1111-4111-8111-111111111301',
+        source_type: 'fda_drugsfda',
+        stable_source_id: 'fda-drugsfda-BLA761355',
+        metadata_json: {
+          application_number: 'BLA761355',
+          sponsor_name: 'REGENERON PHARMACEUTICALS',
+          brand_names: ['EYLEA HD'],
+          original_approval_date: '2023-08-18',
+          original_review_priority: 'PRIORITY',
+          product_count: 1,
+          submission_count: 5,
+        },
+      },
+    ];
+
+    const [result] = runCodeNode(EVALUATE, {
+      items: [{ regulatory_config: regulatoryConfig }],
+      nodes: {
+        'Validate Regulatory Request': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            ticker: 'REGN',
+            exchange: 'NASDAQ',
+            n8n_execution_id: 'exec-fda-1',
+          },
+        ],
+        'Load Case And Company': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            company_id: '7e2399f9-c323-41e5-8291-e354b3375527',
+            legal_name: 'REGENERON PHARMACEUTICALS INC',
+            ticker: 'REGN',
+          },
+        ],
+        'Load Analysis Config': [
+          { gates_json: { analysis: { regulatory: regulatoryConfig } } },
+        ],
+        'Load Evidence Documents': fdaEvidence,
+      },
+    });
+
+    assert.equal(result.json.outcome, 'ANALYZED');
+    assert.ok(result.json.claims.some((c) => c.topic_key === 'approved_product_inventory'));
+    assert.ok(result.json.claims.some((c) => c.topic_key === 'fda_origin_approvals'));
+    assert.ok(!result.json.insufficient_topics.includes('fda_decision_calendar'));
+    assert.ok(result.json.insufficient_topics.includes('regulatory_designations'));
+    assert.equal(result.json.counts.fda_apps_count, 1);
+  });
 });
 
 describe('build-regulatory-result', () => {

@@ -1,0 +1,23 @@
+{
+  "count": 2,
+  "patentFileWrapperDataBag": [
+    {
+      "applicationNumberText": "16123456",
+      "applicationMetaData": {
+        "inventionTitle": "Anti-VEGF antibody compositions and methods",
+        "patentNumber": "12345678",
+        "filingDate": "2018-06-15",
+        "grantDate": "2022-03-01",
+        "applicationStatusDescriptionText": "Patented Case"
+      }
+    },
+    {
+      "applicationNumberText": "17111222",
+      "applicationMetaData": {
+        "inventionTitle": "Methods of treating ocular disease",
+        "filingDate": "2020-01-10",
+        "applicationStatusDescriptionText": "Pending"
+      }
+    }
+  ]
+}

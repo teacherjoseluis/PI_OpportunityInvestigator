@@ -146,11 +146,11 @@ Fill these values as the project is established:
 - Primary workflow name and ID: `PII-00 Case Orchestrator` / `4jvmYtTHKufojJRK` (published; version `84997803-a604-4438-b2d6-f1911f616af6`)
 - PII-01 workflow name and ID: `PII-01 Identity Resolver` / `Xf6DjDUMyfOyNX3G` (published; version `de222a9c-c473-4dae-86f8-2017ff9319a7`)
 - PII-02 workflow name and ID: `PII-02 Eligibility Gate` / `hqgFoP7ny6jnycxx` (published; version `567e37d5-1cd7-41cd-9399-9ae3055f69e0`)
-- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `fa57d2eb-51ee-4b98-a8f1-4c8789b4a9ab`)
+- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `bfe2cf6f-f083-4fc4-913d-c3c51260bdd0`)
 - PII-04 workflow name and ID: `PII-04 Financial and Business Analyst` / `RvIlyuDV0MEsXezL` (published; version `f84c082f-4f5a-4e69-a7b5-9be64c2e1e19`)
-- PII-05 workflow name and ID: `PII-05 Growth Analyst` / `sdamxDo9SUdo4QxC` (published; version `74d5f54e-5d88-45dc-bce1-99981bc3de6b`)
+- PII-05 workflow name and ID: `PII-05 Growth Analyst` / `sdamxDo9SUdo4QxC` (published; version `5eda536b-d371-4b57-a95f-c61b450e91df`)
 - PII-06 workflow name and ID: `PII-06 Pipeline and Clinical Analyst` / `b8CxYW8T8FrGl62x` (published; version `7b992085-7363-4320-897b-cd0b87aeec14`)
-- PII-07 workflow name and ID: `PII-07 Regulatory and Catalyst Analyst` / `4AqBDr5hjZeMLy99` (published; version `645dc348-1ff2-43c0-9ff9-b33c23d55ec4`)
+- PII-07 workflow name and ID: `PII-07 Regulatory and Catalyst Analyst` / `4AqBDr5hjZeMLy99` (published; version `024718e7-9cd9-4fe8-ba7b-0598b405f3c4`)
 - PII-08 workflow name and ID: `PII-08 Valuation and Market Analyst` / `1PuOVYf0O3GThRwq` (published; version `f12e1d7e-caab-4c59-b6e0-8fe0e3e505c8`)
 - PII-09 workflow name and ID: `PII-09 Risk and Red-Team Reviewer` / `mioSWLKBMLAaBGzs` (published; version `d47ca67c-033a-4103-bae9-5b9ddbd4a9e3`)
 - PII-10 workflow name and ID: `PII-10 Scoring and Quality Gate` / `lIjKOZS7qDizvynm` (published; version `74ad0610-407a-46fe-8e13-cc238cec2dc3`)
@@ -167,7 +167,8 @@ Fill these values as the project is established:
 - Primary data table name and ID: `N/A` ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â research system of record is PostgreSQL (`pii_research`), not n8n Data Tables
 - n8n Postgres credential name: `Postgres account`
 - n8n Twelve Data credential name: `TwelveData API key` (`httpQueryAuth`) — `/quote` on Basic; `/profile` needs Grow+; `/statistics` needs Pro+
-- n8n Finnhub credential name: `Finnhub API key` (`httpQueryAuth`) — PII-02 profile2 fallback for industry + market cap when TwelveData plan-blocks
+- n8n Finnhub credential name: `Finnhub API key` (`httpQueryAuth`) — PII-02 profile2 fallback; PII-03 E5 `/company-news` headlines
+- n8n USPTO credential name: `USPTO ODP API Key` (`httpHeaderAuth`) — PII-03 E6 Patent File Wrapper search (`X-API-KEY`)
 - n8n SMTP credential name: `SMTP account` (from/to `teacherjoseluis@gmail.com`; shared with Investment Concierge)
 - n8n Slack credential name: `Slack PII bot` (`slackApi`) — used by PII-15 completion DM; requires `im:write` (plus existing scopes); Slack intake Phase 1 still uses slash `response_url`
 - Research Postgres: VPS at `108.174.153.74:5433`, database `pii_research`, user `pii_app` (password in VPS `.env` only). Local Docker also uses host port `5433` when `5432` is busy.
@@ -198,27 +199,71 @@ Fill these values as the project is established:
 
 ## Current Status
 
-Project status: Phase 1 through PII-15 hosted. **PII-00…PII-11 + PII-15 published** for Slack/production webhooks. **E1 XBRL cash/debt live** (migration `018`, published PII-03/04/10/11; REGN smoke `publication_ready`). **No E2 blob store** — high-level facts only. Remaining: Slack bot scope `im:write` + reinstall, then smoke `/pii REGN` for completion DM.
+Project status: Phase 1 through PII-15 hosted. **E1 + E4 + E5 signed off**. **E6 USPTO patents local** (await deploy). Remaining: deploy E6 when requested; optional TwelveData upgrade; webhook rotation; E7 later.
 
 ### PII-03 enrichment backlog (see ENRICHMENT.md)
 
-1. ~~SEC XBRL cash/debt (E1)~~ — **done** (deployed + smoked + signed off for high-level facts)
-2. ~~Full SEC filing HTML / object storage (E2–E3)~~ — **declined** (owner: no large blob/HTML imports; high-level facts only)
-3. FDA / openFDA collector → **E4** (on hold)
-4. Company IR / press collector → **E5** (on hold)
-5. USPTO / patents collector → **E6** (on hold)
+1. ~~SEC XBRL cash/debt (E1)~~ — **done**
+2. ~~Full SEC filing HTML / object storage (E2–E3)~~ — **declined**
+3. ~~FDA / openFDA collector (E4)~~ — **done**
+4. ~~Company IR / press (E5)~~ — **done** (Finnhub company-news compact headlines)
+5. USPTO / patents collector → **E6** (local implemented; ODP Patent File Wrapper + credential `USPTO ODP API Key`)
 6. Broader `evidence_chunks` + analyst sweep → **E7** (on hold)
 
 Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 
 ## Next Steps
 
-1. Add Slack bot scope `im:write` and reinstall **Slack PII bot**; smoke `/pii REGN` → expect completion DM after PII-11.
-2. Optionally upgrade TwelveData to Grow/Pro so `/profile` + `/statistics` succeed without Finnhub fallback.
-3. Rotate webhook secret; review published workflow exposure.
-4. Later: weekly discovery digest; schedule triggers; clean leftover ACAD stuck/stale cases; only revisit E4+ if high-level structured sources are wanted (still no full-document blob store).
+1. Apply VPS migration `021` + deploy PII-03 / PII-09 for E6 when requested.
+2. Optionally upgrade TwelveData (Grow+/Pro+ for `/profile` / `/statistics`); rotate webhook secret.
+3. Later: E7 chunk consistency + analyst insufficient sweep; weekly discovery digest.
 
 ## Milestone Log
+
+### 2026-09-16 (Slice E6 local)
+
+- Implemented **E6 USPTO ODP Patent File Wrapper compact facts** (no PDF/HTML): `uspto_patents` enabled (`patent_file_wrapper_compact`); migration `021_collection_uspto_patents_v1.sql`.
+- PII-03: Prepare → Fetch `/api/v1/patent/applications/search` (credential `USPTO ODP API Key`) → normalize → upsert `uspto_patent`; coverage `patents_*`.
+- PII-09: `patent_portfolio_inventory` + skips `patent_exclusivity` insufficient when USPTO rows exist.
+- Unit tests + `bundle:pii-03` / `bundle:pii-09`. **Not deployed** until explicitly requested.
+
+### 2026-09-15 (E5 sign-off)
+
+- Owner verified E5 smoke checks (company-news evidence + growth news inventory claim). Slice E5 signed off for product use.
+
+### 2026-09-15 (Slice E5 deploy + smoke)
+
+- Enabled `collectors.company_ir` (`finnhub_company_news`) on active config via temp n8n Postgres (exec `2372`; archived). Full migration `020` partnership-text softener optional / not required for smoke.
+- Published PII-03 `IqoALspzvN3PL5Cq` → `bfe2cf6f-f083-4fc4-913d-c3c51260bdd0` (FDA → company-news path → Evaluate; credential `Finnhub API key` / `Vw9IKcbH2s66dV5i`).
+- Published PII-05 `sdamxDo9SUdo4QxC` → `5eda536b-d371-4b57-a95f-c61b450e91df` (news inventory + partnership headline evaluate).
+- REGN case `a87fa88d-2508-4150-b01f-da7f03a6d8c0` via manual wrapper (archived): PII-03 exec `2374` COLLECTED (`news_stored_count=25`, `fda_stored_count=7`, `company_ir` ok); PII-05 exec `2375` ANALYZED (`news_count=25`, `claim_count=8`, `recent_company_news_inventory` present; no partnership-keyword hits so `partnerships_licensing` remained insufficient).
+
+### 2026-09-15 (Slice E5 local)
+
+- Implemented **E5 Finnhub company-news compact headlines** (no article HTML): `company_ir` enabled (`finnhub_company_news`); migration `020_collection_company_news_v1.sql`.
+- PII-03: Prepare → Fetch `/company-news` (credential `Finnhub API key`) → normalize → upsert `finnhub_company_news`; coverage `news_*`.
+- PII-05: `recent_company_news_inventory` + partnership keyword headline signal; skips `partnerships_licensing` insufficient when hits exist.
+- Unit tests + `bundle:pii-03` / `bundle:pii-05`. Deployed same day (see Slice E5 deploy + smoke).
+
+### 2026-09-15 (E4 sign-off)
+
+- Owner verified E4 smoke checks (FDA evidence + regulatory claims). Slice E4 signed off for product use.
+
+### 2026-09-15 (Slice E4 deploy + smoke)
+
+- VPS `019` applied (enable `fda_openfda` in active config). Published PII-03 `IqoALspzvN3PL5Cq` → `a4df2f33-96d8-483d-aa5a-abbcdfdfcd41`; PII-07 `4AqBDr5hjZeMLy99` → `024718e7-9cd9-4fe8-ba7b-0598b405f3c4`.
+- REGN case `a87fa88d-2508-4150-b01f-da7f03a6d8c0` via manual wrapper: PII-03 exec `2368` COLLECTED (`fda_stored_count=7`, brands include EYLEA/LIBTAYO/PRALUENT/…); PII-07 exec `2369` ANALYZED with `approved_product_inventory` + `fda_origin_approvals`; `fda_decision_calendar` not in insufficient list.
+
+### 2026-09-15 (Slice E4 local)
+
+- Implemented **E4 openFDA Drugs@FDA compact facts** (no label/PDF blobs): `config/collection.v1.json` enables `fda_openfda` (`drugsfda_compact`); migration `019_collection_fda_openfda_v1.sql`.
+- PII-03: Prepare OpenFDA Query → fetch → normalize → upsert `fda_drugsfda` evidence; coverage reports `fda_*` counts (NOT_FOUND = empty success).
+- PII-07: `approved_product_inventory` + `fda_origin_approvals` facts; skips `fda_decision_calendar` insufficient when FDA rows exist (designations/PDUFA/AdCom remain insufficient).
+- Unit tests + `bundle:pii-03` / `bundle:pii-07`. Deployed same day (see Slice E4 deploy + smoke).
+
+### 2026-09-15 (Slack completion DM verified)
+
+- Confirmed bot scopes already include `im:write` / `chat:write`. Hosted proof: `/pii RARE` → PII-15 exec `2354` outcome `SENT` (`provider_message_ts` present). No further scope change required.
 
 ### 2026-09-15 (E1 sign-off; skip blobs)
 

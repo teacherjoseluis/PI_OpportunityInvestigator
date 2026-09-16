@@ -22,6 +22,12 @@ const configRow = nodeJson('Load Collection Config') || item.config || {};
 const secNorm = nodeJson('Normalize SEC Evidence') || item.sec || {};
 const ctNorm = nodeJson('Normalize CT.gov Evidence') || item.ctgov || {};
 const xbrlNorm = nodeJson('Normalize SEC XBRL Facts') || item.xbrl || {};
+const fdaNorm = nodeJson('Normalize OpenFDA Evidence') || item.fda || {};
+const fdaPrep = nodeJson('Prepare OpenFDA Query') || {};
+const newsNorm = nodeJson('Normalize Company News Evidence') || item.news || {};
+const newsPrep = nodeJson('Prepare Company News Query') || {};
+const patentsNorm = nodeJson('Normalize USPTO Patents Evidence') || item.patents || {};
+const patentsPrep = nodeJson('Prepare USPTO Query') || {};
 
 const gates = configRow.gates_json || {};
 const collection = (gates && gates.collection) || item.collection || {};
@@ -31,11 +37,25 @@ const xbrlEnabled =
   collection.collectors &&
   collection.collectors.sec_filing_bodies &&
   collection.collectors.sec_filing_bodies.enabled === true;
+const fdaEnabled =
+  (collection.collectors &&
+    collection.collectors.fda_openfda &&
+    collection.collectors.fda_openfda.enabled === true) ||
+  fdaPrep.enabled === true;
+const newsEnabled =
+  (collection.collectors &&
+    collection.collectors.company_ir &&
+    collection.collectors.company_ir.enabled === true) ||
+  newsPrep.enabled === true;
+const patentsEnabled =
+  (collection.collectors &&
+    collection.collectors.uspto_patents &&
+    collection.collectors.uspto_patents.enabled === true) ||
+  patentsPrep.enabled === true;
 
 const secAttempted = countItems('Expand SEC Documents') || Number(secNorm.document_count || 0);
 const ctAttempted = countItems('Expand CT.gov Documents') || Number(ctNorm.document_count || 0);
 
-// Prefer upserted evidence_id counts when available from prior aggregate nodes.
 const secStored = Number(
   item.sec_stored_count ?? nodeJson('Count SEC Upserts')?.sec_stored_count ?? secAttempted,
 );
@@ -51,16 +71,76 @@ const xbrlStored = Number(
 const xbrlMetrics = Number(
   item.xbrl_metric_count ?? nodeJson('Count XBRL Upserts')?.xbrl_metric_count ?? 0,
 );
+const fdaStored = Number(
+  item.fda_stored_count ??
+    nodeJson('Count FDA Upserts')?.fda_stored_count ??
+    nodeJson('Prepare FDA Zero Count')?.fda_stored_count ??
+    0,
+);
+const newsStored = Number(
+  item.news_stored_count ??
+    nodeJson('Count Company News Upserts')?.news_stored_count ??
+    nodeJson('Prepare Company News Zero Count')?.news_stored_count ??
+    0,
+);
+const patentsStored = Number(
+  item.patents_stored_count ??
+    nodeJson('Count USPTO Upserts')?.patents_stored_count ??
+    nodeJson('Prepare USPTO Zero Count')?.patents_stored_count ??
+    0,
+);
 
 const secOk = secNorm.ok === true && secStored >= minSec;
-const ctOk = ctNorm.ok === true; // zero studies can still be a successful empty search
 const secFailed = secNorm.ok === false;
 const ctFailed = ctNorm.ok === false;
 const xbrlOk =
   !xbrlEnabled || xbrlNorm.skipped === true || xbrlNorm.ok === true || xbrlStored > 0;
 const xbrlFailed = xbrlEnabled && xbrlNorm.skipped !== true && xbrlNorm.ok === false && xbrlStored < 1;
+const fdaSkipped =
+  !fdaEnabled ||
+  fdaNorm.skipped === true ||
+  fdaPrep.skip_fetch === true ||
+  nodeJson('Prepare FDA Zero Count')?.fda_skipped === true;
+const fdaOk =
+  !fdaEnabled ||
+  fdaSkipped ||
+  fdaNorm.ok === true ||
+  fdaStored > 0 ||
+  nodeJson('Count FDA Upserts')?.fda_ok === true;
+const fdaFailed = fdaEnabled && !fdaSkipped && fdaNorm.ok === false && fdaStored < 1;
+const newsSkipped =
+  !newsEnabled ||
+  newsNorm.skipped === true ||
+  newsPrep.skip_fetch === true ||
+  nodeJson('Prepare Company News Zero Count')?.news_skipped === true;
+const newsOk =
+  !newsEnabled ||
+  newsSkipped ||
+  newsNorm.ok === true ||
+  newsStored > 0 ||
+  nodeJson('Count Company News Upserts')?.news_ok === true;
+const newsFailed = newsEnabled && !newsSkipped && newsNorm.ok === false && newsStored < 1;
+const patentsSkipped =
+  !patentsEnabled ||
+  patentsNorm.skipped === true ||
+  patentsPrep.skip_fetch === true ||
+  nodeJson('Prepare USPTO Zero Count')?.patents_skipped === true;
+const patentsOk =
+  !patentsEnabled ||
+  patentsSkipped ||
+  patentsNorm.ok === true ||
+  patentsStored > 0 ||
+  nodeJson('Count USPTO Upserts')?.patents_ok === true;
+const patentsFailed =
+  patentsEnabled && !patentsSkipped && patentsNorm.ok === false && patentsStored < 1;
 
-const totalStored = secStored + (ctFailed ? 0 : ctStored) + xbrlStored;
+const totalStored =
+  secStored +
+  (ctFailed ? 0 : ctStored) +
+  xbrlStored +
+  fdaStored +
+  newsStored +
+  patentsStored;
 const collector_status = [
   {
     key: 'sec_edgar',
@@ -82,6 +162,27 @@ const collector_status = [
     document_count: xbrlStored,
     metric_count: xbrlMetrics,
   },
+  {
+    key: 'fda_openfda',
+    ok: fdaOk,
+    skipped: !fdaEnabled || fdaSkipped,
+    error: fdaFailed ? fdaNorm.error || 'fda_failed' : null,
+    document_count: fdaStored,
+  },
+  {
+    key: 'company_ir',
+    ok: newsOk,
+    skipped: !newsEnabled || newsSkipped,
+    error: newsFailed ? newsNorm.error || 'company_news_failed' : null,
+    document_count: newsStored,
+  },
+  {
+    key: 'uspto_patents',
+    ok: patentsOk,
+    skipped: !patentsEnabled || patentsSkipped,
+    error: patentsFailed ? patentsNorm.error || 'uspto_failed' : null,
+    document_count: patentsStored,
+  },
 ];
 
 let outcome;
@@ -91,7 +192,15 @@ let reason;
 if (secOk && !ctFailed) {
   outcome = 'COLLECTED';
   next_state = 'ANALYZING';
-  reason = xbrlFailed ? 'minimum_coverage_met_xbrl_partial' : 'minimum_coverage_met';
+  reason = xbrlFailed
+    ? 'minimum_coverage_met_xbrl_partial'
+    : fdaFailed
+      ? 'minimum_coverage_met_fda_partial'
+      : newsFailed
+        ? 'minimum_coverage_met_news_partial'
+        : patentsFailed
+          ? 'minimum_coverage_met_patents_partial'
+          : 'minimum_coverage_met';
 } else if (totalStored > 0 || secOk) {
   outcome = 'PARTIAL';
   next_state = partialNeedsHuman ? 'AWAITING_HUMAN_REVIEW' : 'ANALYZING';
@@ -111,6 +220,9 @@ const summary = {
   ct_stored_count: ctFailed ? 0 : ctStored,
   xbrl_stored_count: xbrlStored,
   xbrl_metric_count: xbrlMetrics,
+  fda_stored_count: fdaStored,
+  news_stored_count: newsStored,
+  patents_stored_count: patentsStored,
   total_stored_count: totalStored,
   min_sec_documents: minSec,
 };
@@ -128,11 +240,24 @@ return [
   {
     json: {
       case_id: validated.case_id || item.case_id,
-      company_id: secNorm.company_id || ctNorm.company_id || validated.company_id || null,
+      company_id:
+        secNorm.company_id ||
+        ctNorm.company_id ||
+        fdaNorm.company_id ||
+        newsNorm.company_id ||
+        patentsNorm.company_id ||
+        validated.company_id ||
+        null,
       ticker: validated.ticker || item.ticker,
       exchange: validated.exchange || item.exchange,
       cik: secNorm.cik || validated.cik || null,
-      legal_name: secNorm.legal_name || ctNorm.legal_name || null,
+      legal_name:
+        secNorm.legal_name ||
+        ctNorm.legal_name ||
+        fdaNorm.legal_name ||
+        newsNorm.legal_name ||
+        patentsNorm.legal_name ||
+        null,
       outcome,
       next_state,
       reason,

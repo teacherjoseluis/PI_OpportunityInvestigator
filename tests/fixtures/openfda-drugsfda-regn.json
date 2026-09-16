@@ -1,0 +1,319 @@
+{
+  "meta": {
+    "disclaimer": "Do not rely on openFDA to make decisions regarding medical care. While we make every effort to ensure that data is accurate, you should assume all results are unvalidated. We may limit or otherwise restrict your access to the API in line with our Terms of Service.",
+    "terms": "https://open.fda.gov/terms/",
+    "license": "https://open.fda.gov/license/",
+    "last_updated": "2026-09-15",
+    "results": {
+      "skip": 0,
+      "limit": 2,
+      "total": 7
+    }
+  },
+  "results": [
+    {
+      "submissions": [
+        {
+          "submission_type": "SUPPL",
+          "submission_number": "5",
+          "submission_status": "AP",
+          "submission_status_date": "20260402",
+          "review_priority": "STANDARD",
+          "submission_class_code": "EFFICACY",
+          "submission_class_code_description": "Efficacy",
+          "application_docs": [
+            {
+              "id": "85639",
+              "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2026/761355s005lbl.pdf",
+              "date": "20260406",
+              "type": "Label"
+            },
+            {
+              "id": "85640",
+              "url": "https://www.accessdata.fda.gov/drugsatfda_docs/appletter/2026/761355Orig1s005ltr.pdf",
+              "date": "20260406",
+              "type": "Letter"
+            }
+          ]
+        },
+        {
+          "submission_type": "ORIG",
+          "submission_number": "1",
+          "submission_status": "AP",
+          "submission_status_date": "20230818",
+          "review_priority": "PRIORITY",
+          "submission_class_code": "TYPE 5",
+          "submission_class_code_description": "Type 5 - New Formulation or New Manufacturer",
+          "application_docs": [
+            {
+              "id": "75220",
+              "url": "http://www.accessdata.fda.gov/drugsatfda_docs/appletter/2023/761355Orig1s000ltr.pdf",
+              "date": "20230822",
+              "type": "Letter"
+            },
+            {
+              "id": "75247",
+              "url": "http://www.accessdata.fda.gov/drugsatfda_docs/label/2023/761355s000lbl.pdf",
+              "date": "20230822",
+              "type": "Label"
+            },
+            {
+              "id": "78157",
+              "url": "https://www.accessdata.fda.gov/drugsatfda_docs/nda/2024/761355Orig1s000TOC.html",
+              "date": "20240418",
+              "type": "Review"
+            }
+          ]
+        },
+        {
+          "submission_type": "SUPPL",
+          "submission_number": "1",
+          "submission_status": "AP",
+          "submission_status_date": "20231214",
+          "review_priority": "STANDARD",
+          "submission_class_code": "LABELING",
+          "submission_class_code_description": "Labeling",
+          "application_docs": [
+            {
+              "id": "76847",
+              "url": "http://www.accessdata.fda.gov/drugsatfda_docs/label/2023/761355s001lbl.pdf",
+              "date": "20231215",
+              "type": "Label"
+            },
+            {
+              "id": "76860",
+              "url": "https://www.accessdata.fda.gov/drugsatfda_docs/appletter/2023/761355Orig1s001ltr.pdf",
+              "date": "20231215",
+              "type": "Letter"
+            }
+          ]
+        },
+        {
+          "submission_type": "SUPPL",
+          "submission_number": "6",
+          "submission_status": "AP",
+          "submission_status_date": "20241010",
+          "review_priority": "STANDARD",
+          "submission_class_code": "LABELING",
+          "submission_class_code_description": "Labeling",
+          "application_docs": [
+            {
+              "id": "79861",
+              "url": "http://www.accessdata.fda.gov/drugsatfda_docs/label/2024/761355s006lbl.pdf",
+              "date": "20241011",
+              "type": "Label"
+            },
+            {
+              "id": "79867",
+              "url": "https://www.accessdata.fda.gov/drugsatfda_docs/appletter/2024/761355Orig1s006ltr.pdf",
+              "date": "20241011",
+              "type": "Letter"
+            }
+          ]
+        },
+        {
+          "submission_type": "SUPPL",
+          "submission_number": "10",
+          "submission_status": "AP",
+          "submission_status_date": "20251119",
+          "review_priority": "PRIORITY",
+          "submission_class_code": "EFFICACY",
+          "submission_class_code_description": "Efficacy",
+          "application_docs": [
+            {
+              "id": "84240",
+              "url": "http://www.accessdata.fda.gov/drugsatfda_docs/label/2025/761355s010lbl.pdf",
+              "date": "20251120",
+              "type": "Label"
+            },
+            {
+              "id": "84251",
+              "url": "https://www.accessdata.fda.gov/drugsatfda_docs/appletter/2025/761355Orig1s010ltr.pdf",
+              "date": "20251121",
+              "type": "Letter"
+            }
+          ]
+        }
+      ],
+      "application_number": "BLA761355",
+      "sponsor_name": "REGENERON PHARMACEUTICALS",
+      "openfda": {
+        "application_number": [
+          "BLA761355"
+        ],
+        "brand_name": [
+          "EYLEA HD"
+        ],
+        "generic_name": [
+          "AFLIBERCEPT"
+        ],
+        "manufacturer_name": [
+          "Regeneron Pharmaceuticals, Inc"
+        ],
+        "product_ndc": [
+          "61755-050",
+          "61755-051"
+        ],
+        "product_type": [
+          "HUMAN PRESCRIPTION DRUG"
+        ],
+        "route": [
+          "INTRAVITREAL"
+        ],
+        "substance_name": [
+          "AFLIBERCEPT"
+        ],
+        "rxcui": [
+          "2645305",
+          "2645308"
+        ],
+        "spl_id": [
+          "c6550964-b64e-42e9-a3b2-dd682b1dfbbc"
+        ],
+        "spl_set_id": [
+          "86d8848b-111b-4da9-8957-7cccef1b8f66"
+        ],
+        "package_ndc": [
+          "61755-050-00",
+          "61755-050-01",
+          "61755-050-50",
+          "61755-050-51",
+          "61755-051-00",
+          "61755-051-01",
+          "61755-051-50",
+          "61755-051-51"
+        ],
+        "nui": [
+          "N0000193543",
+          "N0000193542"
+        ],
+        "pharm_class_epc": [
+          "Vascular Endothelial Growth Factor Inhibitor [EPC]"
+        ],
+        "pharm_class_moa": [
+          "Vascular Endothelial Growth Factor Inhibitors [MoA]"
+        ],
+        "unii": [
+          "15C2VL427D"
+        ]
+      },
+      "products": [
+        {
+          "product_number": "001",
+          "reference_drug": "No",
+          "brand_name": "EYLEA HD",
+          "active_ingredients": [
+            {
+              "name": "AFLIBERCEPT",
+              "strength": "8MG(0.07ML"
+            }
+          ],
+          "reference_standard": "No",
+          "dosage_form": "INJECTABLE",
+          "route": "INJECTION",
+          "marketing_status": "Prescription"
+        }
+      ]
+    },
+    {
+      "submissions": [
+        {
+          "submission_type": "ORIG",
+          "submission_number": "1",
+          "submission_status": "AP",
+          "submission_status_date": "20260819",
+          "review_priority": "PRIORITY",
+          "submission_class_code": "TYPE 1",
+          "submission_class_code_description": "Type 1 - New Molecular Entity",
+          "submission_property_type": [
+            {
+              "code": "Orphan"
+            }
+          ],
+          "application_docs": [
+            {
+              "id": "86988",
+              "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2026/761508Orig1s000lbl.pdf",
+              "date": "20260820",
+              "type": "Label"
+            },
+            {
+              "id": "86989",
+              "url": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2026/761508Orig1s000lbl.pdf#page=13",
+              "date": "20260820",
+              "type": "Medication Guide"
+            },
+            {
+              "id": "86997",
+              "url": "https://www.accessdata.fda.gov/drugsatfda_docs/appletter/2026/761508Orig1s000ltr.pdf",
+              "date": "20260820",
+              "type": "Letter"
+            }
+          ]
+        }
+      ],
+      "application_number": "BLA761508",
+      "sponsor_name": "REGENERON PHARMACEUTICALS, INC",
+      "openfda": {
+        "application_number": [
+          "BLA761508"
+        ],
+        "brand_name": [
+          "PASATRU"
+        ],
+        "generic_name": [
+          "GARETOSMAB-GRTS"
+        ],
+        "manufacturer_name": [
+          "Regeneron Pharmaceuticals, Inc."
+        ],
+        "product_ndc": [
+          "61755-012"
+        ],
+        "product_type": [
+          "HUMAN PRESCRIPTION DRUG"
+        ],
+        "route": [
+          "INTRAVENOUS"
+        ],
+        "substance_name": [
+          "GARETOSMAB"
+        ],
+        "rxcui": [
+          "2749959",
+          "2749966"
+        ],
+        "spl_id": [
+          "aa61176b-8199-47b9-ae53-66c4041f5ff5"
+        ],
+        "spl_set_id": [
+          "0d5cec96-b02b-4f1d-bc66-51e62ce04e3c"
+        ],
+        "package_ndc": [
+          "61755-012-00",
+          "61755-012-01"
+        ],
+        "unii": [
+          "KR9ZSKO5QE"
+        ]
+      },
+      "products": [
+        {
+          "product_number": "001",
+          "reference_drug": "No",
+          "brand_name": "PASATRU",
+          "active_ingredients": [
+            {
+              "name": "GARETOSMAB-GRTS",
+              "strength": "300MG/5ML"
+            }
+          ],
+          "reference_standard": "No",
+          "dosage_form": "INJECTABLE",
+          "route": "INTRAVENOUS",
+          "marketing_status": "Prescription"
+        }
+      ]
+    }
+  ]
+}

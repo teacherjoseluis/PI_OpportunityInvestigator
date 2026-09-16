@@ -22,9 +22,9 @@ Unblock research quality that Phase 1 deliberately deferred:
 | Area | State |
 |---|---|
 | Config | [`config/collection.v1.json`](../config/collection.v1.json) → `gates_json.collection` |
-| Enabled collectors | `sec_edgar`, `clinicaltrials_gov`, `sec_filing_bodies` (E1 companyfacts cash/debt) |
-| Deferred collectors | `fda_openfda`, `company_ir`, `uspto_patents`; full HTML bodies deferred to E3 |
-| `evidence_documents` | Metadata rows for SEC/CT; E1 adds `sec_companyfacts` with `parsing_status='xbrl_facts_extracted'` |
+| Enabled collectors | `sec_edgar`, `clinicaltrials_gov`, `sec_filing_bodies` (E1), `fda_openfda` (E4), `company_ir` / Finnhub company-news (E5), `uspto_patents` / ODP Patent File Wrapper (E6) |
+| Deferred collectors | `company_ir`, `uspto_patents`; full HTML bodies deferred/declined with E2–E3 |
+| `evidence_documents` | Metadata rows for SEC/CT; E1 adds `sec_companyfacts`; E4 adds `fda_drugsfda` (`parsing_status='fda_facts_extracted'`) |
 | `evidence_chunks` | E1 writes minimal cash/debt summary chunk for companyfacts |
 | `financial_periods` / `financial_metrics` | E1 populates cash/debt/net cash (`assumption_set='reported'`) |
 | PII-04 | Emits filing-backed `cash_debt` when metrics exist; other insufficient topics unchanged |
@@ -180,57 +180,102 @@ Dependencies: later slices assume earlier ones unless noted.
 
 ### Slice E4 — FDA / openFDA collector
 
-**Scope**
+**Scope (facts-only; no blobs)**
 
-- Enable `fda_openfda` in collection config; coverage rule; normalize → `evidence_documents` (+ chunks when useful).
-- Downstream: close or reduce PII-07 insufficient topics that FDA can satisfy.
+- Enable `fda_openfda` in collection config (`mode: drugsfda_compact`).
+- Query openFDA **Drugs@FDA** by `openfda.manufacturer_name` / `sponsor_name` token derived from `legal_name`.
+- Persist compact application rows as `evidence_documents` (`source_type=fda_drugsfda`): application number, sponsor, brand names, marketing status, ORIG+AP date, product/submission counts — **no** label/PDF bodies.
+- Coverage reports `fda_openfda` counts; empty NOT_FOUND is success (0 docs).
+- PII-07: emit `approved_product_inventory` + `fda_origin_approvals` facts; drop `fda_decision_calendar` insufficient when FDA rows exist. Designations / PDUFA / AdCom remain insufficient.
+
+**Likely touch points**
+
+- `config/collection.v1.json`, `config/analysis-regulatory.v1.json`
+- `db/migrations/019_collection_fda_openfda_v1.sql`
+- `workflows/pii-03-evidence/`, `workflows/pii-07-regulatory/`
+- `workflows/shared/code/normalize-fda-openfda-evidence.js`, `prepare-openfda-query.js`, `evaluate-collection-coverage.js`, `evaluate-regulatory-catalyst.js`
+
+**Out of scope for E4**
+
+- Label HTML/PDF archive (would need E2)
+- openFDA drug labels / adverse events endpoints
+- Forward PDUFA calendar, AdCom, Breakthrough/orphan designations
 
 **Smoke checklist (you)**
 
-1. Collector runs for a known label/approval-rich ticker.
-2. Evidence rows with `source_type` for FDA; PII-03 coverage reflects enabled collector.
-3. Note which regulatory insufficient claims improved (if any in same deploy).
+1. Apply migration `019` on VPS.
+2. Deploy updated PII-03 / PII-07 when requested.
+3. Run a label-rich ticker (e.g. REGN) through collection → regulatory.
+4. VPS checks:
+   - `evidence_documents` with `source_type='fda_drugsfda'`
+   - PII-03 coverage includes `fda_openfda` document_count > 0
+   - PII-07 claims include `approved_product_inventory` (and usually `fda_origin_approvals`)
+   - `fda_decision_calendar` absent from insufficient list when FDA rows present
 
 **Sign-off**
 
-- [ ] FDA evidence persisted
-- [ ] Milestone in `AGENTS.md`
+- [x] FDA evidence persisted
+- [x] Regulatory claims improved as above
+- [x] Milestone logged in `AGENTS.md`
 
 ---
 
 ### Slice E5 — Company IR / press collector
 
-**Scope**
+**Scope (facts-only; no blobs)**
 
-- Enable `company_ir`; dedupe carefully vs SEC 8-K.
-- Chunks + hooks for growth/catalyst claims where deterministic.
+- Enable `company_ir` as **Finnhub `/company-news`** compact headlines (`mode: finnhub_company_news`) — **not** company-site HTML scrapes.
+- Persist `evidence_documents` with `source_type=finnhub_company_news` (headline, source, datetime, url, truncated summary).
+- Coverage reports `company_ir` / `news_stored_count`; failure is partial (does not block ANALYZING when SEC/CT ok).
+- PII-05: `recent_company_news_inventory`; partnership/licensing keyword headlines → `partnerships_licensing_headline_signal` and drop pure `partnerships_licensing` insufficient.
+
+**Out of scope for E5**
+
+- Full article HTML/PDF archive
+- Company IR website crawling
+- USPTO patents (E6; PatentsView/ODP needs API key)
 
 **Smoke checklist (you)**
 
-1. IR/press documents stored without duplicate storms.
-2. No false coverage pass if IR fails but SEC/CT ok (per config).
+1. Apply migration `020` on VPS (or short enable SQL).
+2. Deploy updated PII-03 / PII-05 when requested (Finnhub credential on Fetch Company News).
+3. REGN (or similar) collection → growth.
+4. VPS: `finnhub_company_news` rows; PII-05 news inventory claim present.
 
 **Sign-off**
 
-- [ ] IR collector smoke passed
-- [ ] Milestone in `AGENTS.md`
+- [x] Company-news evidence persisted
+- [x] Growth claims improved as above
+- [x] Milestone in `AGENTS.md`
 
 ---
 
 ### Slice E6 — USPTO / patents collector
 
-**Scope**
+**Scope (facts-only; no blobs)**
 
-- Enable `uspto_patents`; feed risk/IP insufficient topics in PII-09 where possible.
+- Enable `uspto_patents` as **USPTO ODP Patent File Wrapper** compact search (`mode: patent_file_wrapper_compact`) — assignee/applicant token from legal name.
+- Persist `evidence_documents` with `source_type=uspto_patent` (application/patent number, title, filing/grant dates, status).
+- Coverage reports `uspto_patents` / `patents_stored_count`; failure is partial (does not block ANALYZING when SEC/CT ok).
+- PII-09: `patent_portfolio_inventory`; skips `patent_exclusivity` insufficient when USPTO rows exist (inventory ≠ Orange Book exclusivity).
+
+**Out of scope for E6**
+
+- Full patent PDF / specification text archive
+- Orange Book exclusivity calendars
+- PTAB / office-action body extraction
 
 **Smoke checklist (you)**
 
-1. Patent evidence rows for smoke ticker (or explicit empty-success if none).
-2. Deduped re-run.
+1. Apply migration `021` on VPS (or short enable SQL).
+2. Deploy updated PII-03 / PII-09 when requested (credential `USPTO ODP API Key` on Fetch USPTO Patents).
+3. REGN (or similar) collection → risk.
+4. VPS: `uspto_patent` rows; PII-09 patent inventory claim present; `patent_exclusivity` not in insufficient list.
 
 **Sign-off**
 
-- [ ] Patents collector smoke passed
+- [ ] Patent evidence persisted
+- [ ] Risk claims improved as above
 - [ ] Milestone in `AGENTS.md`
 
 ---
@@ -293,6 +338,9 @@ Dependencies: later slices assume earlier ones unless noted.
 
 - **Spec:** signed off.
 - **E1:** done (VPS `018`, published workflows, REGN smoke: `cash_debt_from_filing` PASS, `publication_ready=true`). **Signed off** for product use.
-- **E2–E3 (blobs / full SEC HTML): deferred indefinitely** — owner preference (2026-09-15): keep **high-level facts only** (e.g. companyfacts metrics); do **not** import large filing bodies into workflows or retain bulky raw evidence blobs.
-- **E4–E7:** on hold pending a later need for more high-level structured collectors (not full-document archives).
-- **Next product focus:** Slack completion DM (`im:write`) and ops polish — not object storage.
+- **E2–E3 (blobs / full SEC HTML): deferred indefinitely** — owner preference (2026-09-15): keep **high-level facts only**; do **not** import large filing bodies or retain bulky raw evidence blobs.
+- **E4:** **signed off** (VPS `019`; PII-03 `a4df2f33…`, PII-07 `024718e7…`; REGN `fda_stored_count=7`; owner verified checks).
+- **E5:** **signed off** (PII-03 `bfe2cf6f…`, PII-05 `5eda536b…`; REGN `news_stored_count=25`; owner verified checks).
+- **E6:** **local implemented** (USPTO ODP Patent File Wrapper compact; await VPS `021` + deploy PII-03/PII-09). Credential name: `USPTO ODP API Key`.
+- **E7:** on hold.
+- **Next:** apply `021` + deploy E6 when requested.

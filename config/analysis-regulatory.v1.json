@@ -6,15 +6,15 @@
   "insufficient_topics": [
     {
       "key": "fda_decision_calendar",
-      "text": "INSUFFICIENT_EVIDENCE: FDA decision calendar and approval/CRL outcomes require openFDA or labeled company disclosures (PII-03 fda_openfda circle-back)."
+      "text": "INSUFFICIENT_EVIDENCE: Forward FDA decision calendar / upcoming PDUFA outcomes are not in Drugs@FDA compact facts; E4 provides historical application/brand inventory only."
     },
     {
       "key": "pdufa_and_submission_dates",
-      "text": "INSUFFICIENT_EVIDENCE: PDUFA dates and NDA/BLA/sNDA submission timelines cannot be confirmed from SEC index or CT.gov status metadata alone."
+      "text": "INSUFFICIENT_EVIDENCE: PDUFA dates and NDA/BLA/sNDA submission timelines cannot be confirmed from SEC index, CT.gov status, or compact Drugs@FDA application rows alone."
     },
     {
       "key": "regulatory_designations",
-      "text": "INSUFFICIENT_EVIDENCE: Breakthrough, orphan, Fast Track, RMAT, and similar designations require FDA/openFDA or labeled disclosures."
+      "text": "INSUFFICIENT_EVIDENCE: Breakthrough, orphan, Fast Track, RMAT, and similar designations are not present in compact Drugs@FDA application metadata (E4)."
     },
     {
       "key": "advisory_committee",

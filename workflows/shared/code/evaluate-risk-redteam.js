@@ -74,7 +74,9 @@ if (!evidenceRows.length) {
 
 const filings = evidenceRows.filter((row) => row.source_type === 'sec_edgar_filing');
 const trials = evidenceRows.filter((row) => row.source_type === 'clinicaltrials_gov');
+const patents = evidenceRows.filter((row) => row.source_type === 'uspto_patent');
 const claims = [];
+const satisfiedInsufficient = new Set();
 
 const periodic = filings.filter((f) =>
   formMatches(parseMeta(f.metadata_json).form, ['10-K', '10-Q']),
@@ -193,14 +195,59 @@ if (trials.length) {
   });
 }
 
+if (patents.length) {
+  const granted = patents.filter((p) => Boolean(parseMeta(p.metadata_json).patent_number));
+  const sampleTitles = patents
+    .map((p) => {
+      const m = parseMeta(p.metadata_json);
+      const num = m.patent_number || m.application_number || '';
+      const title = m.invention_title || p.title || '';
+      return safeJoin(num, title);
+    })
+    .filter(Boolean)
+    .slice(0, 5);
+  claims.push({
+    topic_key: 'patent_portfolio_inventory',
+    claim_text:
+      'USPTO Patent File Wrapper returned ' +
+      patents.length +
+      ' compact application/patent rows for this assignee/applicant search (' +
+      granted.length +
+      ' with patent numbers)' +
+      (sampleTitles.length ? ': ' + sampleTitles.join('; ') : '') +
+      '. Portfolio inventory only — Orange Book exclusivity, claim scope, and litigation status are not assessed.',
+    claim_category: claimCategory,
+    claim_kind: 'fact',
+    confidence: 80,
+    materiality: 'MEDIUM',
+    extraction_method: 'deterministic_uspto_patent_file_wrapper',
+    evidence_ids: patents
+      .map((p) => p.id)
+      .filter(Boolean)
+      .slice(0, 5),
+  });
+  satisfiedInsufficient.add('patent_exclusivity');
+}
+
+function safeJoin(num, title) {
+  const n = String(num || '').trim();
+  const t = String(title || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80);
+  if (n && t) return n + ' — ' + t;
+  return n || t || '';
+}
+
 const insufficient_topics = [];
 for (const topic of insufficientTopics) {
   const key = topic.key || topic;
+  if (satisfiedInsufficient.has(key)) continue;
   const text =
     topic.text ||
     'INSUFFICIENT_EVIDENCE: ' + key + ' requires richer risk/red-team evidence sources.';
   insufficient_topics.push(key);
-  const linkIds = [...periodic, ...offering, ...eventFilings, ...trials, ...filings]
+  const linkIds = [...periodic, ...offering, ...eventFilings, ...trials, ...patents, ...filings]
     .map((r) => r.id)
     .filter(Boolean)
     .slice(0, 2);
@@ -221,6 +268,7 @@ const structuralKeys = new Set([
   'financing_dilution_risk_signal',
   'material_event_risk_signal',
   'clinical_execution_risk_signal',
+  'patent_portfolio_inventory',
 ]);
 const structuralCount = claims.filter((c) => structuralKeys.has(c.topic_key)).length;
 
@@ -251,6 +299,7 @@ const summary = {
   insufficient_topics,
   filings_count: filings.length,
   trials_count: trials.length,
+  patents_count: patents.length,
   periodic_count: periodic.length,
   offering_count: offering.length,
   event_filings_count: eventFilings.length,
@@ -274,6 +323,7 @@ return [
       counts: {
         filings_count: filings.length,
         trials_count: trials.length,
+        patents_count: patents.length,
         periodic_count: periodic.length,
         offering_count: offering.length,
         event_filings_count: eventFilings.length,

@@ -12,6 +12,10 @@ const validateCollectionRequestCode = `__VALIDATE_COLLECTION_REQUEST__`;
 const normalizeSecEvidenceCode = `__NORMALIZE_SEC_EVIDENCE__`;
 const normalizeSecXbrlEvidenceCode = `__NORMALIZE_SEC_XBRL_EVIDENCE__`;
 const normalizeCtgovEvidenceCode = `__NORMALIZE_CTGOV_EVIDENCE__`;
+const prepareOpenfdaQueryCode = `__PREPARE_OPENFDA_QUERY__`;
+const normalizeFdaOpenfdaEvidenceCode = `__NORMALIZE_FDA_OPENFDA_EVIDENCE__`;
+const prepareCompanyNewsQueryCode = `__PREPARE_COMPANY_NEWS_QUERY__`;
+const normalizeCompanyNewsEvidenceCode = `__NORMALIZE_COMPANY_NEWS_EVIDENCE__`;
 const expandEvidenceDocumentsCode = `__EXPAND_EVIDENCE_DOCUMENTS__`;
 const countSecUpsertsCode = `__COUNT_SEC_UPSERTS__`;
 const countCtgovUpsertsCode = `__COUNT_CTGOV_UPSERTS__`;
@@ -19,6 +23,14 @@ const prepareCtgovZeroCountCode = `__PREPARE_CTGOV_ZERO_COUNT__`;
 const prepareXbrlFinancialUpsertsCode = `__PREPARE_XBRL_FINANCIAL_UPSERTS__`;
 const countXbrlUpsertsCode = `__COUNT_XBRL_UPSERTS__`;
 const prepareXbrlZeroCountCode = `__PREPARE_XBRL_ZERO_COUNT__`;
+const countFdaUpsertsCode = `__COUNT_FDA_UPSERTS__`;
+const prepareFdaZeroCountCode = `__PREPARE_FDA_ZERO_COUNT__`;
+const countCompanyNewsUpsertsCode = `__COUNT_COMPANY_NEWS_UPSERTS__`;
+const prepareCompanyNewsZeroCountCode = `__PREPARE_COMPANY_NEWS_ZERO_COUNT__`;
+const prepareUsptoQueryCode = `__PREPARE_USPTO_QUERY__`;
+const normalizeUsptoPatentsEvidenceCode = `__NORMALIZE_USPTO_PATENTS_EVIDENCE__`;
+const countUsptoUpsertsCode = `__COUNT_USPTO_UPSERTS__`;
+const prepareUsptoZeroCountCode = `__PREPARE_USPTO_ZERO_COUNT__`;
 const evaluateCollectionCoverageCode = `__EVALUATE_COLLECTION_COVERAGE__`;
 const buildCollectionResultCode = `__BUILD_COLLECTION_RESULT__`;
 
@@ -676,6 +688,562 @@ const prepareCtgovZeroCount = node({
   },
 });
 
+const prepareOpenfdaQuery = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare OpenFDA Query',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareOpenfdaQueryCode,
+    },
+  },
+});
+
+const openfdaEnabled = ifElse({
+  version: 2.3,
+  config: {
+    name: 'OpenFDA Enabled?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_fetch }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const fetchOpenfdaDrugsfda = node({
+  type: 'n8n-nodes-base.httpRequest',
+  version: 4.5,
+  config: {
+    name: 'Fetch OpenFDA DrugsFDA',
+    onError: 'continueRegularOutput',
+    retryOnFail: true,
+    maxTries: 2,
+    waitBetweenTries: 1000,
+    parameters: {
+      method: 'GET',
+      url: expr('={{ $("Prepare OpenFDA Query").item.json.openfda_url }}'),
+      authentication: 'none',
+      sendHeaders: true,
+      specifyHeaders: 'keypair',
+      headerParameters: {
+        parameters: [
+          { name: 'Accept', value: 'application/json' },
+          {
+            name: 'User-Agent',
+            value: 'PI Opportunity Investigator teacherjoseluis@gmail.com',
+          },
+        ],
+      },
+      options: {
+        timeout: 60000,
+        response: {
+          response: {
+            neverError: true,
+            responseFormat: 'json',
+          },
+        },
+      },
+    },
+  },
+});
+
+const normalizeFdaOpenfdaEvidence = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Normalize OpenFDA Evidence',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: normalizeFdaOpenfdaEvidenceCode,
+    },
+  },
+});
+
+const expandFdaDocuments = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Expand FDA Documents',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: expandEvidenceDocumentsCode,
+    },
+  },
+});
+
+const hasFdaDocs = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Has FDA Docs?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_upsert }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const upsertFdaEvidenceSql =
+  "INSERT INTO evidence_documents (case_id, company_id, source_type, publisher, canonical_url, stable_source_id, title, publication_date, content_sha256, authority_tier, access_status, parsing_status, raw_content_location, metadata_json) VALUES ($1::uuid, NULLIF(NULLIF(TRIM($2), ''), 'null')::uuid, $3, $4, $5, $6, $7, CASE WHEN NULLIF(NULLIF(TRIM($8), ''), 'null') IS NULL THEN NULL WHEN TRIM($8) ~ '^\\d{4}-\\d{2}-\\d{2}' THEN LEFT(TRIM($8), 10)::date WHEN TRIM($8) ~ '^\\d{4}-\\d{2}$' THEN (TRIM($8) || '-01')::date WHEN TRIM($8) ~ '^\\d{4}$' THEN (TRIM($8) || '-01-01')::date ELSE NULL END, $9, 'primary', 'retrieved', 'fda_facts_extracted', 'inline:metadata_json', convert_from(decode($10, 'base64'), 'UTF8')::jsonb) ON CONFLICT (content_sha256) WHERE content_sha256 IS NOT NULL DO UPDATE SET case_id = COALESCE(EXCLUDED.case_id, evidence_documents.case_id), company_id = COALESCE(EXCLUDED.company_id, evidence_documents.company_id), parsing_status = EXCLUDED.parsing_status, metadata_json = EXCLUDED.metadata_json, updated_at = NOW() RETURNING id AS evidence_id, case_id, source_type, stable_source_id";
+
+const upsertFdaEvidence = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert FDA Evidence',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertFdaEvidenceSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.case_id }},{{ $json.company_id }},{{ $json.source_type }},{{ $json.publisher }},{{ $json.canonical_url }},{{ $json.stable_source_id }},{{ $json.title_safe }},{{ $json.publication_date }},{{ $json.content_sha256 }},{{ $json.metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const countFdaUpserts = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Count FDA Upserts',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: countFdaUpsertsCode,
+    },
+  },
+});
+
+const prepareFdaZeroCount = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare FDA Zero Count',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareFdaZeroCountCode,
+    },
+  },
+});
+
+const finnhubAuth = {
+  authentication: 'genericCredentialType',
+  genericAuthType: 'httpQueryAuth',
+};
+
+const prepareCompanyNewsQuery = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare Company News Query',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareCompanyNewsQueryCode,
+    },
+  },
+});
+
+const companyNewsEnabled = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Company News Enabled?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_fetch }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const fetchCompanyNews = node({
+  type: 'n8n-nodes-base.httpRequest',
+  version: 4.5,
+  config: {
+    name: 'Fetch Company News',
+    onError: 'continueRegularOutput',
+    retryOnFail: true,
+    maxTries: 2,
+    waitBetweenTries: 1000,
+    parameters: {
+      method: 'GET',
+      url: 'https://finnhub.io/api/v1/company-news',
+      ...finnhubAuth,
+      sendQuery: true,
+      specifyQuery: 'keypair',
+      queryParameters: {
+        parameters: [
+          {
+            name: 'symbol',
+            value: expr('{{ $("Prepare Company News Query").item.json.ticker }}'),
+          },
+          {
+            name: 'from',
+            value: expr('{{ $("Prepare Company News Query").item.json.from_date }}'),
+          },
+          {
+            name: 'to',
+            value: expr('{{ $("Prepare Company News Query").item.json.to_date }}'),
+          },
+        ],
+      },
+      options: {
+        timeout: 60000,
+        response: {
+          response: {
+            neverError: true,
+            responseFormat: 'json',
+          },
+        },
+      },
+    },
+    credentials: {
+      httpQueryAuth: newCredential('Finnhub API key'),
+    },
+  },
+});
+
+const normalizeCompanyNewsEvidence = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Normalize Company News Evidence',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: normalizeCompanyNewsEvidenceCode,
+    },
+  },
+});
+
+const expandCompanyNewsDocuments = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Expand Company News Documents',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: expandEvidenceDocumentsCode,
+    },
+  },
+});
+
+const hasCompanyNewsDocs = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Has Company News Docs?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_upsert }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const upsertCompanyNewsEvidenceSql =
+  "INSERT INTO evidence_documents (case_id, company_id, source_type, publisher, canonical_url, stable_source_id, title, publication_date, content_sha256, authority_tier, access_status, parsing_status, raw_content_location, metadata_json) VALUES ($1::uuid, NULLIF(NULLIF(TRIM($2), ''), 'null')::uuid, $3, $4, $5, $6, $7, CASE WHEN NULLIF(NULLIF(TRIM($8), ''), 'null') IS NULL THEN NULL WHEN TRIM($8) ~ '^\\d{4}-\\d{2}-\\d{2}' THEN LEFT(TRIM($8), 10)::date WHEN TRIM($8) ~ '^\\d{4}-\\d{2}$' THEN (TRIM($8) || '-01')::date WHEN TRIM($8) ~ '^\\d{4}$' THEN (TRIM($8) || '-01-01')::date ELSE NULL END, $9, 'secondary', 'retrieved', 'news_facts_extracted', 'inline:metadata_json', convert_from(decode($10, 'base64'), 'UTF8')::jsonb) ON CONFLICT (content_sha256) WHERE content_sha256 IS NOT NULL DO UPDATE SET case_id = COALESCE(EXCLUDED.case_id, evidence_documents.case_id), company_id = COALESCE(EXCLUDED.company_id, evidence_documents.company_id), parsing_status = EXCLUDED.parsing_status, metadata_json = EXCLUDED.metadata_json, updated_at = NOW() RETURNING id AS evidence_id, case_id, source_type, stable_source_id";
+
+const upsertCompanyNewsEvidence = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert Company News Evidence',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertCompanyNewsEvidenceSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.case_id }},{{ $json.company_id }},{{ $json.source_type }},{{ $json.publisher }},{{ $json.canonical_url }},{{ $json.stable_source_id }},{{ $json.title_safe }},{{ $json.publication_date }},{{ $json.content_sha256 }},{{ $json.metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const countCompanyNewsUpserts = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Count Company News Upserts',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: countCompanyNewsUpsertsCode,
+    },
+  },
+});
+
+const prepareCompanyNewsZeroCount = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare Company News Zero Count',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareCompanyNewsZeroCountCode,
+    },
+  },
+});
+
+const usptoAuth = {
+  authentication: 'genericCredentialType',
+  genericAuthType: 'httpHeaderAuth',
+};
+
+const prepareUsptoQuery = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare USPTO Query',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareUsptoQueryCode,
+    },
+  },
+});
+
+const usptoEnabled = ifElse({
+  version: 2.3,
+  config: {
+    name: 'USPTO Patents Enabled?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_fetch }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const fetchUsptoPatents = node({
+  type: 'n8n-nodes-base.httpRequest',
+  version: 4.5,
+  config: {
+    name: 'Fetch USPTO Patents',
+    onError: 'continueRegularOutput',
+    retryOnFail: true,
+    maxTries: 2,
+    waitBetweenTries: 1000,
+    parameters: {
+      method: 'GET',
+      url: 'https://api.uspto.gov/api/v1/patent/applications/search',
+      ...usptoAuth,
+      sendQuery: true,
+      specifyQuery: 'keypair',
+      queryParameters: {
+        parameters: [
+          {
+            name: 'q',
+            value: expr('{{ $("Prepare USPTO Query").item.json.query }}'),
+          },
+          {
+            name: 'limit',
+            value: expr('{{ $("Prepare USPTO Query").item.json.uspto_patents_limit }}'),
+          },
+          {
+            name: 'fields',
+            value:
+              'applicationNumberText,applicationMetaData.inventionTitle,applicationMetaData.patentNumber,applicationMetaData.filingDate,applicationMetaData.grantDate,applicationMetaData.applicationStatusDescriptionText',
+          },
+        ],
+      },
+      options: {
+        timeout: 60000,
+        response: {
+          response: {
+            neverError: true,
+            responseFormat: 'json',
+          },
+        },
+      },
+    },
+    credentials: {
+      httpHeaderAuth: newCredential('USPTO ODP API Key'),
+    },
+  },
+});
+
+const normalizeUsptoPatentsEvidence = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Normalize USPTO Patents Evidence',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: normalizeUsptoPatentsEvidenceCode,
+    },
+  },
+});
+
+const expandUsptoDocuments = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Expand USPTO Documents',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: expandEvidenceDocumentsCode,
+    },
+  },
+});
+
+const hasUsptoDocs = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Has USPTO Docs?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_upsert }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const upsertUsptoEvidenceSql =
+  "INSERT INTO evidence_documents (case_id, company_id, source_type, publisher, canonical_url, stable_source_id, title, publication_date, content_sha256, authority_tier, access_status, parsing_status, raw_content_location, metadata_json) VALUES ($1::uuid, NULLIF(NULLIF(TRIM($2), ''), 'null')::uuid, $3, $4, $5, $6, $7, CASE WHEN NULLIF(NULLIF(TRIM($8), ''), 'null') IS NULL THEN NULL WHEN TRIM($8) ~ '^\\d{4}-\\d{2}-\\d{2}' THEN LEFT(TRIM($8), 10)::date WHEN TRIM($8) ~ '^\\d{4}-\\d{2}$' THEN (TRIM($8) || '-01')::date WHEN TRIM($8) ~ '^\\d{4}$' THEN (TRIM($8) || '-01-01')::date ELSE NULL END, $9, 'primary', 'retrieved', 'patent_facts_extracted', 'inline:metadata_json', convert_from(decode($10, 'base64'), 'UTF8')::jsonb) ON CONFLICT (content_sha256) WHERE content_sha256 IS NOT NULL DO UPDATE SET case_id = COALESCE(EXCLUDED.case_id, evidence_documents.case_id), company_id = COALESCE(EXCLUDED.company_id, evidence_documents.company_id), parsing_status = EXCLUDED.parsing_status, metadata_json = EXCLUDED.metadata_json, updated_at = NOW() RETURNING id AS evidence_id, case_id, source_type, stable_source_id";
+
+const upsertUsptoEvidence = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert USPTO Evidence',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertUsptoEvidenceSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.case_id }},{{ $json.company_id }},{{ $json.source_type }},{{ $json.publisher }},{{ $json.canonical_url }},{{ $json.stable_source_id }},{{ $json.title_safe }},{{ $json.publication_date }},{{ $json.content_sha256 }},{{ $json.metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const countUsptoUpserts = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Count USPTO Upserts',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: countUsptoUpsertsCode,
+    },
+  },
+});
+
+const prepareUsptoZeroCount = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare USPTO Zero Count',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareUsptoZeroCountCode,
+    },
+  },
+});
+
 const evaluateCollectionCoverage = node({
   type: 'n8n-nodes-base.code',
   version: 2,
@@ -849,19 +1417,27 @@ const buildCollectionResult = node({
 });
 
 const intakeNote = sticky(
-  '## PII-03 Evidence Collector\nSEC submissions + ClinicalTrials.gov + Slice E1 companyfacts XBRL cash/debt.\nDeferred: FDA, IR, patents, full HTML bodies, object storage.',
+  '## PII-03 Evidence Collector\nSEC + CT.gov + E1 XBRL + E4 openFDA + E5 Finnhub company-news + E6 USPTO patents.\nDeferred: full HTML bodies, object storage.',
   [collectionTrigger, validateCollectionRequest, loadCaseAndCompany],
   { color: 4 },
 );
 
 const collectorsNote = sticky(
-  '## Collectors\nSEC Fair Access User-Agent required.\nUpsert evidence_documents by content_sha256; XBRL → financial_periods/metrics + chunks.',
-  [fetchSecSubmissions, fetchSecCompanyfacts, fetchCtgovStudies, upsertSecEvidence],
+  '## Collectors\nSEC Fair Access User-Agent required.\nUpsert evidence_documents by content_sha256; Finnhub for news; USPTO ODP header auth for Patent File Wrapper.',
+  [
+    fetchSecSubmissions,
+    fetchSecCompanyfacts,
+    fetchCtgovStudies,
+    fetchOpenfdaDrugsfda,
+    fetchCompanyNews,
+    fetchUsptoPatents,
+    upsertSecEvidence,
+  ],
   { color: 5 },
 );
 
 const coverageNote = sticky(
-  '## Coverage\nmin_sec_documents default 1 → ANALYZING.\nXBRL failure is partial (does not block ANALYZING when SEC/CT ok).',
+  '## Coverage\nmin_sec_documents default 1 → ANALYZING.\nXBRL/FDA/news/USPTO failure is partial (does not block ANALYZING when SEC/CT ok).',
   [evaluateCollectionCoverage, advanceCaseState, buildCollectionResult],
   { color: 6 },
 );
@@ -873,12 +1449,60 @@ const finishPath = evaluateCollectionCoverage
   .to(mergeCollectionOutput)
   .to(buildCollectionResult);
 
+const patentsAndFinish = prepareUsptoQuery.to(
+  usptoEnabled
+    .onTrue(
+      fetchUsptoPatents.to(
+        normalizeUsptoPatentsEvidence.to(
+          expandUsptoDocuments.to(
+            hasUsptoDocs
+              .onTrue(upsertUsptoEvidence.to(countUsptoUpserts.to(finishPath)))
+              .onFalse(prepareUsptoZeroCount.to(finishPath)),
+          ),
+        ),
+      ),
+    )
+    .onFalse(prepareUsptoZeroCount.to(finishPath)),
+);
+
+const newsAndFinish = prepareCompanyNewsQuery.to(
+  companyNewsEnabled
+    .onTrue(
+      fetchCompanyNews.to(
+        normalizeCompanyNewsEvidence.to(
+          expandCompanyNewsDocuments.to(
+            hasCompanyNewsDocs
+              .onTrue(upsertCompanyNewsEvidence.to(countCompanyNewsUpserts.to(patentsAndFinish)))
+              .onFalse(prepareCompanyNewsZeroCount.to(patentsAndFinish)),
+          ),
+        ),
+      ),
+    )
+    .onFalse(prepareCompanyNewsZeroCount.to(patentsAndFinish)),
+);
+
+const fdaAndFinish = prepareOpenfdaQuery.to(
+  openfdaEnabled
+    .onTrue(
+      fetchOpenfdaDrugsfda.to(
+        normalizeFdaOpenfdaEvidence.to(
+          expandFdaDocuments.to(
+            hasFdaDocs
+              .onTrue(upsertFdaEvidence.to(countFdaUpserts.to(newsAndFinish)))
+              .onFalse(prepareFdaZeroCount.to(newsAndFinish)),
+          ),
+        ),
+      ),
+    )
+    .onFalse(prepareFdaZeroCount.to(newsAndFinish)),
+);
+
 const ctgovAndFinish = fetchCtgovStudies.to(
   normalizeCtgovEvidence.to(
     expandCtgovDocuments.to(
       hasCtgovDocs
-        .onTrue(upsertCtgovEvidence.to(countCtgovUpserts.to(finishPath)))
-        .onFalse(prepareCtgovZeroCount.to(finishPath)),
+        .onTrue(upsertCtgovEvidence.to(countCtgovUpserts.to(fdaAndFinish)))
+        .onFalse(prepareCtgovZeroCount.to(fdaAndFinish)),
     ),
   ),
 );
