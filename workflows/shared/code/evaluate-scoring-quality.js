@@ -57,7 +57,7 @@ const scoresCfg = configRow.scores_json || {};
 const freshnessCfg = configRow.freshness_json || {};
 
 const categoryMap = scoring.category_map || {
-  business_quality: 'financial_business',
+  business_quality: 'business_financial',
   growth: 'growth_prospects',
   pipeline: 'pipeline_clinical',
   valuation: 'valuation_market',
@@ -112,8 +112,16 @@ if (!claimRows.length) {
 const filings = evidenceRows.filter((row) => row.source_type === 'sec_edgar_filing');
 const trials = evidenceRows.filter((row) => row.source_type === 'clinicaltrials_gov');
 
+function scoreDomainCategories(category) {
+  if (category === 'business_financial' || category === 'financial_business') {
+    return ['business_financial', 'financial_business'];
+  }
+  return [category];
+}
+
 function scoreDomain(category) {
-  const domainClaims = claimRows.filter((c) => c.claim_category === category);
+  const cats = scoreDomainCategories(category);
+  const domainClaims = claimRows.filter((c) => cats.includes(c.claim_category));
   if (!domainClaims.length) {
     return {
       score: null,

@@ -75,6 +75,42 @@ describe('evaluate-pipeline-clinical', () => {
     assert.ok(result.json.claims.some((c) => c.topic_key === 'sec_pipeline_context_anchor'));
     assert.ok(result.json.claims.every((c) => c.claim_category === 'pipeline_clinical'));
   });
+
+  it('writes enrollment inventory and skips enrollment_and_timelines when counts exist', () => {
+    const withEnrollment = evidence.map((row) => {
+      if (row.source_type !== 'clinicaltrials_gov') return row;
+      const meta = row.metadata_json || {};
+      return {
+        ...row,
+        metadata_json: { ...meta, enrollment: 392, enrollment_type: 'ACTUAL' },
+      };
+    });
+    const [result] = runCodeNode(EVALUATE, {
+      items: [{ pipeline_config: pipelineConfig }],
+      nodes: {
+        'Validate Pipeline Request': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            ticker: 'ACAD',
+            exchange: 'NASDAQ',
+            n8n_execution_id: 'exec-enroll',
+          },
+        ],
+        'Load Case And Company': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            company_id: '7e2399f9-c323-41e5-8291-e354b3375527',
+            legal_name: 'ACADIA PHARMACEUTICALS INC',
+            ticker: 'ACAD',
+          },
+        ],
+        'Load Analysis Config': [{ gates_json: { analysis: { pipeline: pipelineConfig } } }],
+        'Load Evidence Documents': withEnrollment,
+      },
+    });
+    assert.ok(result.json.claims.some((c) => c.topic_key === 'enrollment_inventory'));
+    assert.ok(!result.json.insufficient_topics.includes('enrollment_and_timelines'));
+  });
 });
 
 describe('build-pipeline-result', () => {

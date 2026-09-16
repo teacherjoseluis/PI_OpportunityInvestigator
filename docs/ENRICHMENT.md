@@ -22,7 +22,7 @@ Unblock research quality that Phase 1 deliberately deferred:
 | Area | State |
 |---|---|
 | Config | [`config/collection.v1.json`](../config/collection.v1.json) → `gates_json.collection` |
-| Enabled collectors | `sec_edgar`, `clinicaltrials_gov`, `sec_filing_bodies` (E1), `fda_openfda` (E4), `company_ir` / Finnhub company-news (E5), `uspto_patents` / ODP Patent File Wrapper (E6) |
+| Enabled collectors | `sec_edgar`, `clinicaltrials_gov`, `sec_filing_bodies` (E1/E8), `fda_openfda` (E4), `company_ir` / Finnhub company-news (E5), `uspto_patents` / ODP Patent File Wrapper (E6), `courtlistener` (E8) |
 | Deferred collectors | `company_ir`, `uspto_patents`; full HTML bodies deferred/declined with E2–E3 |
 | `evidence_documents` | Metadata rows for SEC/CT; E1 adds `sec_companyfacts`; E4 adds `fda_drugsfda` (`parsing_status='fda_facts_extracted'`) |
 | `evidence_chunks` | E1 writes minimal cash/debt summary chunk for companyfacts |
@@ -80,6 +80,7 @@ Dependencies: later slices assume earlier ones unless noted.
 | E5 | Company IR / press collector | E2 recommended |
 | E6 | USPTO / patents collector | E2 recommended |
 | E7 | Chunk backfill + analyst sweep | E1+; ideally E3–E6 |
+| E8 | CourtListener + XBRL income/runway/shares + CT.gov enrollment | E1, E4 |
 
 ---
 
@@ -311,6 +312,34 @@ Dependencies: later slices assume earlier ones unless noted.
 
 ---
 
+### Slice E8 — CourtListener + wider XBRL + CT.gov enrollment
+
+**Status:** local implemented (not deployed until requested)
+
+**Scope**
+
+- Attach n8n credential `openFDA API key` (`httpQueryAuth`, query param `api_key`) to Fetch OpenFDA DrugsFDA.
+- New PII-03 collector `courtlistener` (`search_v4_compact`): CourtListener `/api/rest/v4/search/` with credential `CourtListener API Token` (`Authorization: Token …`). Persist compact `courtlistener_docket` rows (no opinion HTML/PDF).
+- Widen E1 SEC companyfacts parser using the pharmaInvesting tag map: revenue, gross/operating income, operating cash flow, shares outstanding, derived margins / cash burn / estimated runway months.
+- Store CT.gov `designModule.enrollmentInfo.count` (pharmaInvesting already collected this).
+- Analysts: PII-04 facts for `margins` / `burn_runway` / `share_count`; PII-06 `enrollment_inventory`; PII-09 `litigation_docket_inventory`; PII-10 scores `business_financial` claims (fixes blank Business score in the email).
+- Orange Book ZIP exclusivity was **not** ported in E8 (n8n Code nodes have no zip library; keep as a later facts-only slice).
+
+**Smoke checklist (you)**
+
+1. Apply migration `024` on VPS.
+2. Deploy updated PII-03 / PII-04 / PII-06 / PII-09 / PII-10 when requested.
+3. Fresh ticker through collect → report → email.
+4. Confirm: XBRL metrics include revenue/OCF/shares when present; `courtlistener_docket` rows; email Evidence Gaps drop burn/margins/dilution/enrollment/litigation when facts resolved.
+
+**Sign-off**
+
+- [ ] Credentials attached and collectors persist compact rows
+- [ ] Email gaps/scores match smoke notes
+- [ ] Milestone in `AGENTS.md`
+
+---
+
 ## Backlog traceability (AGENTS.md → slices)
 
 | AGENTS PII-03 circle-back item | Slice |
@@ -350,4 +379,6 @@ Dependencies: later slices assume earlier ones unless noted.
 - **E5:** **signed off** (PII-03 `bfe2cf6f…`, PII-05 `5eda536b…`; REGN `news_stored_count=25`; owner verified checks).
 - **E6:** **signed off** (VPS `021`; PII-03 `4e4d2fa2…`, PII-09 `5db6fefe…`; REGN `patents_stored_count=25`; owner verified checks).
 - **E7:** **signed off** (VPS `022`; PII-03 `dd3f6f92…`, PII-04 `93d2a4b7…`, PII-08 `d64f67dc…`, PII-09 `68b3a70b…`; REGN chunks + `net_cash_debt` / liquidity claims; owner verified).
-- **Next:** regenerate PII-11 report + PII-14 email on an enriched case; optional TwelveData upgrade / webhook rotation; deploy Slack early-exit notify (local `023` + PII-00/PII-15) when requested.
+- **E8:** **local** (migration `024`; CourtListener + wider XBRL + CT.gov enrollment + openFDA query auth). **Not deployed** until requested.
+- **Slack early-exit notify:** **deployed** (config `023`; PII-15 `fdf2949f…`, PII-00 `e1828955…`).
+- **Next:** apply `024` + deploy E8; then smoke email on a fresh ticker. Optional TwelveData upgrade / webhook rotation.

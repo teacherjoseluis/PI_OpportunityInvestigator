@@ -113,6 +113,97 @@ describe('evaluate-financial-business', () => {
     assert.ok(cashClaim.claim_text.includes('310,000,000'));
   });
 
+  it('emits margins burn_runway and share_count when extended XBRL metrics exist', () => {
+    const [result] = runCodeNode(EVALUATE, {
+      items: [{ financial_config: financialConfig }],
+      nodes: {
+        'Validate Financial Request': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            ticker: 'ACAD',
+            exchange: 'NASDAQ',
+            n8n_execution_id: 'exec-xbrl-e8',
+          },
+        ],
+        'Load Case And Company': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            company_id: '7e2399f9-c323-41e5-8291-e354b3375527',
+            legal_name: 'ACADIA PHARMACEUTICALS INC',
+            ticker: 'ACAD',
+          },
+        ],
+        'Load Analysis Config': [{ gates_json: { analysis: { financial: financialConfig } } }],
+        'Load Evidence Documents': [
+          ...evidence,
+          {
+            id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            source_type: 'sec_companyfacts',
+            title: 'SEC companyfacts snapshot',
+            metadata_json: { collector: 'sec_filing_bodies' },
+          },
+        ],
+        'Load Financial Metrics': [
+          {
+            metric_key: 'cash_and_equivalents',
+            metric_value: 310000000,
+            period_end: '2024-12-31',
+            source_evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+          {
+            metric_key: 'revenue',
+            metric_value: 800000000,
+            period_end: '2024-12-31',
+            source_evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+          {
+            metric_key: 'gross_profit',
+            metric_value: 600000000,
+            period_end: '2024-12-31',
+            source_evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+          {
+            metric_key: 'gross_margin',
+            metric_value: 0.75,
+            period_end: '2024-12-31',
+            source_evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+          {
+            metric_key: 'operating_cash_flow',
+            metric_value: -50000000,
+            period_end: '2024-12-31',
+            source_evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+          {
+            metric_key: 'cash_burn',
+            metric_value: 50000000,
+            period_end: '2024-12-31',
+            source_evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+          {
+            metric_key: 'estimated_cash_runway_months',
+            metric_value: 96,
+            period_end: '2024-12-31',
+            source_evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+          {
+            metric_key: 'shares_outstanding',
+            metric_value: 165000000,
+            period_end: '2024-12-31',
+            source_evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+        ],
+      },
+    });
+
+    assert.ok(!result.json.insufficient_topics.includes('margins'));
+    assert.ok(!result.json.insufficient_topics.includes('burn_runway'));
+    assert.ok(!result.json.insufficient_topics.includes('dilution'));
+    assert.ok(result.json.claims.some((c) => c.topic_key === 'margins'));
+    assert.ok(result.json.claims.some((c) => c.topic_key === 'burn_runway'));
+    assert.ok(result.json.claims.some((c) => c.topic_key === 'share_count'));
+  });
+
   it('soft-closes dilution when offering forms are present', () => {
     const withOffering = [
       ...evidence,

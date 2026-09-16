@@ -32,6 +32,11 @@ describe('normalize-ctgov-evidence', () => {
     assert.equal(result.json.documents[0].stable_source_id, 'NCT04495855');
     assert.equal(result.json.documents[0].source_type, 'clinicaltrials_gov');
     assert.equal(result.json.documents[0].publication_date, '2020-09-15');
+    const meta = JSON.parse(
+      Buffer.from(result.json.documents[0].metadata_b64, 'base64').toString('utf8'),
+    );
+    assert.equal(meta.enrollment, 392);
+    assert.ok(result.json.documents[0].chunk_text.includes('enrollment 392'));
     assert.equal(result.json.documents[1].publication_date, '2022-11-01');
   });
 });

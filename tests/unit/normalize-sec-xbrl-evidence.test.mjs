@@ -66,6 +66,12 @@ describe('normalize-sec-xbrl-evidence', () => {
     const cash = metrics.find((m) => m.metric_key === 'cash_and_equivalents');
     assert.equal(cash.metric_value, 310000000);
     assert.equal(cash.assumption_set, 'reported');
+    assert.ok(keys.includes('revenue'));
+    assert.ok(keys.includes('gross_margin'));
+    assert.ok(keys.includes('operating_cash_flow'));
+    assert.ok(keys.includes('cash_burn'));
+    assert.ok(keys.includes('estimated_cash_runway_months'));
+    assert.ok(keys.includes('shares_outstanding'));
   });
 
   it('skips when collector disabled', () => {

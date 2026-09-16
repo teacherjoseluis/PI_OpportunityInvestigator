@@ -48,7 +48,7 @@
     },
     {
       "key": "legal_compliance_litigation",
-      "text": "INSUFFICIENT_EVIDENCE: Litigation and compliance risk need docket/filing-body extraction beyond form index signals."
+      "text": "INSUFFICIENT_EVIDENCE: Litigation pleadings and compliance findings still need docket-body review; E8 CourtListener search inventories public-record hits."
     },
     {
       "key": "management_governance",

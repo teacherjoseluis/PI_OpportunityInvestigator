@@ -59,6 +59,86 @@
             }
           ]
         }
+      },
+      "Revenues": {
+        "label": "Revenues",
+        "units": {
+          "USD": [
+            {
+              "end": "2024-12-31",
+              "val": 800000000,
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2025-02-26",
+              "accn": "0001070494-25-000012"
+            }
+          ]
+        }
+      },
+      "GrossProfit": {
+        "label": "Gross Profit",
+        "units": {
+          "USD": [
+            {
+              "end": "2024-12-31",
+              "val": 600000000,
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2025-02-26",
+              "accn": "0001070494-25-000012"
+            }
+          ]
+        }
+      },
+      "OperatingIncomeLoss": {
+        "label": "Operating Income (Loss)",
+        "units": {
+          "USD": [
+            {
+              "end": "2024-12-31",
+              "val": 100000000,
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2025-02-26",
+              "accn": "0001070494-25-000012"
+            }
+          ]
+        }
+      },
+      "NetCashProvidedByUsedInOperatingActivities": {
+        "label": "Net Cash Provided by (Used in) Operating Activities",
+        "units": {
+          "USD": [
+            {
+              "end": "2024-12-31",
+              "val": -50000000,
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2025-02-26",
+              "accn": "0001070494-25-000012"
+            }
+          ]
+        }
+      },
+      "CommonStockSharesOutstanding": {
+        "label": "Common Stock, Shares, Outstanding",
+        "units": {
+          "shares": [
+            {
+              "end": "2024-12-31",
+              "val": 165000000,
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2025-02-26",
+              "accn": "0001070494-25-000012"
+            }
+          ]
+        }
       }
     }
   }

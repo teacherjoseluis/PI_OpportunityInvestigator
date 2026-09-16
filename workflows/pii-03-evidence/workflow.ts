@@ -276,14 +276,36 @@ function toNumber(value) {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Pick the latest USD fact from a companyfacts concept unit map. */
-function pickLatestFact(conceptNode) {
-  if (!conceptNode || typeof conceptNode !== 'object') return null;
-  const units = conceptNode.units || {};
-  const series = units.USD || units['USD/shares'] || null;
-  if (!Array.isArray(series) || !series.length) return null;
+function periodMonths(fp) {
+  const p = String(fp || '').toUpperCase();
+  if (p.startsWith('Q')) return 3;
+  return 12;
+}
 
-  const ranked = series
+function pickUnitSeries(units) {
+  if (!units || typeof units !== 'object') return { series: null, unit: null };
+  if (Array.isArray(units.USD) && units.USD.length) return { series: units.USD, unit: 'USD' };
+  if (Array.isArray(units['USD/shares']) && units['USD/shares'].length) {
+    return { series: units['USD/shares'], unit: 'USD/shares' };
+  }
+  if (Array.isArray(units.shares) && units.shares.length) {
+    return { series: units.shares, unit: 'shares' };
+  }
+  const firstKey = Object.keys(units)[0];
+  if (firstKey && Array.isArray(units[firstKey]) && units[firstKey].length) {
+    return { series: units[firstKey], unit: firstKey };
+  }
+  return { series: null, unit: null };
+}
+
+/** Pick the latest fact from a companyfacts concept unit map. */
+function pickLatestFact(conceptNode, options) {
+  if (!conceptNode || typeof conceptNode !== 'object') return null;
+  const preferEnd = options && options.preferEnd ? String(options.preferEnd) : null;
+  const picked = pickUnitSeries(conceptNode.units || {});
+  if (!Array.isArray(picked.series) || !picked.series.length) return null;
+
+  const ranked = picked.series
     .map((row) => ({
       val: toNumber(row.val),
       end: row.end || null,
@@ -293,6 +315,7 @@ function pickLatestFact(conceptNode) {
       filed: row.filed || null,
       accn: row.accn || null,
       frame: row.frame || null,
+      unit: picked.unit,
     }))
     .filter((row) => row.val != null && row.end);
 
@@ -306,13 +329,18 @@ function pickLatestFact(conceptNode) {
     return 0;
   });
 
+  if (preferEnd) {
+    const sameEnd = ranked.filter((row) => String(row.end) === preferEnd);
+    if (sameEnd.length) return sameEnd[0];
+  }
+
   return ranked[0];
 }
 
-function readConcept(facts, taxonomy, concept) {
+function readConcept(facts, taxonomy, concept, options) {
   const node = facts && facts[taxonomy] && facts[taxonomy][concept];
   if (!node) return null;
-  const latest = pickLatestFact(node);
+  const latest = pickLatestFact(node, options);
   if (!latest) return null;
   return {
     concept,
@@ -322,9 +350,9 @@ function readConcept(facts, taxonomy, concept) {
   };
 }
 
-function firstConcept(facts, taxonomy, concepts) {
+function firstConcept(facts, taxonomy, concepts, options) {
   for (const concept of concepts) {
-    const hit = readConcept(facts, taxonomy, concept);
+    const hit = readConcept(facts, taxonomy, concept, options);
     if (hit) return hit;
   }
   return null;
@@ -362,6 +390,24 @@ function extractCashDebtMetrics(companyfacts, options) {
     'LongTermDebtAndCapitalLeaseObligations',
     'LongTermDebtNoncurrentAndCapitalLeaseObligations',
   ];
+  const revenueConcepts = opts.revenue_concepts || [
+    'RevenueFromContractWithCustomerExcludingAssessedTax',
+    'SalesRevenueNet',
+    'Revenues',
+  ];
+  const grossProfitConcepts = opts.gross_profit_concepts || ['GrossProfit'];
+  const operatingIncomeConcepts = opts.operating_income_concepts || [
+    'OperatingIncomeLoss',
+    'IncomeLossFromOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest',
+  ];
+  const operatingCashFlowConcepts = opts.operating_cash_flow_concepts || [
+    'NetCashProvidedByUsedInOperatingActivities',
+    'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations',
+  ];
+  const sharesConcepts = opts.shares_concepts || [
+    'CommonStockSharesOutstanding',
+    'WeightedAverageNumberOfSharesOutstandingBasic',
+  ];
 
   const cash = firstConcept(facts, taxonomy, cashConcepts);
   const marketable = firstConcept(facts, taxonomy, marketableConcepts);
@@ -396,17 +442,35 @@ function extractCashDebtMetrics(companyfacts, options) {
   const metrics = [];
   function pushMetric(key, fact, notes) {
     if (!fact) return;
+    const unit = fact.unit || 'USD';
     metrics.push({
       metric_key: key,
       metric_value: fact.val,
-      currency: 'USD',
-      unit: 'USD',
+      currency: unit === 'shares' ? 'shares' : 'USD',
+      unit,
       scale: 'as_reported',
       assumption_set: 'reported',
       calculation_notes: notes || fact.concept,
       concept: fact.concept,
       end: fact.end,
       form: fact.form || null,
+    });
+  }
+
+  function pushDerived(key, value, notes, unit) {
+    if (value == null || Number.isNaN(value)) return;
+    const u = unit || 'USD';
+    metrics.push({
+      metric_key: key,
+      metric_value: value,
+      currency: u === 'shares' || u === 'ratio' || u === 'months' ? u : 'USD',
+      unit: u,
+      scale: 'as_reported',
+      assumption_set: 'reported',
+      calculation_notes: notes,
+      concept: 'derived',
+      end: periodEnd,
+      form: anchor.form || null,
     });
   }
 
@@ -471,6 +535,61 @@ function extractCashDebtMetrics(companyfacts, options) {
       end: periodEnd,
       form: anchor.form || null,
     });
+  }
+
+  const samePeriod = { preferEnd: periodEnd };
+  const revenue = firstConcept(facts, taxonomy, revenueConcepts, samePeriod);
+  const grossProfit = firstConcept(facts, taxonomy, grossProfitConcepts, samePeriod);
+  const operatingIncome = firstConcept(facts, taxonomy, operatingIncomeConcepts, samePeriod);
+  const operatingCashFlow = firstConcept(
+    facts,
+    taxonomy,
+    operatingCashFlowConcepts,
+    samePeriod,
+  );
+  const shares = firstConcept(facts, taxonomy, sharesConcepts, samePeriod) ||
+    firstConcept(facts, 'dei', ['EntityCommonStockSharesOutstanding'], samePeriod);
+
+  pushMetric('revenue', revenue, revenue ? revenue.concept : null);
+  pushMetric('gross_profit', grossProfit, grossProfit ? grossProfit.concept : null);
+  pushMetric('operating_income', operatingIncome, operatingIncome ? operatingIncome.concept : null);
+  pushMetric(
+    'operating_cash_flow',
+    operatingCashFlow,
+    operatingCashFlow ? operatingCashFlow.concept : null,
+  );
+  pushMetric('shares_outstanding', shares, shares ? shares.concept : null);
+
+  if (revenue && revenue.val && grossProfit) {
+    pushDerived(
+      'gross_margin',
+      grossProfit.val / revenue.val,
+      'gross_profit / revenue',
+      'ratio',
+    );
+  }
+  if (revenue && revenue.val && operatingIncome) {
+    pushDerived(
+      'operating_margin',
+      operatingIncome.val / revenue.val,
+      'operating_income / revenue',
+      'ratio',
+    );
+  }
+
+  const ocfVal = operatingCashFlow ? operatingCashFlow.val : null;
+  if (ocfVal != null && ocfVal < 0) {
+    const months = periodMonths(operatingCashFlow.fp || anchor.fp);
+    const burn = Math.abs(ocfVal);
+    pushDerived('cash_burn', burn, 'abs(operating_cash_flow)', 'USD');
+    if (liquid > 0 && months > 0) {
+      pushDerived(
+        'estimated_cash_runway_months',
+        liquid / (burn / months),
+        'liquid_assets / (abs(operating_cash_flow) / period_months)',
+        'months',
+      );
+    }
   }
 
   return {
@@ -557,6 +676,11 @@ const extracted = extractCashDebtMetrics(payload, {
   marketable_concepts: xbrlCfg.marketable_concepts,
   short_debt_concepts: xbrlCfg.short_debt_concepts,
   long_debt_concepts: xbrlCfg.long_debt_concepts,
+  revenue_concepts: xbrlCfg.revenue_concepts,
+  gross_profit_concepts: xbrlCfg.gross_profit_concepts,
+  operating_income_concepts: xbrlCfg.operating_income_concepts,
+  operating_cash_flow_concepts: xbrlCfg.operating_cash_flow_concepts,
+  shares_concepts: xbrlCfg.shares_concepts,
 });
 
 if (!extracted.ok) {
@@ -595,7 +719,7 @@ const compactBody = {
 };
 const bodyJson = JSON.stringify(compactBody);
 const contentSha = sha256Hex(bodyJson);
-const stableId = 'sec-companyfacts-cashdebt-' + cik + '-' + extracted.period.period_end;
+const stableId = 'sec-companyfacts-snapshot-' + cik + '-' + extracted.period.period_end;
 
 const meta = {
   collector: 'sec_filing_bodies',
@@ -605,14 +729,15 @@ const meta = {
   source: 'data.sec.gov/api/xbrl/companyfacts',
 };
 const chunkText =
-  'SEC XBRL companyfacts cash/debt snapshot for ' +
+  'SEC XBRL companyfacts snapshot for ' +
   (extracted.entityName || legalName || ticker) +
   ' as of ' +
   extracted.period.period_end +
   ': ' +
   extracted.metrics
     .map((m) => m.metric_key + '=' + m.metric_value)
-    .join('; ') +
+    .join('; ')
+    .replaceAll(',', ';') +
   '.';
 
 const document = {
@@ -623,7 +748,7 @@ const document = {
   canonical_url: 'https://data.sec.gov/api/xbrl/companyfacts/CIK' + cik + '.json',
   stable_source_id: stableId,
   title:
-    'SEC companyfacts cash/debt ' +
+    'SEC companyfacts snapshot ' +
     (extracted.entityName || ticker || cik) +
     ' @ ' +
     extracted.period.period_end,
@@ -710,6 +835,12 @@ function safeText(value) {
 }
 
 /** Coerce CT.gov partial dates (YYYY-MM / YYYY) to a Postgres-safe date, else ''. */
+function toNumberSafe(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 function toSqlDate(value) {
   const raw = String(value == null ? '' : value).trim();
   if (!raw) return '';
@@ -771,6 +902,9 @@ for (const study of studies) {
     (status.studyFirstSubmitDate) ||
     '';
 
+  const enrollmentInfo = design.enrollmentInfo || {};
+  const enrollmentCount = toNumberSafe(enrollmentInfo.count);
+  const enrollmentType = enrollmentInfo.type || null;
   const meta = {
     nctId,
     briefTitle,
@@ -778,12 +912,15 @@ for (const study of studies) {
     leadSponsor,
     phases: design.phases || [],
     startDate,
+    enrollment: enrollmentCount,
+    enrollment_type: enrollmentType,
   };
   const body = JSON.stringify({
     kind: 'clinicaltrials_gov',
     nctId,
     overallStatus,
     briefTitle,
+    enrollment: enrollmentCount,
   });
 
   documents.push({
@@ -796,7 +933,14 @@ for (const study of studies) {
     content_sha256: sha256Hex(body),
     metadata_b64: toBase64(meta),
     chunk_text: safeText(
-      nctId + ' ' + briefTitle + ' status ' + (overallStatus || 'UNKNOWN') + ' phase ' + (phases || 'NA'),
+      nctId +
+        ' ' +
+        briefTitle +
+        ' status ' +
+        (overallStatus || 'UNKNOWN') +
+        ' phase ' +
+        (phases || 'NA') +
+        (enrollmentCount != null ? ' enrollment ' + enrollmentCount : ''),
     ),
   });
 }
@@ -1595,6 +1739,7 @@ const EXPAND_CANDIDATES = [
   'Expand FDA Documents',
   'Expand Company News Documents',
   'Expand USPTO Documents',
+  'Expand CourtListener Documents',
 ];
 
 const upserted = $input
@@ -2489,6 +2634,390 @@ return [
   },
 ];
 `;
+const prepareCourtlistenerQueryCode = `// Canonical source for PII-03 "Prepare CourtListener Query" Code node.
+// Builds CourtListener search v4 party query when courtlistener is enabled (Slice E8).
+
+function nodeJson(name) {
+  try {
+    return $(name).first().json;
+  } catch {
+    return null;
+  }
+}
+
+const validated = nodeJson('Validate Collection Request') || $input.first().json || {};
+const caseRow = nodeJson('Load Case And Company') || {};
+const configRow = nodeJson('Load Collection Config') || {};
+
+const gates = configRow.gates_json || {};
+const collection = (gates && gates.collection) || {};
+const collectors = collection.collectors || {};
+const clCfg = collectors.courtlistener || {};
+const enabled = clCfg.enabled === true;
+const limit = Number(collection.courtlistener_limit ?? clCfg.limit ?? 10);
+
+const caseId = validated.case_id || caseRow.case_id;
+const companyId = caseRow.company_id || validated.company_id || null;
+const legalName = String(caseRow.legal_name || '').trim();
+const ticker = String(validated.ticker || caseRow.ticker || '')
+  .trim()
+  .toUpperCase();
+
+const partyName = legalName.replace(/"/g, '').trim();
+
+let skip_fetch = true;
+let skip_reason = null;
+let query = '';
+
+if (!enabled) {
+  skip_reason = 'collector_disabled';
+} else if (!partyName) {
+  skip_reason = 'legal_name_missing';
+} else {
+  skip_fetch = false;
+  query = 'party:"' + partyName + '"';
+}
+
+return [
+  {
+    json: {
+      case_id: caseId,
+      company_id: companyId,
+      legal_name: legalName,
+      ticker,
+      collector: 'courtlistener',
+      enabled,
+      skip_fetch,
+      skip_reason,
+      courtlistener_limit: Math.max(1, Math.min(25, limit)),
+      query,
+    },
+  },
+];
+`;
+const normalizeCourtlistenerEvidenceCode = `// Canonical source for PII-03 "Normalize CourtListener Evidence" Code node.
+// Compact CourtListener search hits (Slice E8) — no opinion/PDF bodies.
+
+const crypto = require('crypto');
+
+function nodeJson(name) {
+  try {
+    return $(name).first().json;
+  } catch {
+    return null;
+  }
+}
+
+function sha256Hex(value) {
+  return crypto.createHash('sha256').update(String(value), 'utf8').digest('hex');
+}
+
+function toBase64(obj) {
+  return Buffer.from(JSON.stringify(obj), 'utf8').toString('base64');
+}
+
+function safeText(value) {
+  return String(value == null ? '' : value)
+    .replaceAll(',', ' ')
+    .replace(/\\s+/g, ' ')
+    .trim();
+}
+
+function toSqlDate(value) {
+  const s = String(value == null ? '' : value).trim();
+  if (!s) return '';
+  if (/^\\d{4}-\\d{2}-\\d{2}/.test(s)) return s.slice(0, 10);
+  if (/^\\d{4}-\\d{2}$/.test(s)) return s + '-01';
+  if (/^\\d{4}$/.test(s)) return s + '-01-01';
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
+function truncate(text, max) {
+  const s = safeText(text);
+  if (s.length <= max) return s;
+  return s.slice(0, max - 1).trimEnd() + '…';
+}
+
+function firstName(bag, keys) {
+  if (!bag || typeof bag !== 'object') return null;
+  for (const key of keys) {
+    const v = bag[key];
+    if (v == null) continue;
+    if (typeof v === 'string' && v.trim()) return safeText(v);
+    if (typeof v === 'number') return String(v);
+  }
+  return null;
+}
+
+function pickRows(payload) {
+  if (!payload) return [];
+  if (Array.isArray(payload.results)) return payload.results;
+  if (Array.isArray(payload)) return payload;
+  return [];
+}
+
+function canonicalUrl(row) {
+  const absolute = firstName(row, ['absolute_url', 'absoluteUrl']);
+  if (absolute) {
+    return absolute.startsWith('http')
+      ? absolute
+      : 'https://www.courtlistener.com' + (absolute.startsWith('/') ? absolute : '/' + absolute);
+  }
+  const cluster = firstName(row, ['cluster_id', 'id']);
+  if (cluster) return 'https://www.courtlistener.com/opinion/' + cluster + '/';
+  return 'https://www.courtlistener.com/';
+}
+
+const item = $input.first().json || {};
+const validated = nodeJson('Validate Collection Request') || item;
+const caseRow = nodeJson('Load Case And Company') || item.case || item;
+const configRow = nodeJson('Load Collection Config') || item.config || {};
+const prepareRow = nodeJson('Prepare CourtListener Query') || {};
+
+const gates = configRow.gates_json || {};
+const collection =
+  (gates && gates.collection) || item.collection || item.collection_config || {};
+const collectors = collection.collectors || {};
+const clCfg = collectors.courtlistener || {};
+const enabled = clCfg.enabled === true;
+const limit = Number(
+  prepareRow.courtlistener_limit ?? collection.courtlistener_limit ?? clCfg.limit ?? 10,
+);
+
+const caseId = validated.case_id || caseRow.case_id || item.case_id;
+const companyId = caseRow.company_id || validated.company_id || null;
+const legalName = caseRow.legal_name || prepareRow.legal_name || item.legal_name || null;
+const ticker = String(
+  validated.ticker || caseRow.ticker || prepareRow.ticker || item.ticker || '',
+)
+  .trim()
+  .toUpperCase();
+
+if (!enabled) {
+  return [
+    {
+      json: {
+        case_id: caseId,
+        company_id: companyId,
+        legal_name: legalName,
+        ticker,
+        collector: 'courtlistener',
+        ok: true,
+        skipped: true,
+        error: null,
+        documents: [],
+        document_count: 0,
+      },
+    },
+  ];
+}
+
+const payload = item && !Array.isArray(item) ? item : {};
+const rows = pickRows(payload);
+const statusCode = Number(payload.statusCode || 0);
+const errMsg =
+  (typeof payload.error === 'string' && payload.error) ||
+  (payload.error && payload.error.message) ||
+  (statusCode >= 400 ? payload.detail || payload.message : null) ||
+  null;
+const hardFail = Boolean(errMsg) || (statusCode >= 400 && !rows.length);
+if (hardFail && !rows.length) {
+  return [
+    {
+      json: {
+        case_id: caseId,
+        company_id: companyId,
+        legal_name: legalName,
+        ticker,
+        collector: 'courtlistener',
+        ok: false,
+        skipped: false,
+        error: 'courtlistener_fetch_failed',
+        documents: [],
+        document_count: 0,
+      },
+    },
+  ];
+}
+
+const documents = [];
+const seen = new Set();
+
+for (const row of rows.slice(0, Math.max(1, limit))) {
+  if (!row || typeof row !== 'object') continue;
+  const caseName =
+    firstName(row, ['caseName', 'case_name', 'caseNameFull']) || legalName || ticker;
+  const clusterId = firstName(row, ['cluster_id', 'id', 'docket_id']);
+  const docket = firstName(row, ['docketNumber', 'docket_number']);
+  if (!clusterId && !caseName) continue;
+
+  const stable =
+    'courtlistener-' +
+    String(clusterId || sha256Hex(caseName + (docket || '')).slice(0, 16)).replace(
+      /[^A-Za-z0-9-]/g,
+      '',
+    );
+  if (seen.has(stable)) continue;
+  seen.add(stable);
+
+  const court = firstName(row, ['court', 'court_id', 'court_citation_string']);
+  const filed = toSqlDate(firstName(row, ['dateFiled', 'date_filed', 'dateArgued']));
+  const snippet = truncate(firstName(row, ['snippet', 'text', 'plain_text']) || '', 400);
+  const url = canonicalUrl(row);
+  const displayTitle = truncate(
+    (docket ? docket + ' — ' : '') + (caseName || stable),
+    200,
+  );
+
+  const body = {
+    kind: 'courtlistener_search',
+    cluster_id: clusterId,
+    case_name: caseName,
+    docket_number: docket,
+    court,
+    date_filed: filed || null,
+  };
+  const meta = {
+    collector: 'courtlistener',
+    mode: 'search_v4_compact',
+    cluster_id: clusterId,
+    case_name: caseName,
+    docket_number: docket,
+    court,
+    date_filed: filed || null,
+    snippet,
+  };
+  const chunkText = safeText(
+    'CourtListener ' +
+      (caseName || 'matter') +
+      (docket ? ' docket ' + docket : '') +
+      (court ? ' ' + court : '') +
+      (filed ? ' filed ' + filed : '') +
+      (snippet ? ': ' + snippet : ''),
+  );
+
+  documents.push({
+    source_type: 'courtlistener_docket',
+    publisher: 'CourtListener',
+    stable_source_id: stable,
+    canonical_url: url,
+    title: displayTitle,
+    publication_date: filed,
+    content_sha256: sha256Hex(JSON.stringify(body)),
+    metadata_b64: toBase64(meta),
+    chunk_text: chunkText,
+  });
+}
+
+return [
+  {
+    json: {
+      case_id: caseId,
+      company_id: companyId,
+      legal_name: legalName,
+      ticker,
+      collector: 'courtlistener',
+      ok: true,
+      skipped: false,
+      error: null,
+      documents,
+      document_count: documents.length,
+      api_count: Number(payload.count || rows.length || 0),
+    },
+  },
+];
+`;
+const countCourtlistenerUpsertsCode = `// Count CourtListener upsert results for PII-03 coverage.
+
+let items = [];
+try {
+  items = $('Upsert CourtListener Evidence')
+    .all()
+    .filter((row) => row.json && row.json.evidence_id);
+} catch {
+  items = $input.all().filter((row) => row.json && row.json.evidence_id);
+}
+let caseId = null;
+let companyId = null;
+
+try {
+  const docs = $('Normalize CourtListener Evidence').first().json;
+  caseId = docs.case_id;
+  companyId = docs.company_id;
+} catch {
+  caseId = items[0] && items[0].json.case_id;
+  companyId = items[0] && items[0].json.company_id;
+}
+
+return [
+  {
+    json: {
+      case_id: caseId,
+      company_id: companyId,
+      courtlistener_stored_count: items.length,
+      courtlistener_ok: true,
+    },
+  },
+];
+`;
+const prepareCourtlistenerZeroCountCode = `// Prepare zero CourtListener count when collector skipped or no matches.
+
+let caseId = null;
+let companyId = null;
+let skipped = false;
+let ok = true;
+
+try {
+  const prep = $('Prepare CourtListener Query').first().json;
+  caseId = prep.case_id;
+  companyId = prep.company_id;
+  skipped = prep.skip_fetch === true || prep.enabled === false;
+} catch {
+  // continue
+}
+
+try {
+  const docs = $('Normalize CourtListener Evidence').first().json;
+  caseId = caseId || docs.case_id;
+  companyId = companyId || docs.company_id;
+  skipped = skipped || docs.skipped === true;
+  ok = docs.ok !== false;
+} catch {
+  // continue
+}
+
+try {
+  if (!caseId) {
+    const patents = $('Count USPTO Upserts').first().json;
+    caseId = patents.case_id;
+    companyId = patents.company_id;
+  }
+} catch {
+  try {
+    if (!caseId) {
+      const zero = $('Prepare USPTO Zero Count').first().json;
+      caseId = zero.case_id;
+      companyId = zero.company_id;
+    }
+  } catch {
+    // continue
+  }
+}
+
+return [
+  {
+    json: {
+      case_id: caseId,
+      company_id: companyId,
+      courtlistener_stored_count: 0,
+      courtlistener_ok: ok,
+      courtlistener_skipped: skipped,
+    },
+  },
+];
+`;
 const evaluateCollectionCoverageCode = `// Canonical source for PII-03 "Evaluate Collection Coverage" Code node.
 
 function nodeJson(name) {
@@ -2519,6 +3048,8 @@ const newsNorm = nodeJson('Normalize Company News Evidence') || item.news || {};
 const newsPrep = nodeJson('Prepare Company News Query') || {};
 const patentsNorm = nodeJson('Normalize USPTO Patents Evidence') || item.patents || {};
 const patentsPrep = nodeJson('Prepare USPTO Query') || {};
+const courtNorm = nodeJson('Normalize CourtListener Evidence') || item.courtlistener || {};
+const courtPrep = nodeJson('Prepare CourtListener Query') || {};
 
 const gates = configRow.gates_json || {};
 const collection = (gates && gates.collection) || item.collection || {};
@@ -2543,6 +3074,11 @@ const patentsEnabled =
     collection.collectors.uspto_patents &&
     collection.collectors.uspto_patents.enabled === true) ||
   patentsPrep.enabled === true;
+const courtEnabled =
+  (collection.collectors &&
+    collection.collectors.courtlistener &&
+    collection.collectors.courtlistener.enabled === true) ||
+  courtPrep.enabled === true;
 
 const secAttempted = countItems('Expand SEC Documents') || Number(secNorm.document_count || 0);
 const ctAttempted = countItems('Expand CT.gov Documents') || Number(ctNorm.document_count || 0);
@@ -2578,6 +3114,12 @@ const patentsStored = Number(
   item.patents_stored_count ??
     nodeJson('Count USPTO Upserts')?.patents_stored_count ??
     nodeJson('Prepare USPTO Zero Count')?.patents_stored_count ??
+    0,
+);
+const courtStored = Number(
+  item.courtlistener_stored_count ??
+    nodeJson('Count CourtListener Upserts')?.courtlistener_stored_count ??
+    nodeJson('Prepare CourtListener Zero Count')?.courtlistener_stored_count ??
     0,
 );
 
@@ -2624,6 +3166,19 @@ const patentsOk =
   nodeJson('Count USPTO Upserts')?.patents_ok === true;
 const patentsFailed =
   patentsEnabled && !patentsSkipped && patentsNorm.ok === false && patentsStored < 1;
+const courtSkipped =
+  !courtEnabled ||
+  courtNorm.skipped === true ||
+  courtPrep.skip_fetch === true ||
+  nodeJson('Prepare CourtListener Zero Count')?.courtlistener_skipped === true;
+const courtOk =
+  !courtEnabled ||
+  courtSkipped ||
+  courtNorm.ok === true ||
+  courtStored > 0 ||
+  nodeJson('Count CourtListener Upserts')?.courtlistener_ok === true;
+const courtFailed =
+  courtEnabled && !courtSkipped && courtNorm.ok === false && courtStored < 1;
 
 const totalStored =
   secStored +
@@ -2631,7 +3186,8 @@ const totalStored =
   xbrlStored +
   fdaStored +
   newsStored +
-  patentsStored;
+  patentsStored +
+  courtStored;
 const collector_status = [
   {
     key: 'sec_edgar',
@@ -2674,6 +3230,13 @@ const collector_status = [
     error: patentsFailed ? patentsNorm.error || 'uspto_failed' : null,
     document_count: patentsStored,
   },
+  {
+    key: 'courtlistener',
+    ok: courtOk,
+    skipped: !courtEnabled || courtSkipped,
+    error: courtFailed ? courtNorm.error || 'courtlistener_failed' : null,
+    document_count: courtStored,
+  },
 ];
 
 let outcome;
@@ -2691,7 +3254,9 @@ if (secOk && !ctFailed) {
         ? 'minimum_coverage_met_news_partial'
         : patentsFailed
           ? 'minimum_coverage_met_patents_partial'
-          : 'minimum_coverage_met';
+          : courtFailed
+            ? 'minimum_coverage_met_courtlistener_partial'
+            : 'minimum_coverage_met';
 } else if (totalStored > 0 || secOk) {
   outcome = 'PARTIAL';
   next_state = partialNeedsHuman ? 'AWAITING_HUMAN_REVIEW' : 'ANALYZING';
@@ -2714,6 +3279,7 @@ const summary = {
   fda_stored_count: fdaStored,
   news_stored_count: newsStored,
   patents_stored_count: patentsStored,
+  courtlistener_stored_count: courtStored,
   total_stored_count: totalStored,
   min_sec_documents: minSec,
 };
@@ -2737,6 +3303,7 @@ return [
         fdaNorm.company_id ||
         newsNorm.company_id ||
         patentsNorm.company_id ||
+        courtNorm.company_id ||
         validated.company_id ||
         null,
       ticker: validated.ticker || item.ticker,
@@ -2748,6 +3315,7 @@ return [
         fdaNorm.legal_name ||
         newsNorm.legal_name ||
         patentsNorm.legal_name ||
+        courtNorm.legal_name ||
         null,
       outcome,
       next_state,
@@ -3607,6 +4175,11 @@ const openfdaEnabled = ifElse({
   },
 });
 
+const openfdaAuth = {
+  authentication: 'genericCredentialType',
+  genericAuthType: 'httpQueryAuth',
+};
+
 const fetchOpenfdaDrugsfda = node({
   type: 'n8n-nodes-base.httpRequest',
   version: 4.5,
@@ -3619,7 +4192,7 @@ const fetchOpenfdaDrugsfda = node({
     parameters: {
       method: 'GET',
       url: expr('={{ $("Prepare OpenFDA Query").item.json.openfda_url }}'),
-      authentication: 'none',
+      ...openfdaAuth,
       sendHeaders: true,
       specifyHeaders: 'keypair',
       headerParameters: {
@@ -3640,6 +4213,9 @@ const fetchOpenfdaDrugsfda = node({
           },
         },
       },
+    },
+    credentials: {
+      httpQueryAuth: newCredential('openFDA API key'),
     },
   },
 });
@@ -4303,6 +4879,264 @@ const prepareUsptoZeroCount = node({
   },
 });
 
+const courtlistenerAuth = {
+  authentication: 'genericCredentialType',
+  genericAuthType: 'httpHeaderAuth',
+};
+
+const prepareCourtlistenerQuery = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare CourtListener Query',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareCourtlistenerQueryCode,
+    },
+  },
+});
+
+const courtlistenerEnabled = ifElse({
+  version: 2.3,
+  config: {
+    name: 'CourtListener Enabled?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_fetch }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const fetchCourtlistenerSearch = node({
+  type: 'n8n-nodes-base.httpRequest',
+  version: 4.5,
+  config: {
+    name: 'Fetch CourtListener Search',
+    onError: 'continueRegularOutput',
+    retryOnFail: true,
+    maxTries: 2,
+    waitBetweenTries: 1000,
+    parameters: {
+      method: 'GET',
+      url: 'https://www.courtlistener.com/api/rest/v4/search/',
+      ...courtlistenerAuth,
+      sendQuery: true,
+      specifyQuery: 'keypair',
+      queryParameters: {
+        parameters: [
+          {
+            name: 'q',
+            value: expr('{{ $("Prepare CourtListener Query").item.json.query }}'),
+          },
+          { name: 'type', value: 'r' },
+          { name: 'order_by', value: 'score desc' },
+          {
+            name: 'page_size',
+            value: expr('{{ $("Prepare CourtListener Query").item.json.courtlistener_limit }}'),
+          },
+        ],
+      },
+      sendHeaders: true,
+      specifyHeaders: 'keypair',
+      headerParameters: {
+        parameters: [
+          { name: 'Accept', value: 'application/json' },
+          {
+            name: 'User-Agent',
+            value: 'PI Opportunity Investigator teacherjoseluis@gmail.com',
+          },
+        ],
+      },
+      options: {
+        timeout: 60000,
+        response: {
+          response: {
+            neverError: true,
+            responseFormat: 'json',
+          },
+        },
+      },
+    },
+    credentials: {
+      httpHeaderAuth: newCredential('CourtListener API Token'),
+    },
+  },
+});
+
+const normalizeCourtlistenerEvidence = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Normalize CourtListener Evidence',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: normalizeCourtlistenerEvidenceCode,
+    },
+  },
+});
+
+const expandCourtlistenerDocuments = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Expand CourtListener Documents',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: expandEvidenceDocumentsCode,
+    },
+  },
+});
+
+const hasCourtlistenerDocs = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Has CourtListener Docs?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_upsert }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const upsertCourtlistenerEvidenceSql =
+  "INSERT INTO evidence_documents (case_id, company_id, source_type, publisher, canonical_url, stable_source_id, title, publication_date, content_sha256, authority_tier, access_status, parsing_status, raw_content_location, metadata_json) VALUES ($1::uuid, NULLIF(NULLIF(TRIM($2), ''), 'null')::uuid, $3, $4, $5, $6, $7, CASE WHEN NULLIF(NULLIF(TRIM($8), ''), 'null') IS NULL THEN NULL WHEN TRIM($8) ~ '^\\d{4}-\\d{2}-\\d{2}' THEN LEFT(TRIM($8), 10)::date WHEN TRIM($8) ~ '^\\d{4}-\\d{2}$' THEN (TRIM($8) || '-01')::date WHEN TRIM($8) ~ '^\\d{4}$' THEN (TRIM($8) || '-01-01')::date ELSE NULL END, $9, 'primary', 'retrieved', 'docket_facts_extracted', 'inline:metadata_json', convert_from(decode($10, 'base64'), 'UTF8')::jsonb) ON CONFLICT (content_sha256) WHERE content_sha256 IS NOT NULL DO UPDATE SET case_id = COALESCE(EXCLUDED.case_id, evidence_documents.case_id), company_id = COALESCE(EXCLUDED.company_id, evidence_documents.company_id), parsing_status = EXCLUDED.parsing_status, metadata_json = EXCLUDED.metadata_json, updated_at = NOW() RETURNING id AS evidence_id, case_id, source_type, stable_source_id";
+
+const upsertCourtlistenerEvidence = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert CourtListener Evidence',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertCourtlistenerEvidenceSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.case_id }},{{ $json.company_id }},{{ $json.source_type }},{{ $json.publisher }},{{ $json.canonical_url }},{{ $json.stable_source_id }},{{ $json.title_safe }},{{ $json.publication_date }},{{ $json.content_sha256 }},{{ $json.metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const prepareCourtlistenerEvidenceChunks = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare CourtListener Evidence Chunks',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareEvidenceChunkUpsertsCode,
+    },
+  },
+});
+
+const hasCourtlistenerChunks = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Has CourtListener Chunks?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_chunk }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const upsertCourtlistenerEvidenceChunks = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert CourtListener Evidence Chunks',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertEvidenceChunkSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.evidence_id }},{{ $json.chunk_index }},{{ $json.chunk_text }},{{ $json.chunk_token_estimate }},{{ $json.chunk_metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const countCourtlistenerUpserts = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Count CourtListener Upserts',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: countCourtlistenerUpsertsCode,
+    },
+  },
+});
+
+const prepareCourtlistenerZeroCount = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare CourtListener Zero Count',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareCourtlistenerZeroCountCode,
+    },
+  },
+});
+
 const evaluateCollectionCoverage = node({
   type: 'n8n-nodes-base.code',
   version: 2,
@@ -4476,13 +5310,13 @@ const buildCollectionResult = node({
 });
 
 const intakeNote = sticky(
-  '## PII-03 Evidence Collector\nSEC + CT.gov + E1 XBRL + E4 openFDA + E5 Finnhub company-news + E6 USPTO patents.\nDeferred: full HTML bodies, object storage.',
+  '## PII-03 Evidence Collector\nSEC + CT.gov + E1 XBRL + E4 openFDA + E5 Finnhub company-news + E6 USPTO patents + E8 CourtListener.\nDeferred: full HTML bodies, object storage, Orange Book ZIP.',
   [collectionTrigger, validateCollectionRequest, loadCaseAndCompany],
   { color: 4 },
 );
 
 const collectorsNote = sticky(
-  '## Collectors\nSEC Fair Access User-Agent required.\nUpsert evidence_documents by content_sha256; Finnhub for news; USPTO ODP header auth for Patent File Wrapper.',
+  '## Collectors\nSEC Fair Access User-Agent required.\nUpsert evidence_documents by content_sha256; openFDA query auth; Finnhub for news; USPTO ODP header auth; CourtListener Token header auth.',
   [
     fetchSecSubmissions,
     fetchSecCompanyfacts,
@@ -4490,13 +5324,14 @@ const collectorsNote = sticky(
     fetchOpenfdaDrugsfda,
     fetchCompanyNews,
     fetchUsptoPatents,
+    fetchCourtlistenerSearch,
     upsertSecEvidence,
   ],
   { color: 5 },
 );
 
 const coverageNote = sticky(
-  '## Coverage\nmin_sec_documents default 1 → ANALYZING.\nXBRL/FDA/news/USPTO failure is partial (does not block ANALYZING when SEC/CT ok).\nE7: non-XBRL collectors write evidence_chunks after document upsert when chunk_text present.',
+  '## Coverage\nmin_sec_documents default 1 → ANALYZING.\nXBRL/FDA/news/USPTO/CourtListener failure is partial (does not block ANALYZING when SEC/CT ok).\nE7: non-XBRL collectors write evidence_chunks after document upsert when chunk_text present.',
   [evaluateCollectionCoverage, advanceCaseState, buildCollectionResult],
   { color: 6 },
 );
@@ -4507,6 +5342,34 @@ const finishPath = evaluateCollectionCoverage
   .to(logWorkflowRun)
   .to(mergeCollectionOutput)
   .to(buildCollectionResult);
+
+const courtlistenerAndFinish = prepareCourtlistenerQuery.to(
+  courtlistenerEnabled
+    .onTrue(
+      fetchCourtlistenerSearch.to(
+        normalizeCourtlistenerEvidence.to(
+          expandCourtlistenerDocuments.to(
+            hasCourtlistenerDocs
+              .onTrue(
+                upsertCourtlistenerEvidence.to(
+                  prepareCourtlistenerEvidenceChunks.to(
+                    hasCourtlistenerChunks
+                      .onTrue(
+                        upsertCourtlistenerEvidenceChunks.to(
+                          countCourtlistenerUpserts.to(finishPath),
+                        ),
+                      )
+                      .onFalse(countCourtlistenerUpserts.to(finishPath)),
+                  ),
+                ),
+              )
+              .onFalse(prepareCourtlistenerZeroCount.to(finishPath)),
+          ),
+        ),
+      ),
+    )
+    .onFalse(prepareCourtlistenerZeroCount.to(finishPath)),
+);
 
 const patentsAndFinish = prepareUsptoQuery.to(
   usptoEnabled
@@ -4519,17 +5382,21 @@ const patentsAndFinish = prepareUsptoQuery.to(
                 upsertUsptoEvidence.to(
                   prepareUsptoEvidenceChunks.to(
                     hasUsptoChunks
-                      .onTrue(upsertUsptoEvidenceChunks.to(countUsptoUpserts.to(finishPath)))
-                      .onFalse(countUsptoUpserts.to(finishPath)),
+                      .onTrue(
+                        upsertUsptoEvidenceChunks.to(
+                          countUsptoUpserts.to(courtlistenerAndFinish),
+                        ),
+                      )
+                      .onFalse(countUsptoUpserts.to(courtlistenerAndFinish)),
                   ),
                 ),
               )
-              .onFalse(prepareUsptoZeroCount.to(finishPath)),
+              .onFalse(prepareUsptoZeroCount.to(courtlistenerAndFinish)),
           ),
         ),
       ),
     )
-    .onFalse(prepareUsptoZeroCount.to(finishPath)),
+    .onFalse(prepareUsptoZeroCount.to(courtlistenerAndFinish)),
 );
 
 const newsAndFinish = prepareCompanyNewsQuery.to(

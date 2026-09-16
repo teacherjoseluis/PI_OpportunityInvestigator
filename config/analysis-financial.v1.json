@@ -10,11 +10,11 @@
     },
     {
       "key": "burn_runway",
-      "text": "INSUFFICIENT_EVIDENCE: Cash burn and runway cannot be calculated without period financials from XBRL or filing body (PII-03 circle-back)."
+      "text": "INSUFFICIENT_EVIDENCE: Cash burn and runway cannot be calculated without operating cash flow in XBRL companyfacts (E8) or filing-body period financials."
     },
     {
       "key": "margins",
-      "text": "INSUFFICIENT_EVIDENCE: Gross/operating margins are not available from filing index metadata (PII-03 circle-back)."
+      "text": "INSUFFICIENT_EVIDENCE: Gross/operating margins need income-statement XBRL (E8) or filing-body financials."
     },
     {
       "key": "product_revenue",
@@ -22,7 +22,7 @@
     },
     {
       "key": "dilution",
-      "text": "INSUFFICIENT_EVIDENCE: Dilution magnitude and share-count impact remain unquantified without offering details and XBRL share counts; capital-markets form signals alone (E7 soft-close) do not quantify dilution."
+      "text": "INSUFFICIENT_EVIDENCE: Dilution magnitude remains unquantified without offering details; E8 XBRL share counts inventory outstanding shares but not issuance economics."
     }
   ]
 }

@@ -15,7 +15,8 @@
           "leadSponsor": { "name": "ACADIA Pharmaceuticals Inc." }
         },
         "designModule": {
-          "phases": ["PHASE3"]
+          "phases": ["PHASE3"],
+          "enrollmentInfo": { "count": 392, "type": "ACTUAL" }
         }
       }
     },

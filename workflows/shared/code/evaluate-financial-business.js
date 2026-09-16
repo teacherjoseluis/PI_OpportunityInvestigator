@@ -205,6 +205,14 @@ if (offeringForms.length) {
   resolvedInsufficient.add('dilution');
 }
 
+function fmtUsd(n) {
+  return Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+
+function fmtPct(n) {
+  return (Number(n) * 100).toLocaleString('en-US', { maximumFractionDigits: 1 }) + '%';
+}
+
 if (hasCashDebtMetrics) {
   const cash = metrics.cash_and_equivalents;
   const mkt = metrics.marketable_securities_current;
@@ -224,10 +232,6 @@ if (hasCashDebtMetrics) {
     net && net.source_evidence_id,
   ].filter(Boolean);
   const uniqueEvidence = [...new Set(evidenceIds)].slice(0, 5);
-
-  function fmtUsd(n) {
-    return Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 });
-  }
 
   const parts = [];
   if (cash) parts.push('cash and equivalents ' + fmtUsd(cash.value) + ' USD');
@@ -252,6 +256,104 @@ if (hasCashDebtMetrics) {
     evidence_ids: uniqueEvidence,
   });
   resolvedInsufficient.add('cash_debt');
+}
+
+const xbrlEvidenceIds = [
+  ...companyfactsDocs.map((d) => d.id),
+  metrics.cash_and_equivalents && metrics.cash_and_equivalents.source_evidence_id,
+  metrics.revenue && metrics.revenue.source_evidence_id,
+  metrics.operating_cash_flow && metrics.operating_cash_flow.source_evidence_id,
+  metrics.shares_outstanding && metrics.shares_outstanding.source_evidence_id,
+].filter(Boolean);
+const uniqueXbrlEvidence = [...new Set(xbrlEvidenceIds)].slice(0, 5);
+
+if (metrics.gross_margin || metrics.operating_margin || (metrics.revenue && metrics.gross_profit)) {
+  const periodEnd =
+    (metrics.gross_margin && metrics.gross_margin.period_end) ||
+    (metrics.operating_margin && metrics.operating_margin.period_end) ||
+    (metrics.revenue && metrics.revenue.period_end) ||
+    null;
+  const parts = [];
+  if (metrics.revenue) parts.push('revenue ' + fmtUsd(metrics.revenue.value) + ' USD');
+  if (metrics.gross_margin) parts.push('gross margin ' + fmtPct(metrics.gross_margin.value));
+  if (metrics.operating_margin) {
+    parts.push('operating margin ' + fmtPct(metrics.operating_margin.value));
+  }
+  claims.push({
+    topic_key: 'margins',
+    claim_text:
+      'SEC XBRL companyfacts (period end ' +
+      (periodEnd || 'unknown') +
+      '): ' +
+      parts.join('; ') +
+      '.',
+    claim_category: claimCategory,
+    claim_kind: 'fact',
+    confidence: 85,
+    materiality: 'HIGH',
+    extraction_method: 'deterministic_xbrl_metrics',
+    evidence_ids: uniqueXbrlEvidence,
+  });
+  resolvedInsufficient.add('margins');
+}
+
+if (metrics.estimated_cash_runway_months || metrics.cash_burn || metrics.operating_cash_flow) {
+  const periodEnd =
+    (metrics.estimated_cash_runway_months && metrics.estimated_cash_runway_months.period_end) ||
+    (metrics.cash_burn && metrics.cash_burn.period_end) ||
+    (metrics.operating_cash_flow && metrics.operating_cash_flow.period_end) ||
+    null;
+  const parts = [];
+  if (metrics.operating_cash_flow) {
+    parts.push('operating cash flow ' + fmtUsd(metrics.operating_cash_flow.value) + ' USD');
+  }
+  if (metrics.cash_burn) parts.push('period cash burn ' + fmtUsd(metrics.cash_burn.value) + ' USD');
+  if (metrics.estimated_cash_runway_months) {
+    parts.push(
+      'estimated cash runway ' +
+        Number(metrics.estimated_cash_runway_months.value).toLocaleString('en-US', {
+          maximumFractionDigits: 1,
+        }) +
+        ' months',
+    );
+  } else if (metrics.operating_cash_flow && metrics.operating_cash_flow.value >= 0) {
+    parts.push('operating cash flow was not negative so cash-burn runway is not constrained in this period');
+  }
+  claims.push({
+    topic_key: 'burn_runway',
+    claim_text:
+      'SEC XBRL companyfacts (period end ' +
+      (periodEnd || 'unknown') +
+      '): ' +
+      parts.join('; ') +
+      '.',
+    claim_category: claimCategory,
+    claim_kind: 'fact',
+    confidence: 82,
+    materiality: 'HIGH',
+    extraction_method: 'deterministic_xbrl_metrics',
+    evidence_ids: uniqueXbrlEvidence,
+  });
+  resolvedInsufficient.add('burn_runway');
+}
+
+if (metrics.shares_outstanding) {
+  claims.push({
+    topic_key: 'share_count',
+    claim_text:
+      'SEC XBRL companyfacts (period end ' +
+      (metrics.shares_outstanding.period_end || 'unknown') +
+      '): shares outstanding ' +
+      fmtUsd(metrics.shares_outstanding.value) +
+      '. Share-count inventory only; offering dilution impact still needs prospectus economics.',
+    claim_category: claimCategory,
+    claim_kind: 'fact',
+    confidence: 86,
+    materiality: 'MEDIUM',
+    extraction_method: 'deterministic_xbrl_metrics',
+    evidence_ids: uniqueXbrlEvidence,
+  });
+  resolvedInsufficient.add('dilution');
 }
 
 const insufficient_topics = [];

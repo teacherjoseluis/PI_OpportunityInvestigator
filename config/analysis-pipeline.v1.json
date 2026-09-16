@@ -13,7 +13,7 @@
     },
     {
       "key": "enrollment_and_timelines",
-      "text": "INSUFFICIENT_EVIDENCE: Enrollment targets, actual enrollment, and milestone windows require fuller registry/design modules than currently stored."
+      "text": "INSUFFICIENT_EVIDENCE: Enrollment targets vs actual and milestone windows still need results modules; E8 stores CT.gov designModule enrollment counts when present."
     },
     {
       "key": "efficacy_and_durability",

@@ -119,6 +119,22 @@ const embedMap = {
     repoRoot,
     'workflows/shared/code/prepare-uspto-zero-count.js',
   ),
+  PREPARE_COURTLISTENER_QUERY: path.join(
+    repoRoot,
+    'workflows/shared/code/prepare-courtlistener-query.js',
+  ),
+  NORMALIZE_COURTLISTENER_EVIDENCE: path.join(
+    repoRoot,
+    'workflows/shared/code/normalize-courtlistener-evidence.js',
+  ),
+  COUNT_COURTLISTENER_UPSERTS: path.join(
+    repoRoot,
+    'workflows/shared/code/count-courtlistener-upserts.js',
+  ),
+  PREPARE_COURTLISTENER_ZERO_COUNT: path.join(
+    repoRoot,
+    'workflows/shared/code/prepare-courtlistener-zero-count.js',
+  ),
   EVALUATE_COLLECTION_COVERAGE: path.join(
     repoRoot,
     'workflows/shared/code/evaluate-collection-coverage.js',

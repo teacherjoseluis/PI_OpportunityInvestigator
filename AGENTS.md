@@ -143,7 +143,7 @@ Fill these values as the project is established:
 
 - Hosted n8n URL: `https://teacherjoseluis.app.n8n.cloud`
 - Hosted n8n project ID: `FaU28ckb88bAPAfT` (personal project; confirmed via MCP)
-- Primary workflow name and ID: `PII-00 Case Orchestrator` / `4jvmYtTHKufojJRK` (published; version `84997803-a604-4438-b2d6-f1911f616af6`)
+- Primary workflow name and ID: `PII-00 Case Orchestrator` / `4jvmYtTHKufojJRK` (published; version `e1828955-d1db-48e9-b359-b61fc76a98cd`)
 - PII-01 workflow name and ID: `PII-01 Identity Resolver` / `Xf6DjDUMyfOyNX3G` (published; version `de222a9c-c473-4dae-86f8-2017ff9319a7`)
 - PII-02 workflow name and ID: `PII-02 Eligibility Gate` / `hqgFoP7ny6jnycxx` (published; version `567e37d5-1cd7-41cd-9399-9ae3055f69e0`)
 - PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `dd3f6f92-dcfd-436e-a0de-be298656f5ed`)
@@ -159,8 +159,8 @@ Fill these values as the project is established:
 - PII-13 workflow name and ID: `PII-13 Operations and Alerts` / `ldPDfkqkkuDBfLe5` (inactive; version `be2d45ee-bd56-4e1a-b588-bdf46d2143f1`)
 - PII-14 workflow name and ID: `PII-14 Email Digest and Report Delivery` / `kf6pC1t7J1XavbiE` (published; version `9a7c0bf0-1a1f-4234-99af-d0ec88a6b846`; on PII-00 path)
 - PII Slack Intake workflow name and ID: `PII Slack Intake` / `Co5hmZSuqqk97rhg` (published; version `1d358400-1f6c-4a08-afca-ed776cbceb9e`)
-- PII-15 workflow name and ID: `PII-15 Slack Completion Notify` / `3Q4goJz1gGKJRLMI` (published; version `763f7250-d903-4a24-8b57-a40be09f7c4f`)
-- Active version ID: 84997803-a604-4438-b2d6-f1911f616af6 (PII-00; wired through PII-11 → PII-14 → PII-15)
+- PII-15 workflow name and ID: `PII-15 Slack Completion Notify` / `3Q4goJz1gGKJRLMI` (published; version `fdf2949f-d947-4b8b-ad4f-c59377a38d53`)
+- Active version ID: e1828955-d1db-48e9-b359-b61fc76a98cd (PII-00; wired through PII-11 → PII-14 → PII-15; early-exit notify on eligibility/evidence stop)
 - Webhook test URL: `https://teacherjoseluis.app.n8n.cloud/webhook-test/pii/investigate`
 - Webhook production URL: `https://teacherjoseluis.app.n8n.cloud/webhook/pii/investigate` (published)
 - Slack slash webhook production URL: `https://teacherjoseluis.app.n8n.cloud/webhook/pii/slack` (published)
@@ -169,6 +169,8 @@ Fill these values as the project is established:
 - n8n Twelve Data credential name: `TwelveData API key` (`httpQueryAuth`) — `/quote` on Basic; `/profile` needs Grow+; `/statistics` needs Pro+
 - n8n Finnhub credential name: `Finnhub API key` (`httpQueryAuth`) — PII-02 profile2 fallback; PII-03 E5 `/company-news` headlines
 - n8n USPTO credential name: `USPTO ODP API Key` (`httpHeaderAuth`) — PII-03 E6 Patent File Wrapper search (`X-API-KEY`)
+- n8n openFDA credential name: `openFDA API key` (`httpQueryAuth`, query param `api_key`) — PII-03 E4/E8 Drugs@FDA
+- n8n CourtListener credential name: `CourtListener API Token` (`httpHeaderAuth`, `Authorization: Token …`) — PII-03 E8 search v4
 - n8n SMTP credential name: `SMTP account` (from/to `teacherjoseluis@gmail.com`; shared with Investment Concierge)
 - n8n Slack credential name: `Slack PII bot` (`slackApi`) — used by PII-15 completion DM; requires `im:write` (plus existing scopes); Slack intake Phase 1 still uses slash `response_url`
 - Research Postgres: VPS at `108.174.153.74:5433`, database `pii_research`, user `pii_app` (password in VPS `.env` only). Local Docker also uses host port `5433` when `5432` is busy.
@@ -199,34 +201,49 @@ Fill these values as the project is established:
 
 ## Current Status
 
-Project status: Phase 1 through PII-15 hosted. **E1 + E4 + E5 + E6 + E7 signed off**. **Slack early-exit notify local** (await deploy PII-00/PII-15 + VPS `023`). Remaining: optional TwelveData upgrade; webhook rotation.
+Project status: Phase 1 through PII-15 hosted. **E1 + E4 + E5 + E6 + E7 signed off**. **E8 local** (CourtListener + wider XBRL + CT.gov enrollment; migration `024`). **Slack early-exit notify deployed**. Remaining: apply `024` + deploy E8; optional TwelveData upgrade; webhook rotation.
 
 ### PII-03 enrichment backlog (see ENRICHMENT.md)
 
-1. ~~SEC XBRL cash/debt (E1)~~ — **done**
+1. ~~SEC XBRL cash/debt (E1)~~ — **done** (E8 widens income/OCF/shares/runway)
 2. ~~Full SEC filing HTML / object storage (E2–E3)~~ — **declined**
-3. ~~FDA / openFDA collector (E4)~~ — **done**
+3. ~~FDA / openFDA collector (E4)~~ — **done** (E8 attaches `openFDA API key`)
 4. ~~Company IR / press (E5)~~ — **done** (Finnhub company-news compact headlines)
 5. ~~USPTO / patents collector (E6)~~ — **done** (ODP Patent File Wrapper compact; credential `USPTO ODP API Key`)
 6. ~~Broader `evidence_chunks` + analyst sweep (E7)~~ — **done**
+7. CourtListener litigation inventory (E8) — **local**; Orange Book ZIP exclusivity still deferred
 
 Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 
 ## Next Steps
 
-1. Regenerate report + email on an enriched case (PII-11 → PII-14) to see FDA/news/patents/XBRL claims in the memo.
-2. Optionally upgrade TwelveData; rotate webhook secret.
-3. Day-to-day: Slack `/pii` / webhook for fresh tickers (avoid REGN duplicate_recent_case).
-4. Deploy Slack early-exit notify (local: PII-00 + PII-15 + migration `023`) when ready — DMs on eligibility/evidence stop before full analysis.
+1. Apply VPS migration `024`, then say **deploy** for PII-03 / PII-04 / PII-06 / PII-09 / PII-10.
+2. Smoke a fresh ticker through collect → report → email; confirm burn/margins/shares/enrollment/litigation claims and a numeric Business score.
+3. Optionally upgrade TwelveData; rotate webhook secret; smoke early-exit DM on a mega-cap.
+4. Day-to-day: Slack `/pii` / webhook for fresh tickers (avoid REGN duplicate_recent_case).
 
 ## Milestone Log
 
+### 2026-09-16 (Slice E8 local)
+
+- Implemented **E8 CourtListener + wider XBRL + CT.gov enrollment** (no filing HTML blobs; Orange Book ZIP deferred).
+- PII-03: credential `openFDA API key` on Fetch OpenFDA; collector `courtlistener` → `courtlistener_docket`; companyfacts now extracts revenue/margins/OCF/shares/runway; CT.gov stores enrollment.
+- PII-04: facts for `margins`, `burn_runway`, `share_count` when XBRL metrics exist.
+- PII-06: `enrollment_inventory`; PII-09: `litigation_docket_inventory`; PII-10: score `business_financial` claims (fixes blank Business email score).
+- Migration `024_collection_courtlistener_xbrl_e8_v1.sql`. Unit tests + `bundle:pii-03/04/06/09/10`. **Not deployed** until explicitly requested.
+
+### 2026-09-16 (Slack early-exit notify deploy)
+
+- Applied migration `023` via temp n8n Postgres (exec `2396`; archived); `notify_on_early_exit: true` on active config.
+- Published PII-15 `3Q4goJz1gGKJRLMI` → `fdf2949f-d947-4b8b-ad4f-c59377a38d53` (mode COMPLETION|EARLY_EXIT; stage dedupe).
+- Published PII-00 `4jvmYtTHKufojJRK` → `e1828955-d1db-48e9-b359-b61fc76a98cd` (completion `mode=COMPLETION`; IF false → Notify Slack Eligibility/Evidence Early Exit).
+
 ### 2026-09-16 (Slack early-exit notify local)
 
-- Local only (not deployed): PII-15 accepts `mode` COMPLETION|EARLY_EXIT + stage/reason/outcome/next_state/detail; EARLY_EXIT DMs without requiring a report; dedupe `slack:EARLY_EXIT:<case_id>:<stage>`.
+- Local: PII-15 accepts `mode` COMPLETION|EARLY_EXIT + stage/reason/outcome/next_state/detail; EARLY_EXIT DMs without requiring a report; dedupe `slack:EARLY_EXIT:<case_id>:<stage>`.
 - Config `notify_on_early_exit: true`; migration `023_slack_early_exit_notify_v1.sql`.
 - PII-00 wires early-exit Execute PII-15 from eligibility not COLLECTING and evidence not ANALYZING; completion path passes `mode=COMPLETION`.
-- Unit tests + `bundle:pii-15` / `bundle:pii-00`.
+- Unit tests + `bundle:pii-15` / `bundle:pii-00`. Deployed same day (see Slack early-exit notify deploy).
 
 ### 2026-09-16 (E7 sign-off)
 

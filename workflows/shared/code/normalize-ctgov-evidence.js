@@ -27,6 +27,12 @@ function safeText(value) {
 }
 
 /** Coerce CT.gov partial dates (YYYY-MM / YYYY) to a Postgres-safe date, else ''. */
+function toNumberSafe(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 function toSqlDate(value) {
   const raw = String(value == null ? '' : value).trim();
   if (!raw) return '';
@@ -88,6 +94,9 @@ for (const study of studies) {
     (status.studyFirstSubmitDate) ||
     '';
 
+  const enrollmentInfo = design.enrollmentInfo || {};
+  const enrollmentCount = toNumberSafe(enrollmentInfo.count);
+  const enrollmentType = enrollmentInfo.type || null;
   const meta = {
     nctId,
     briefTitle,
@@ -95,12 +104,15 @@ for (const study of studies) {
     leadSponsor,
     phases: design.phases || [],
     startDate,
+    enrollment: enrollmentCount,
+    enrollment_type: enrollmentType,
   };
   const body = JSON.stringify({
     kind: 'clinicaltrials_gov',
     nctId,
     overallStatus,
     briefTitle,
+    enrollment: enrollmentCount,
   });
 
   documents.push({
@@ -113,7 +125,14 @@ for (const study of studies) {
     content_sha256: sha256Hex(body),
     metadata_b64: toBase64(meta),
     chunk_text: safeText(
-      nctId + ' ' + briefTitle + ' status ' + (overallStatus || 'UNKNOWN') + ' phase ' + (phases || 'NA'),
+      nctId +
+        ' ' +
+        briefTitle +
+        ' status ' +
+        (overallStatus || 'UNKNOWN') +
+        ' phase ' +
+        (phases || 'NA') +
+        (enrollmentCount != null ? ' enrollment ' + enrollmentCount : ''),
     ),
   });
 }

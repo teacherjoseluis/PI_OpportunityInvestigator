@@ -15,6 +15,7 @@ const EXPAND_CANDIDATES = [
   'Expand FDA Documents',
   'Expand Company News Documents',
   'Expand USPTO Documents',
+  'Expand CourtListener Documents',
 ];
 
 const upserted = $input

@@ -28,6 +28,8 @@ const newsNorm = nodeJson('Normalize Company News Evidence') || item.news || {};
 const newsPrep = nodeJson('Prepare Company News Query') || {};
 const patentsNorm = nodeJson('Normalize USPTO Patents Evidence') || item.patents || {};
 const patentsPrep = nodeJson('Prepare USPTO Query') || {};
+const courtNorm = nodeJson('Normalize CourtListener Evidence') || item.courtlistener || {};
+const courtPrep = nodeJson('Prepare CourtListener Query') || {};
 
 const gates = configRow.gates_json || {};
 const collection = (gates && gates.collection) || item.collection || {};
@@ -52,6 +54,11 @@ const patentsEnabled =
     collection.collectors.uspto_patents &&
     collection.collectors.uspto_patents.enabled === true) ||
   patentsPrep.enabled === true;
+const courtEnabled =
+  (collection.collectors &&
+    collection.collectors.courtlistener &&
+    collection.collectors.courtlistener.enabled === true) ||
+  courtPrep.enabled === true;
 
 const secAttempted = countItems('Expand SEC Documents') || Number(secNorm.document_count || 0);
 const ctAttempted = countItems('Expand CT.gov Documents') || Number(ctNorm.document_count || 0);
@@ -87,6 +94,12 @@ const patentsStored = Number(
   item.patents_stored_count ??
     nodeJson('Count USPTO Upserts')?.patents_stored_count ??
     nodeJson('Prepare USPTO Zero Count')?.patents_stored_count ??
+    0,
+);
+const courtStored = Number(
+  item.courtlistener_stored_count ??
+    nodeJson('Count CourtListener Upserts')?.courtlistener_stored_count ??
+    nodeJson('Prepare CourtListener Zero Count')?.courtlistener_stored_count ??
     0,
 );
 
@@ -133,6 +146,19 @@ const patentsOk =
   nodeJson('Count USPTO Upserts')?.patents_ok === true;
 const patentsFailed =
   patentsEnabled && !patentsSkipped && patentsNorm.ok === false && patentsStored < 1;
+const courtSkipped =
+  !courtEnabled ||
+  courtNorm.skipped === true ||
+  courtPrep.skip_fetch === true ||
+  nodeJson('Prepare CourtListener Zero Count')?.courtlistener_skipped === true;
+const courtOk =
+  !courtEnabled ||
+  courtSkipped ||
+  courtNorm.ok === true ||
+  courtStored > 0 ||
+  nodeJson('Count CourtListener Upserts')?.courtlistener_ok === true;
+const courtFailed =
+  courtEnabled && !courtSkipped && courtNorm.ok === false && courtStored < 1;
 
 const totalStored =
   secStored +
@@ -140,7 +166,8 @@ const totalStored =
   xbrlStored +
   fdaStored +
   newsStored +
-  patentsStored;
+  patentsStored +
+  courtStored;
 const collector_status = [
   {
     key: 'sec_edgar',
@@ -183,6 +210,13 @@ const collector_status = [
     error: patentsFailed ? patentsNorm.error || 'uspto_failed' : null,
     document_count: patentsStored,
   },
+  {
+    key: 'courtlistener',
+    ok: courtOk,
+    skipped: !courtEnabled || courtSkipped,
+    error: courtFailed ? courtNorm.error || 'courtlistener_failed' : null,
+    document_count: courtStored,
+  },
 ];
 
 let outcome;
@@ -200,7 +234,9 @@ if (secOk && !ctFailed) {
         ? 'minimum_coverage_met_news_partial'
         : patentsFailed
           ? 'minimum_coverage_met_patents_partial'
-          : 'minimum_coverage_met';
+          : courtFailed
+            ? 'minimum_coverage_met_courtlistener_partial'
+            : 'minimum_coverage_met';
 } else if (totalStored > 0 || secOk) {
   outcome = 'PARTIAL';
   next_state = partialNeedsHuman ? 'AWAITING_HUMAN_REVIEW' : 'ANALYZING';
@@ -223,6 +259,7 @@ const summary = {
   fda_stored_count: fdaStored,
   news_stored_count: newsStored,
   patents_stored_count: patentsStored,
+  courtlistener_stored_count: courtStored,
   total_stored_count: totalStored,
   min_sec_documents: minSec,
 };
@@ -246,6 +283,7 @@ return [
         fdaNorm.company_id ||
         newsNorm.company_id ||
         patentsNorm.company_id ||
+        courtNorm.company_id ||
         validated.company_id ||
         null,
       ticker: validated.ticker || item.ticker,
@@ -257,6 +295,7 @@ return [
         fdaNorm.legal_name ||
         newsNorm.legal_name ||
         patentsNorm.legal_name ||
+        courtNorm.legal_name ||
         null,
       outcome,
       next_state,

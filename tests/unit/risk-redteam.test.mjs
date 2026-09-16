@@ -121,6 +121,49 @@ describe('evaluate-risk-redteam', () => {
     );
   });
 
+  it('writes litigation inventory and skips legal_compliance_litigation when CourtListener rows exist', () => {
+    const withDockets = [
+      ...evidence,
+      {
+        id: 'cl-1',
+        source_type: 'courtlistener_docket',
+        title: '1:24-cv-01234 — Smith v. Acadia',
+        metadata_json: {
+          docket_number: '1:24-cv-01234',
+          case_name: 'Smith v. Acadia Pharmaceuticals Inc',
+          court: 'S.D.N.Y.',
+        },
+      },
+    ];
+    const [result] = runCodeNode(EVALUATE, {
+      items: [{ risk_config: riskConfig }],
+      nodes: {
+        'Validate Risk Request': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            ticker: 'ACAD',
+            exchange: 'NASDAQ',
+            n8n_execution_id: 'exec-cl',
+          },
+        ],
+        'Load Case And Company': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            company_id: '7e2399f9-c323-41e5-8291-e354b3375527',
+            legal_name: 'ACADIA PHARMACEUTICALS INC',
+            ticker: 'ACAD',
+          },
+        ],
+        'Load Analysis Config': [{ gates_json: { analysis: { risk: riskConfig } } }],
+        'Load Evidence Documents': withDockets,
+      },
+    });
+
+    assert.ok(result.json.claims.some((c) => c.topic_key === 'litigation_docket_inventory'));
+    assert.equal(result.json.counts.dockets_count, 1);
+    assert.ok(!result.json.insufficient_topics.includes('legal_compliance_litigation'));
+  });
+
   it('emits liquidity inventory and skips financial_financing_depth when XBRL metrics exist', () => {
     const [result] = runCodeNode(EVALUATE, {
       items: [{ risk_config: riskConfig }],

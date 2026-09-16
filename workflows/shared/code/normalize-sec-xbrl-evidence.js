@@ -31,14 +31,36 @@ function toNumber(value) {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Pick the latest USD fact from a companyfacts concept unit map. */
-function pickLatestFact(conceptNode) {
-  if (!conceptNode || typeof conceptNode !== 'object') return null;
-  const units = conceptNode.units || {};
-  const series = units.USD || units['USD/shares'] || null;
-  if (!Array.isArray(series) || !series.length) return null;
+function periodMonths(fp) {
+  const p = String(fp || '').toUpperCase();
+  if (p.startsWith('Q')) return 3;
+  return 12;
+}
 
-  const ranked = series
+function pickUnitSeries(units) {
+  if (!units || typeof units !== 'object') return { series: null, unit: null };
+  if (Array.isArray(units.USD) && units.USD.length) return { series: units.USD, unit: 'USD' };
+  if (Array.isArray(units['USD/shares']) && units['USD/shares'].length) {
+    return { series: units['USD/shares'], unit: 'USD/shares' };
+  }
+  if (Array.isArray(units.shares) && units.shares.length) {
+    return { series: units.shares, unit: 'shares' };
+  }
+  const firstKey = Object.keys(units)[0];
+  if (firstKey && Array.isArray(units[firstKey]) && units[firstKey].length) {
+    return { series: units[firstKey], unit: firstKey };
+  }
+  return { series: null, unit: null };
+}
+
+/** Pick the latest fact from a companyfacts concept unit map. */
+function pickLatestFact(conceptNode, options) {
+  if (!conceptNode || typeof conceptNode !== 'object') return null;
+  const preferEnd = options && options.preferEnd ? String(options.preferEnd) : null;
+  const picked = pickUnitSeries(conceptNode.units || {});
+  if (!Array.isArray(picked.series) || !picked.series.length) return null;
+
+  const ranked = picked.series
     .map((row) => ({
       val: toNumber(row.val),
       end: row.end || null,
@@ -48,6 +70,7 @@ function pickLatestFact(conceptNode) {
       filed: row.filed || null,
       accn: row.accn || null,
       frame: row.frame || null,
+      unit: picked.unit,
     }))
     .filter((row) => row.val != null && row.end);
 
@@ -61,13 +84,18 @@ function pickLatestFact(conceptNode) {
     return 0;
   });
 
+  if (preferEnd) {
+    const sameEnd = ranked.filter((row) => String(row.end) === preferEnd);
+    if (sameEnd.length) return sameEnd[0];
+  }
+
   return ranked[0];
 }
 
-function readConcept(facts, taxonomy, concept) {
+function readConcept(facts, taxonomy, concept, options) {
   const node = facts && facts[taxonomy] && facts[taxonomy][concept];
   if (!node) return null;
-  const latest = pickLatestFact(node);
+  const latest = pickLatestFact(node, options);
   if (!latest) return null;
   return {
     concept,
@@ -77,9 +105,9 @@ function readConcept(facts, taxonomy, concept) {
   };
 }
 
-function firstConcept(facts, taxonomy, concepts) {
+function firstConcept(facts, taxonomy, concepts, options) {
   for (const concept of concepts) {
-    const hit = readConcept(facts, taxonomy, concept);
+    const hit = readConcept(facts, taxonomy, concept, options);
     if (hit) return hit;
   }
   return null;
@@ -117,6 +145,24 @@ function extractCashDebtMetrics(companyfacts, options) {
     'LongTermDebtAndCapitalLeaseObligations',
     'LongTermDebtNoncurrentAndCapitalLeaseObligations',
   ];
+  const revenueConcepts = opts.revenue_concepts || [
+    'RevenueFromContractWithCustomerExcludingAssessedTax',
+    'SalesRevenueNet',
+    'Revenues',
+  ];
+  const grossProfitConcepts = opts.gross_profit_concepts || ['GrossProfit'];
+  const operatingIncomeConcepts = opts.operating_income_concepts || [
+    'OperatingIncomeLoss',
+    'IncomeLossFromOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest',
+  ];
+  const operatingCashFlowConcepts = opts.operating_cash_flow_concepts || [
+    'NetCashProvidedByUsedInOperatingActivities',
+    'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations',
+  ];
+  const sharesConcepts = opts.shares_concepts || [
+    'CommonStockSharesOutstanding',
+    'WeightedAverageNumberOfSharesOutstandingBasic',
+  ];
 
   const cash = firstConcept(facts, taxonomy, cashConcepts);
   const marketable = firstConcept(facts, taxonomy, marketableConcepts);
@@ -151,17 +197,35 @@ function extractCashDebtMetrics(companyfacts, options) {
   const metrics = [];
   function pushMetric(key, fact, notes) {
     if (!fact) return;
+    const unit = fact.unit || 'USD';
     metrics.push({
       metric_key: key,
       metric_value: fact.val,
-      currency: 'USD',
-      unit: 'USD',
+      currency: unit === 'shares' ? 'shares' : 'USD',
+      unit,
       scale: 'as_reported',
       assumption_set: 'reported',
       calculation_notes: notes || fact.concept,
       concept: fact.concept,
       end: fact.end,
       form: fact.form || null,
+    });
+  }
+
+  function pushDerived(key, value, notes, unit) {
+    if (value == null || Number.isNaN(value)) return;
+    const u = unit || 'USD';
+    metrics.push({
+      metric_key: key,
+      metric_value: value,
+      currency: u === 'shares' || u === 'ratio' || u === 'months' ? u : 'USD',
+      unit: u,
+      scale: 'as_reported',
+      assumption_set: 'reported',
+      calculation_notes: notes,
+      concept: 'derived',
+      end: periodEnd,
+      form: anchor.form || null,
     });
   }
 
@@ -226,6 +290,61 @@ function extractCashDebtMetrics(companyfacts, options) {
       end: periodEnd,
       form: anchor.form || null,
     });
+  }
+
+  const samePeriod = { preferEnd: periodEnd };
+  const revenue = firstConcept(facts, taxonomy, revenueConcepts, samePeriod);
+  const grossProfit = firstConcept(facts, taxonomy, grossProfitConcepts, samePeriod);
+  const operatingIncome = firstConcept(facts, taxonomy, operatingIncomeConcepts, samePeriod);
+  const operatingCashFlow = firstConcept(
+    facts,
+    taxonomy,
+    operatingCashFlowConcepts,
+    samePeriod,
+  );
+  const shares = firstConcept(facts, taxonomy, sharesConcepts, samePeriod) ||
+    firstConcept(facts, 'dei', ['EntityCommonStockSharesOutstanding'], samePeriod);
+
+  pushMetric('revenue', revenue, revenue ? revenue.concept : null);
+  pushMetric('gross_profit', grossProfit, grossProfit ? grossProfit.concept : null);
+  pushMetric('operating_income', operatingIncome, operatingIncome ? operatingIncome.concept : null);
+  pushMetric(
+    'operating_cash_flow',
+    operatingCashFlow,
+    operatingCashFlow ? operatingCashFlow.concept : null,
+  );
+  pushMetric('shares_outstanding', shares, shares ? shares.concept : null);
+
+  if (revenue && revenue.val && grossProfit) {
+    pushDerived(
+      'gross_margin',
+      grossProfit.val / revenue.val,
+      'gross_profit / revenue',
+      'ratio',
+    );
+  }
+  if (revenue && revenue.val && operatingIncome) {
+    pushDerived(
+      'operating_margin',
+      operatingIncome.val / revenue.val,
+      'operating_income / revenue',
+      'ratio',
+    );
+  }
+
+  const ocfVal = operatingCashFlow ? operatingCashFlow.val : null;
+  if (ocfVal != null && ocfVal < 0) {
+    const months = periodMonths(operatingCashFlow.fp || anchor.fp);
+    const burn = Math.abs(ocfVal);
+    pushDerived('cash_burn', burn, 'abs(operating_cash_flow)', 'USD');
+    if (liquid > 0 && months > 0) {
+      pushDerived(
+        'estimated_cash_runway_months',
+        liquid / (burn / months),
+        'liquid_assets / (abs(operating_cash_flow) / period_months)',
+        'months',
+      );
+    }
   }
 
   return {
@@ -312,6 +431,11 @@ const extracted = extractCashDebtMetrics(payload, {
   marketable_concepts: xbrlCfg.marketable_concepts,
   short_debt_concepts: xbrlCfg.short_debt_concepts,
   long_debt_concepts: xbrlCfg.long_debt_concepts,
+  revenue_concepts: xbrlCfg.revenue_concepts,
+  gross_profit_concepts: xbrlCfg.gross_profit_concepts,
+  operating_income_concepts: xbrlCfg.operating_income_concepts,
+  operating_cash_flow_concepts: xbrlCfg.operating_cash_flow_concepts,
+  shares_concepts: xbrlCfg.shares_concepts,
 });
 
 if (!extracted.ok) {
@@ -350,7 +474,7 @@ const compactBody = {
 };
 const bodyJson = JSON.stringify(compactBody);
 const contentSha = sha256Hex(bodyJson);
-const stableId = 'sec-companyfacts-cashdebt-' + cik + '-' + extracted.period.period_end;
+const stableId = 'sec-companyfacts-snapshot-' + cik + '-' + extracted.period.period_end;
 
 const meta = {
   collector: 'sec_filing_bodies',
@@ -360,14 +484,15 @@ const meta = {
   source: 'data.sec.gov/api/xbrl/companyfacts',
 };
 const chunkText =
-  'SEC XBRL companyfacts cash/debt snapshot for ' +
+  'SEC XBRL companyfacts snapshot for ' +
   (extracted.entityName || legalName || ticker) +
   ' as of ' +
   extracted.period.period_end +
   ': ' +
   extracted.metrics
     .map((m) => m.metric_key + '=' + m.metric_value)
-    .join('; ') +
+    .join('; ')
+    .replaceAll(',', ';') +
   '.';
 
 const document = {
@@ -378,7 +503,7 @@ const document = {
   canonical_url: 'https://data.sec.gov/api/xbrl/companyfacts/CIK' + cik + '.json',
   stable_source_id: stableId,
   title:
-    'SEC companyfacts cash/debt ' +
+    'SEC companyfacts snapshot ' +
     (extracted.entityName || ticker || cik) +
     ' @ ' +
     extracted.period.period_end,

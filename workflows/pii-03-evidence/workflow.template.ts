@@ -32,6 +32,10 @@ const prepareUsptoQueryCode = `__PREPARE_USPTO_QUERY__`;
 const normalizeUsptoPatentsEvidenceCode = `__NORMALIZE_USPTO_PATENTS_EVIDENCE__`;
 const countUsptoUpsertsCode = `__COUNT_USPTO_UPSERTS__`;
 const prepareUsptoZeroCountCode = `__PREPARE_USPTO_ZERO_COUNT__`;
+const prepareCourtlistenerQueryCode = `__PREPARE_COURTLISTENER_QUERY__`;
+const normalizeCourtlistenerEvidenceCode = `__NORMALIZE_COURTLISTENER_EVIDENCE__`;
+const countCourtlistenerUpsertsCode = `__COUNT_COURTLISTENER_UPSERTS__`;
+const prepareCourtlistenerZeroCountCode = `__PREPARE_COURTLISTENER_ZERO_COUNT__`;
 const evaluateCollectionCoverageCode = `__EVALUATE_COLLECTION_COVERAGE__`;
 const buildCollectionResultCode = `__BUILD_COLLECTION_RESULT__`;
 
@@ -846,6 +850,11 @@ const openfdaEnabled = ifElse({
   },
 });
 
+const openfdaAuth = {
+  authentication: 'genericCredentialType',
+  genericAuthType: 'httpQueryAuth',
+};
+
 const fetchOpenfdaDrugsfda = node({
   type: 'n8n-nodes-base.httpRequest',
   version: 4.5,
@@ -858,7 +867,7 @@ const fetchOpenfdaDrugsfda = node({
     parameters: {
       method: 'GET',
       url: expr('={{ $("Prepare OpenFDA Query").item.json.openfda_url }}'),
-      authentication: 'none',
+      ...openfdaAuth,
       sendHeaders: true,
       specifyHeaders: 'keypair',
       headerParameters: {
@@ -879,6 +888,9 @@ const fetchOpenfdaDrugsfda = node({
           },
         },
       },
+    },
+    credentials: {
+      httpQueryAuth: newCredential('openFDA API key'),
     },
   },
 });
@@ -1542,6 +1554,264 @@ const prepareUsptoZeroCount = node({
   },
 });
 
+const courtlistenerAuth = {
+  authentication: 'genericCredentialType',
+  genericAuthType: 'httpHeaderAuth',
+};
+
+const prepareCourtlistenerQuery = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare CourtListener Query',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareCourtlistenerQueryCode,
+    },
+  },
+});
+
+const courtlistenerEnabled = ifElse({
+  version: 2.3,
+  config: {
+    name: 'CourtListener Enabled?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_fetch }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const fetchCourtlistenerSearch = node({
+  type: 'n8n-nodes-base.httpRequest',
+  version: 4.5,
+  config: {
+    name: 'Fetch CourtListener Search',
+    onError: 'continueRegularOutput',
+    retryOnFail: true,
+    maxTries: 2,
+    waitBetweenTries: 1000,
+    parameters: {
+      method: 'GET',
+      url: 'https://www.courtlistener.com/api/rest/v4/search/',
+      ...courtlistenerAuth,
+      sendQuery: true,
+      specifyQuery: 'keypair',
+      queryParameters: {
+        parameters: [
+          {
+            name: 'q',
+            value: expr('{{ $("Prepare CourtListener Query").item.json.query }}'),
+          },
+          { name: 'type', value: 'r' },
+          { name: 'order_by', value: 'score desc' },
+          {
+            name: 'page_size',
+            value: expr('{{ $("Prepare CourtListener Query").item.json.courtlistener_limit }}'),
+          },
+        ],
+      },
+      sendHeaders: true,
+      specifyHeaders: 'keypair',
+      headerParameters: {
+        parameters: [
+          { name: 'Accept', value: 'application/json' },
+          {
+            name: 'User-Agent',
+            value: 'PI Opportunity Investigator teacherjoseluis@gmail.com',
+          },
+        ],
+      },
+      options: {
+        timeout: 60000,
+        response: {
+          response: {
+            neverError: true,
+            responseFormat: 'json',
+          },
+        },
+      },
+    },
+    credentials: {
+      httpHeaderAuth: newCredential('CourtListener API Token'),
+    },
+  },
+});
+
+const normalizeCourtlistenerEvidence = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Normalize CourtListener Evidence',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: normalizeCourtlistenerEvidenceCode,
+    },
+  },
+});
+
+const expandCourtlistenerDocuments = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Expand CourtListener Documents',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: expandEvidenceDocumentsCode,
+    },
+  },
+});
+
+const hasCourtlistenerDocs = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Has CourtListener Docs?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_upsert }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const upsertCourtlistenerEvidenceSql =
+  "INSERT INTO evidence_documents (case_id, company_id, source_type, publisher, canonical_url, stable_source_id, title, publication_date, content_sha256, authority_tier, access_status, parsing_status, raw_content_location, metadata_json) VALUES ($1::uuid, NULLIF(NULLIF(TRIM($2), ''), 'null')::uuid, $3, $4, $5, $6, $7, CASE WHEN NULLIF(NULLIF(TRIM($8), ''), 'null') IS NULL THEN NULL WHEN TRIM($8) ~ '^\\d{4}-\\d{2}-\\d{2}' THEN LEFT(TRIM($8), 10)::date WHEN TRIM($8) ~ '^\\d{4}-\\d{2}$' THEN (TRIM($8) || '-01')::date WHEN TRIM($8) ~ '^\\d{4}$' THEN (TRIM($8) || '-01-01')::date ELSE NULL END, $9, 'primary', 'retrieved', 'docket_facts_extracted', 'inline:metadata_json', convert_from(decode($10, 'base64'), 'UTF8')::jsonb) ON CONFLICT (content_sha256) WHERE content_sha256 IS NOT NULL DO UPDATE SET case_id = COALESCE(EXCLUDED.case_id, evidence_documents.case_id), company_id = COALESCE(EXCLUDED.company_id, evidence_documents.company_id), parsing_status = EXCLUDED.parsing_status, metadata_json = EXCLUDED.metadata_json, updated_at = NOW() RETURNING id AS evidence_id, case_id, source_type, stable_source_id";
+
+const upsertCourtlistenerEvidence = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert CourtListener Evidence',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertCourtlistenerEvidenceSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.case_id }},{{ $json.company_id }},{{ $json.source_type }},{{ $json.publisher }},{{ $json.canonical_url }},{{ $json.stable_source_id }},{{ $json.title_safe }},{{ $json.publication_date }},{{ $json.content_sha256 }},{{ $json.metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const prepareCourtlistenerEvidenceChunks = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare CourtListener Evidence Chunks',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareEvidenceChunkUpsertsCode,
+    },
+  },
+});
+
+const hasCourtlistenerChunks = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Has CourtListener Chunks?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_chunk }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const upsertCourtlistenerEvidenceChunks = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert CourtListener Evidence Chunks',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertEvidenceChunkSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.evidence_id }},{{ $json.chunk_index }},{{ $json.chunk_text }},{{ $json.chunk_token_estimate }},{{ $json.chunk_metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const countCourtlistenerUpserts = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Count CourtListener Upserts',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: countCourtlistenerUpsertsCode,
+    },
+  },
+});
+
+const prepareCourtlistenerZeroCount = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare CourtListener Zero Count',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareCourtlistenerZeroCountCode,
+    },
+  },
+});
+
 const evaluateCollectionCoverage = node({
   type: 'n8n-nodes-base.code',
   version: 2,
@@ -1715,13 +1985,13 @@ const buildCollectionResult = node({
 });
 
 const intakeNote = sticky(
-  '## PII-03 Evidence Collector\nSEC + CT.gov + E1 XBRL + E4 openFDA + E5 Finnhub company-news + E6 USPTO patents.\nDeferred: full HTML bodies, object storage.',
+  '## PII-03 Evidence Collector\nSEC + CT.gov + E1 XBRL + E4 openFDA + E5 Finnhub company-news + E6 USPTO patents + E8 CourtListener.\nDeferred: full HTML bodies, object storage, Orange Book ZIP.',
   [collectionTrigger, validateCollectionRequest, loadCaseAndCompany],
   { color: 4 },
 );
 
 const collectorsNote = sticky(
-  '## Collectors\nSEC Fair Access User-Agent required.\nUpsert evidence_documents by content_sha256; Finnhub for news; USPTO ODP header auth for Patent File Wrapper.',
+  '## Collectors\nSEC Fair Access User-Agent required.\nUpsert evidence_documents by content_sha256; openFDA query auth; Finnhub for news; USPTO ODP header auth; CourtListener Token header auth.',
   [
     fetchSecSubmissions,
     fetchSecCompanyfacts,
@@ -1729,13 +1999,14 @@ const collectorsNote = sticky(
     fetchOpenfdaDrugsfda,
     fetchCompanyNews,
     fetchUsptoPatents,
+    fetchCourtlistenerSearch,
     upsertSecEvidence,
   ],
   { color: 5 },
 );
 
 const coverageNote = sticky(
-  '## Coverage\nmin_sec_documents default 1 → ANALYZING.\nXBRL/FDA/news/USPTO failure is partial (does not block ANALYZING when SEC/CT ok).\nE7: non-XBRL collectors write evidence_chunks after document upsert when chunk_text present.',
+  '## Coverage\nmin_sec_documents default 1 → ANALYZING.\nXBRL/FDA/news/USPTO/CourtListener failure is partial (does not block ANALYZING when SEC/CT ok).\nE7: non-XBRL collectors write evidence_chunks after document upsert when chunk_text present.',
   [evaluateCollectionCoverage, advanceCaseState, buildCollectionResult],
   { color: 6 },
 );
@@ -1746,6 +2017,34 @@ const finishPath = evaluateCollectionCoverage
   .to(logWorkflowRun)
   .to(mergeCollectionOutput)
   .to(buildCollectionResult);
+
+const courtlistenerAndFinish = prepareCourtlistenerQuery.to(
+  courtlistenerEnabled
+    .onTrue(
+      fetchCourtlistenerSearch.to(
+        normalizeCourtlistenerEvidence.to(
+          expandCourtlistenerDocuments.to(
+            hasCourtlistenerDocs
+              .onTrue(
+                upsertCourtlistenerEvidence.to(
+                  prepareCourtlistenerEvidenceChunks.to(
+                    hasCourtlistenerChunks
+                      .onTrue(
+                        upsertCourtlistenerEvidenceChunks.to(
+                          countCourtlistenerUpserts.to(finishPath),
+                        ),
+                      )
+                      .onFalse(countCourtlistenerUpserts.to(finishPath)),
+                  ),
+                ),
+              )
+              .onFalse(prepareCourtlistenerZeroCount.to(finishPath)),
+          ),
+        ),
+      ),
+    )
+    .onFalse(prepareCourtlistenerZeroCount.to(finishPath)),
+);
 
 const patentsAndFinish = prepareUsptoQuery.to(
   usptoEnabled
@@ -1758,17 +2057,21 @@ const patentsAndFinish = prepareUsptoQuery.to(
                 upsertUsptoEvidence.to(
                   prepareUsptoEvidenceChunks.to(
                     hasUsptoChunks
-                      .onTrue(upsertUsptoEvidenceChunks.to(countUsptoUpserts.to(finishPath)))
-                      .onFalse(countUsptoUpserts.to(finishPath)),
+                      .onTrue(
+                        upsertUsptoEvidenceChunks.to(
+                          countUsptoUpserts.to(courtlistenerAndFinish),
+                        ),
+                      )
+                      .onFalse(countUsptoUpserts.to(courtlistenerAndFinish)),
                   ),
                 ),
               )
-              .onFalse(prepareUsptoZeroCount.to(finishPath)),
+              .onFalse(prepareUsptoZeroCount.to(courtlistenerAndFinish)),
           ),
         ),
       ),
     )
-    .onFalse(prepareUsptoZeroCount.to(finishPath)),
+    .onFalse(prepareUsptoZeroCount.to(courtlistenerAndFinish)),
 );
 
 const newsAndFinish = prepareCompanyNewsQuery.to(

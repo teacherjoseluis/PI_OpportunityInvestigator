@@ -110,6 +110,7 @@ const hasCashDebtMetrics = Boolean(
 const filings = evidenceRows.filter((row) => row.source_type === 'sec_edgar_filing');
 const trials = evidenceRows.filter((row) => row.source_type === 'clinicaltrials_gov');
 const patents = evidenceRows.filter((row) => row.source_type === 'uspto_patent');
+const dockets = evidenceRows.filter((row) => row.source_type === 'courtlistener_docket');
 const companyfactsDocs = evidenceRows.filter((row) => row.source_type === 'sec_companyfacts');
 const claims = [];
 const satisfiedInsufficient = new Set();
@@ -265,6 +266,37 @@ if (patents.length) {
   satisfiedInsufficient.add('patent_exclusivity');
 }
 
+if (dockets.length) {
+  const sample = dockets
+    .map((row) => {
+      const m = parseMeta(row.metadata_json);
+      const docket = m.docket_number || '';
+      const name = m.case_name || row.title || '';
+      return safeJoin(docket, name);
+    })
+    .filter(Boolean)
+    .slice(0, 5);
+  claims.push({
+    topic_key: 'litigation_docket_inventory',
+    claim_text:
+      'CourtListener search returned ' +
+      dockets.length +
+      ' compact docket/opinion hits for this legal name' +
+      (sample.length ? ': ' + sample.join('; ') : '') +
+      '. Inventory of public-record mentions only — pleadings, claim construction, and materiality still need docket-body review.',
+    claim_category: claimCategory,
+    claim_kind: 'fact',
+    confidence: 78,
+    materiality: 'HIGH',
+    extraction_method: 'deterministic_courtlistener_search',
+    evidence_ids: dockets
+      .map((d) => d.id)
+      .filter(Boolean)
+      .slice(0, 5),
+  });
+  satisfiedInsufficient.add('legal_compliance_litigation');
+}
+
 if (hasCashDebtMetrics) {
   const cash = metrics.cash_and_equivalents;
   const mkt = metrics.marketable_securities_current;
@@ -332,7 +364,15 @@ for (const topic of insufficientTopics) {
     topic.text ||
     'INSUFFICIENT_EVIDENCE: ' + key + ' requires richer risk/red-team evidence sources.';
   insufficient_topics.push(key);
-  const linkIds = [...periodic, ...offering, ...eventFilings, ...trials, ...patents, ...filings]
+  const linkIds = [
+    ...periodic,
+    ...offering,
+    ...eventFilings,
+    ...trials,
+    ...patents,
+    ...dockets,
+    ...filings,
+  ]
     .map((r) => r.id)
     .filter(Boolean)
     .slice(0, 2);
@@ -354,6 +394,7 @@ const structuralKeys = new Set([
   'material_event_risk_signal',
   'clinical_execution_risk_signal',
   'patent_portfolio_inventory',
+  'litigation_docket_inventory',
   'liquidity_balance_sheet_inventory',
 ]);
 const structuralCount = claims.filter((c) => structuralKeys.has(c.topic_key)).length;
@@ -386,6 +427,7 @@ const summary = {
   filings_count: filings.length,
   trials_count: trials.length,
   patents_count: patents.length,
+  dockets_count: dockets.length,
   periodic_count: periodic.length,
   offering_count: offering.length,
   event_filings_count: eventFilings.length,
@@ -411,6 +453,7 @@ return [
         filings_count: filings.length,
         trials_count: trials.length,
         patents_count: patents.length,
+        dockets_count: dockets.length,
         periodic_count: periodic.length,
         offering_count: offering.length,
         event_filings_count: eventFilings.length,

@@ -1,7 +1,7 @@
 {
   "min_evidence_documents": 1,
   "category_map": {
-    "business_quality": "financial_business",
+    "business_quality": "business_financial",
     "growth": "growth_prospects",
     "pipeline": "pipeline_clinical",
     "valuation": "valuation_market",

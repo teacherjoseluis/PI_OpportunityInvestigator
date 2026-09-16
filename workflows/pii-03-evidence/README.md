@@ -44,8 +44,10 @@ Outcomes: `COLLECTED` | `PARTIAL` | `FAILED`.
 | Collector | Source |
 |---|---|
 | SEC EDGAR | `data.sec.gov/submissions/CIK….json` — summary + recent filing metadata |
-| ClinicalTrials.gov | API v2 `/studies` by sponsor name — one row per NCT |
-| SEC companyfacts (E1) | `data.sec.gov/api/xbrl/companyfacts/CIK….json` — cash/debt → `financial_periods` / `financial_metrics` + `evidence_chunks` |
+| ClinicalTrials.gov | API v2 `/studies` by sponsor name — NCT + phase/status + enrollment when present |
+| SEC companyfacts (E1/E8) | `data.sec.gov/api/xbrl/companyfacts/CIK….json` — cash/debt/income/OCF/shares → `financial_periods` / `financial_metrics` + `evidence_chunks` |
+| openFDA Drugs@FDA (E4) | `api.fda.gov/drug/drugsfda.json` — compact application facts; credential `openFDA API key` |
+| CourtListener (E8) | `www.courtlistener.com/api/rest/v4/search/` — compact docket/opinion hits; credential `CourtListener API Token` |
 
 ## Deferred collectors
 

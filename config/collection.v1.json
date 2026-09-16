@@ -5,6 +5,7 @@
   "company_news_lookback_days": 90,
   "company_news_limit": 25,
   "uspto_patents_limit": 25,
+  "courtlistener_limit": 10,
   "min_sec_documents": 1,
   "partial_requires_human_review": false,
   "collectors": {
@@ -35,9 +36,14 @@
       "mode": "patent_file_wrapper_compact",
       "limit": 25
     },
+    "courtlistener": {
+      "enabled": true,
+      "description": "Slice E8 — CourtListener search v4 compact docket/opinion hits (no opinion HTML/PDF)",
+      "mode": "search_v4_compact",
+      "limit": 10
     "sec_filing_bodies": {
       "enabled": true,
-      "description": "Slice E1 — SEC companyfacts XBRL cash/debt metrics (not full HTML bodies)",
+      "description": "Slice E1/E8 — SEC companyfacts XBRL cash/debt plus income, OCF, shares, runway (not full HTML bodies)",
       "mode": "companyfacts_cash_debt"
     }
   }
