@@ -4,7 +4,7 @@ Local source of truth for the n8n research automation. Hosted n8n remains the ex
 
 ## Current focus
 
-Phase 1 workflows are hosted; evidence enrichment is sliced in [docs/ENRICHMENT.md](docs/ENRICHMENT.md). Weekly candidate **lead list** (no auto-investigation) is specified in [docs/DISCOVERY.md](docs/DISCOVERY.md). Postgres setup remains in [docs/DATABASE.md](docs/DATABASE.md).
+Phase 1 workflows are hosted; evidence enrichment is sliced in [docs/ENRICHMENT.md](docs/ENRICHMENT.md). Weekly candidate **lead list** (no auto-investigation) is specified in [docs/DISCOVERY.md](docs/DISCOVERY.md). The proposed shift from a sequenced canvas to a supervisor-orchestrated multi-agent system — including a first-class technical-analysis specialist — is specified in [docs/MULTI_AGENT_ORCHESTRATION.md](docs/MULTI_AGENT_ORCHESTRATION.md). Postgres setup remains in [docs/DATABASE.md](docs/DATABASE.md).
 
 ## Quick start (local Postgres)
 
@@ -34,5 +34,9 @@ Unit tests cover shared Code node logic under `workflows/shared/code/`. Full web
 - `docs/DATABASE.md` — local and VPS database instructions
 - `docs/ENRICHMENT.md` — evidence enrichment slices (XBRL, blobs, FDA/IR/patents)
 - `docs/DISCOVERY.md` — D0 weekly discovery lead list (SEC names → email; no auto PII-00)
+- `docs/MULTI_AGENT_ORCHESTRATION.md` — supervisor DAG, specialist agents, technical analysis
 - `docs/SMOKE_TESTS.md` — hosted webhook smoke helpers
+- `config/agents.v1.json` — draft agent catalog and task-graph dependencies
+- `config/analysis-technical.v1.json` — draft TA indicator params and timing rubric
+- `config/collection-market.v1.json` — draft OHLCV collector (disabled until slice T1)
 - `workflows/` — n8n Workflow SDK sources (PII-00+)

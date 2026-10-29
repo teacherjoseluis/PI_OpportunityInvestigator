@@ -14,8 +14,9 @@ Unblock research quality that Phase 1 deliberately deferred:
 
 - Weekly **discovery / ticker picking** — separate track; first slice **D0** is specified in [`docs/DISCOVERY.md`](DISCOVERY.md) (SEC name lead list + email; owner `/pii` to run full analysis)
 - Using an LLM as the evidence source (snippets must cite stored evidence IDs)
-- Rewriting PII-00…PII-15 orchestration topology (enrichment extends PII-03 and analyst consumers)
+- Rewriting PII-00…PII-15 orchestration topology (enrichment extends PII-03 and analyst consumers; the supervisor / multi-agent redesign lives in [`docs/MULTI_AGENT_ORCHESTRATION.md`](MULTI_AGENT_ORCHESTRATION.md))
 - Implementing all collectors in one change set
+- Technical / market-behavior analysis (PII-16 and `PII-03-MKT`; specified in the orchestration doc, not here)
 
 ## Current baseline (Phase 1)
 
