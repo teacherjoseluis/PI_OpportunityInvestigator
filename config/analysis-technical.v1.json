@@ -1,0 +1,92 @@
+{
+  "schema_version": "analysis-technical.v1",
+  "claim_category": "technical_market",
+  "primary_interval": "1week",
+  "secondary_interval": "1day",
+  "daily_lookback_days": 504,
+  "weekly_lookback_weeks": 260,
+  "event_window_sessions": 5,
+  "benchmarks": ["SPY", "XBI", "XLV"],
+  "indicators": {
+    "sma_daily": [50, 100, 200],
+    "sma_weekly": [10, 40],
+    "adx_period": 14,
+    "rsi_period": 14,
+    "macd": { "fast": 12, "slow": 26, "signal": 9 },
+    "atr_period": 14,
+    "realized_vol_days": 20,
+    "adv_windows_days": [20, 60],
+    "relative_strength_months": [1, 3, 6, 12]
+  },
+  "timing_rubric": {
+    "constructive": {
+      "close_above_weekly_sma": 40,
+      "max_drawdown_from_52w_high_pct": 15,
+      "min_rs_vs_xbi_3m_ppt": -5
+    },
+    "unfavorable": {
+      "close_below_weekly_sma": 40,
+      "any_of": {
+        "min_drawdown_from_52w_high_pct": 25,
+        "max_rs_vs_xbi_3m_ppt": -15,
+        "adv_below_eligibility_minimum": true
+      }
+    }
+  },
+  "timing_labels": ["CONSTRUCTIVE", "MIXED", "UNFAVORABLE"],
+  "forbidden_language": [
+    "buy",
+    "sell",
+    "add",
+    "trim",
+    "price target",
+    "accumulate",
+    "distribute",
+    "go long",
+    "short the stock"
+  ],
+  "claim_keys": [
+    "trend_regime",
+    "sma_stack",
+    "momentum_rsi_macd",
+    "volatility_drawdown",
+    "liquidity_adv",
+    "relative_strength",
+    "event_price_reaction",
+    "entry_timing_context",
+    "volume_confirmation",
+    "short_interest"
+  ],
+  "insufficient_topics": [
+    {
+      "key": "market_ohlcv",
+      "text": "INSUFFICIENT_EVIDENCE: Daily and weekly OHLCV bars from an authorized market-data source are required before technical claims can be computed."
+    },
+    {
+      "key": "short_interest",
+      "text": "INSUFFICIENT_EVIDENCE: Short interest and days-to-cover require an authorized licensed field; not inferred from price."
+    }
+  ],
+  "monitoring_seeds": [
+    {
+      "key": "weekly_40_sma_cross",
+      "description": "Weekly close crosses the 40-week SMA."
+    },
+    {
+      "key": "drawdown_from_case_close",
+      "threshold_pct": 20,
+      "description": "Drawdown from case-as-of close reaches the configured band."
+    },
+    {
+      "key": "volume_spike",
+      "multiple_of_adv20": 3,
+      "description": "Daily volume is at least 3× 20-day average."
+    },
+    {
+      "key": "rs_vs_xbi_deterioration",
+      "ppt": 10,
+      "window": "3m",
+      "description": "3-month relative strength vs XBI worsens by at least 10 ppt since last report."
+    }
+  ]
+}
