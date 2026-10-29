@@ -1,0 +1,21 @@
+{
+  "schema_version": "collection-market.v1",
+  "enabled": false,
+  "description": "Slice T1 — authorized OHLCV and quotes for PII-16 and valuation last-price inputs. Disabled until the adapter and provider plan are verified.",
+  "mode": "ohlcv_compact",
+  "provider_order": ["twelvedata", "finnhub"],
+  "intervals": ["1day", "1week"],
+  "daily_lookback_days": 504,
+  "weekly_lookback_weeks": 260,
+  "benchmark_symbols": ["SPY", "XBI", "XLV"],
+  "include_issuer_quote": true,
+  "compute_indicators_locally": true,
+  "store_vendor_indicator_endpoints": false,
+  "max_http_calls_per_case": 12,
+  "cache_bars": true,
+  "source_types": {
+    "bars": "market_ohlcv",
+    "quote": "market_quote",
+    "benchmark": "market_benchmark"
+  }
+}

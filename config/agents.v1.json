@@ -1,0 +1,205 @@
+{
+  "schema_version": "agents.v1",
+  "runtime": "n8n_supervisor",
+  "max_concurrent_full_cases": 2,
+  "max_parallel_collectors_per_case": 6,
+  "max_parallel_specialists_per_case": 6,
+  "shadow_plan_only": true,
+  "timing_can_defer_watchlist": false,
+  "provider_concurrency": {
+    "sec_edgar": 1,
+    "twelvedata": 1,
+    "finnhub": 1,
+    "uspto": 1,
+    "openfda": 1,
+    "courtlistener": 1
+  },
+  "agents": [
+    {
+      "agent_key": "PII-01",
+      "role": "identity",
+      "wave": "gate_identity",
+      "tools": ["blackboard_read", "blackboard_write_identity", "http_sec_tickers"]
+    },
+    {
+      "agent_key": "PII-02",
+      "role": "eligibility",
+      "wave": "gate_eligibility",
+      "depends_on": ["PII-01"],
+      "tools": ["blackboard_read", "http_twelvedata_quote", "http_finnhub_profile"]
+    },
+    {
+      "agent_key": "PII-03-COVER",
+      "role": "collection_coverage_join",
+      "wave": "collect_join",
+      "depends_on_any_enabled": [
+        "PII-03-SEC",
+        "PII-03-XBRL",
+        "PII-03-CT",
+        "PII-03-FDA",
+        "PII-03-NEWS",
+        "PII-03-USPTO",
+        "PII-03-CL",
+        "PII-03-MKT"
+      ],
+      "tools": ["blackboard_read"]
+    },
+    {
+      "agent_key": "PII-04",
+      "role": "financial_business",
+      "wave": "specialists",
+      "depends_on": ["PII-03-COVER"],
+      "claim_category": "business_financial",
+      "tools": ["blackboard_read", "blackboard_write_claims", "calculator_financial"]
+    },
+    {
+      "agent_key": "PII-05",
+      "role": "growth",
+      "wave": "specialists",
+      "depends_on": ["PII-03-COVER"],
+      "claim_category": "growth_prospects",
+      "tools": ["blackboard_read", "blackboard_write_claims"]
+    },
+    {
+      "agent_key": "PII-06",
+      "role": "pipeline_clinical",
+      "wave": "specialists",
+      "depends_on": ["PII-03-COVER"],
+      "claim_category": "pipeline_clinical",
+      "tools": ["blackboard_read", "blackboard_write_claims"]
+    },
+    {
+      "agent_key": "PII-07",
+      "role": "regulatory_catalyst",
+      "wave": "specialists",
+      "depends_on": ["PII-03-COVER"],
+      "claim_category": "regulatory_catalyst",
+      "tools": ["blackboard_read", "blackboard_write_claims", "blackboard_write_catalysts"]
+    },
+    {
+      "agent_key": "PII-08",
+      "role": "valuation",
+      "wave": "specialists",
+      "depends_on": ["PII-03-COVER"],
+      "claim_category": "valuation_market",
+      "tools": ["blackboard_read", "blackboard_write_claims", "calculator_valuation"]
+    },
+    {
+      "agent_key": "PII-16",
+      "role": "technical_market",
+      "wave": "specialists",
+      "depends_on": ["PII-03-COVER"],
+      "soft_depends_on": ["PII-07"],
+      "claim_category": "technical_market",
+      "tools": ["blackboard_read", "blackboard_write_claims", "calculator_technical"]
+    },
+    {
+      "agent_key": "PII-16-EVENTS",
+      "role": "technical_event_reaction",
+      "wave": "specialists_followup",
+      "depends_on": ["PII-16", "PII-07"],
+      "claim_category": "technical_market",
+      "tools": ["blackboard_read", "blackboard_write_claims", "calculator_technical"]
+    },
+    {
+      "agent_key": "PII-09",
+      "role": "risk_red_team",
+      "wave": "challenge",
+      "depends_on": ["PII-04", "PII-05", "PII-06", "PII-07", "PII-08", "PII-16"],
+      "claim_category": "risk_red_team",
+      "tools": ["blackboard_read", "blackboard_write_claims", "blackboard_write_risks"]
+    },
+    {
+      "agent_key": "PII-10",
+      "role": "scoring_quality",
+      "wave": "quality",
+      "depends_on": ["PII-09"],
+      "tools": ["blackboard_read", "blackboard_write_scores", "calculator_scores"]
+    },
+    {
+      "agent_key": "PII-11",
+      "role": "report",
+      "wave": "publish",
+      "depends_on": ["PII-10"],
+      "tools": ["blackboard_read", "blackboard_write_reports"]
+    },
+    {
+      "agent_key": "PII-14",
+      "role": "email",
+      "wave": "delivery",
+      "depends_on": ["PII-11"],
+      "tools": ["blackboard_read", "notify_smtp"]
+    },
+    {
+      "agent_key": "PII-15",
+      "role": "slack_notify",
+      "wave": "delivery",
+      "depends_on": ["PII-11"],
+      "tools": ["blackboard_read", "notify_slack"]
+    }
+  ],
+  "collectors": [
+    {
+      "agent_key": "PII-03-SEC",
+      "enabled": true,
+      "wave": "collect",
+      "depends_on": ["PII-02"]
+    },
+    {
+      "agent_key": "PII-03-XBRL",
+      "enabled": true,
+      "wave": "collect",
+      "depends_on": ["PII-02"]
+    },
+    {
+      "agent_key": "PII-03-CT",
+      "enabled": true,
+      "wave": "collect",
+      "depends_on": ["PII-02"]
+    },
+    {
+      "agent_key": "PII-03-FDA",
+      "enabled": true,
+      "wave": "collect",
+      "depends_on": ["PII-02"]
+    },
+    {
+      "agent_key": "PII-03-NEWS",
+      "enabled": true,
+      "wave": "collect",
+      "depends_on": ["PII-02"]
+    },
+    {
+      "agent_key": "PII-03-USPTO",
+      "enabled": true,
+      "wave": "collect",
+      "depends_on": ["PII-02"]
+    },
+    {
+      "agent_key": "PII-03-CL",
+      "enabled": true,
+      "wave": "collect",
+      "depends_on": ["PII-02"]
+    },
+    {
+      "agent_key": "PII-03-MKT",
+      "enabled": false,
+      "wave": "collect",
+      "depends_on": ["PII-02"],
+      "note": "Enable in slice T1 after bar adapter and plan check."
+    }
+  ],
+  "event_type_map": {
+    "CLINICAL_RESULT": ["PII-03-CT", "PII-06", "PII-07", "PII-16-EVENTS", "PII-09"],
+    "FDA_DECISION": ["PII-03-FDA", "PII-07", "PII-16-EVENTS", "PII-09"],
+    "SEC_FILING": ["PII-03-SEC", "PII-03-XBRL", "PII-04", "PII-08", "PII-09"],
+    "FINANCING": ["PII-03-SEC", "PII-04", "PII-08", "PII-16", "PII-09"],
+    "PRICE_VOLUME": ["PII-03-MKT", "PII-16", "PII-09"],
+    "PARTNERSHIP": ["PII-03-NEWS", "PII-03-SEC", "PII-05", "PII-09"],
+    "PATENT": ["PII-03-USPTO", "PII-09"],
+    "LITIGATION": ["PII-03-CL", "PII-09"]
+  },
+  "hosted_workflow_id_keys": {
+    "PII-00": "recorded in AGENTS.md; do not duplicate secrets or live IDs here as the runtime map"
+  }
+}

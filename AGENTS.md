@@ -203,6 +203,8 @@ Fill these values as the project is established:
 
 Project status: Phase 1 through PII-15 hosted. **E1 + E4 + E5 + E6 + E7 signed off**. **E8 local** (CourtListener + wider XBRL + CT.gov enrollment; migration `024`). **Slack early-exit notify deployed**. Remaining: apply `024` + deploy E8; optional TwelveData upgrade; webhook rotation.
 
+**Architecture spec (local, not implemented):** [`docs/MULTI_AGENT_ORCHESTRATION.md`](docs/MULTI_AGENT_ORCHESTRATION.md) — replace the PII-00 hardcoded sequence with a supervisor + task DAG, and add first-class technical/market-behavior analysis (PII-16) that Phase 1 only stubbed as `INSUFFICIENT_EVIDENCE` inside PII-08. Draft configs: `config/agents.v1.json`, `config/analysis-technical.v1.json`, `config/collection-market.v1.json`. No hosted workflow change until explicitly requested.
+
 ### PII-03 enrichment backlog (see ENRICHMENT.md)
 
 1. ~~SEC XBRL cash/debt (E1)~~ — **done** (E8 widens income/OCF/shares/runway)
@@ -220,9 +222,17 @@ Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 1. Apply VPS migration `024`, then say **deploy** for PII-03 / PII-04 / PII-06 / PII-09 / PII-10.
 2. Smoke a fresh ticker through collect → report → email; confirm burn/margins/shares/enrollment/litigation claims and a numeric Business score.
 3. Optionally upgrade TwelveData; rotate webhook secret; smoke early-exit DM on a mega-cap.
-4. Day-to-day: Slack `/pii` / webhook for fresh tickers (avoid REGN duplicate_recent_case).
+4. Review [`docs/MULTI_AGENT_ORCHESTRATION.md`](docs/MULTI_AGENT_ORCHESTRATION.md). If approved, implement slices **M0** (shadow DAG) and **T0** (fixture-backed indicators) locally before any hosted supervisor rewrite.
+5. Day-to-day: Slack `/pii` / webhook for fresh tickers (avoid REGN duplicate_recent_case).
 
 ## Milestone Log
+
+### 2026-10-29 (multi-agent orchestration spec)
+
+- Authored [`docs/MULTI_AGENT_ORCHESTRATION.md`](docs/MULTI_AGENT_ORCHESTRATION.md): supervisor + blackboard + task DAG to replace the PII-00 linear chain; specialist parallel wave; mode-aware subgraphs for reassessment.
+- Specified **PII-16 Technical / Market Behavior Analyst** and collector `PII-03-MKT` so entry timing, trend, relative strength vs XBI/XLV/SPY, ADV, volatility, and drawdown are first-class (product §2.5 / §10.5) instead of PII-08 insufficient stubs.
+- TA is context, not a trade bot: no buy/sell language; `technical_context_score` excluded from default `research_priority_score` weights; indicators computed locally from stored OHLCV.
+- Draft configs `config/agents.v1.json`, `config/analysis-technical.v1.json`, `config/collection-market.v1.json`. **Not implemented / not deployed.**
 
 ### 2026-09-16 (Slice E8 local)
 
