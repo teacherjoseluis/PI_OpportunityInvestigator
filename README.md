@@ -4,7 +4,7 @@ Local source of truth for the n8n research automation. Hosted n8n remains the ex
 
 ## Current focus
 
-Phase 1 workflows are hosted; evidence enrichment (XBRL cash/debt and related collectors) is sliced in [docs/ENRICHMENT.md](docs/ENRICHMENT.md). Postgres setup remains in [docs/DATABASE.md](docs/DATABASE.md).
+Phase 1 workflows are hosted; evidence enrichment is sliced in [docs/ENRICHMENT.md](docs/ENRICHMENT.md). Weekly candidate **lead list** (no auto-investigation) is specified in [docs/DISCOVERY.md](docs/DISCOVERY.md). Postgres setup remains in [docs/DATABASE.md](docs/DATABASE.md).
 
 ## Quick start (local Postgres)
 
@@ -33,5 +33,6 @@ Unit tests cover shared Code node logic under `workflows/shared/code/`. Full web
 - `db/migrations/` — SQL schema versions
 - `docs/DATABASE.md` — local and VPS database instructions
 - `docs/ENRICHMENT.md` — evidence enrichment slices (XBRL, blobs, FDA/IR/patents)
+- `docs/DISCOVERY.md` — D0 weekly discovery lead list (SEC names → email; no auto PII-00)
 - `docs/SMOKE_TESTS.md` — hosted webhook smoke helpers
 - `workflows/` — n8n Workflow SDK sources (PII-00+)

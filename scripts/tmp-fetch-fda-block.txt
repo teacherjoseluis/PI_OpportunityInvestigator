@@ -1,0 +1,55 @@
+
+const fetchOpenfdaDrugsfda = node({
+  type: 'n8n-nodes-base.httpRequest',
+  version: 4.5,
+  config: {
+    name: 'Fetch OpenFDA DrugsFDA',
+    onError: 'continueRegularOutput',
+    retryOnFail: true,
+    maxTries: 2,
+    waitBetweenTries: 1000,
+    parameters: {
+      method: 'GET',
+      url: expr('={{ $("Prepare OpenFDA Query").item.json.openfda_url }}'),
+      authentication: 'none',
+      sendHeaders: true,
+      specifyHeaders: 'keypair',
+      headerParameters: {
+        parameters: [
+          { name: 'Accept', value: 'application/json' },
+          {
+            name: 'User-Agent',
+            value: 'PI Opportunity Investigator teacherjoseluis@gmail.com',
+          },
+        ],
+      },
+      options: {
+        timeout: 60000,
+        response: {
+          response: {
+            neverError: true,
+            responseFormat: 'json',
+          },
+        },
+      },
+    },
+  },
+});
+
+const normalizeFdaOpenfdaEvidence = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Normalize OpenFDA Evidence',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: normalizeFdaOpenfdaEvidenceCode,
+    },
+  },
+});
+
+const expandFdaDocuments = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {

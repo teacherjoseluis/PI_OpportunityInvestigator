@@ -82,6 +82,28 @@ function nodeAll(name) {
   }
 }
 
+function parseJsonArray(value) {
+  if (Array.isArray(value)) return value;
+  if (value == null || value === '') return [];
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function loadPackedRows(nodeName, jsonKey) {
+  const packed = nodeJson(nodeName);
+  if (packed && packed[jsonKey] != null) {
+    return parseJsonArray(packed[jsonKey]);
+  }
+  return nodeAll(nodeName);
+}
+
 function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n));
 }
@@ -162,13 +184,13 @@ const legalName = caseRow.legal_name || null;
 const configurationVersionId =
   configRow.configuration_version_id || caseRow.configuration_version_id || null;
 
-let evidenceRows = nodeAll('Load Evidence Documents');
+let evidenceRows = loadPackedRows('Load Evidence Documents', 'evidence_json');
 if (!evidenceRows.length) {
   const bundled = $input.first().json.evidence_documents;
   if (Array.isArray(bundled)) evidenceRows = bundled;
 }
 
-let claimRows = nodeAll('Load Claims');
+let claimRows = loadPackedRows('Load Claims', 'claims_json');
 if (!claimRows.length) {
   const bundled = $input.first().json.claims;
   if (Array.isArray(bundled)) claimRows = bundled;
@@ -847,10 +869,11 @@ const loadEvidenceDocuments = node({
   config: {
     name: 'Load Evidence Documents',
     alwaysOutputData: true,
+    executeOnce: true,
     parameters: {
       operation: 'executeQuery',
       query:
-        'SELECT id, source_type, publisher, stable_source_id, title, publication_date, metadata_json FROM evidence_documents WHERE case_id = $1::uuid ORDER BY created_at ASC',
+        "SELECT COALESCE((SELECT jsonb_agg(jsonb_build_object('source_type', e.source_type, 'publication_date', COALESCE(e.publication_date::text, e.metadata_json->>'filingDate')) ORDER BY e.created_at ASC) FROM evidence_documents e WHERE e.case_id = $1::uuid), '[]'::jsonb) AS evidence_json",
       options: {
         queryReplacement: expr('{{ $("Validate Scoring Request").item.json.case_id }}'),
         replaceEmptyStrings: true,
@@ -868,10 +891,11 @@ const loadClaims = node({
   config: {
     name: 'Load Claims',
     alwaysOutputData: true,
+    executeOnce: true,
     parameters: {
       operation: 'executeQuery',
       query:
-        "SELECT c.id, c.claim_category, c.claim_text, c.claim_kind, c.confidence, c.materiality, c.extraction_method, c.model_version, COALESCE((SELECT COUNT(*)::int FROM claim_evidence_links cel WHERE cel.claim_id = c.id), 0) AS evidence_link_count FROM claims c WHERE c.case_id = $1::uuid AND c.is_active = TRUE ORDER BY c.created_at ASC",
+        "SELECT COALESCE((SELECT jsonb_agg(jsonb_build_object('id', c.id, 'claim_category', c.claim_category, 'claim_kind', c.claim_kind, 'confidence', c.confidence, 'materiality', c.materiality, 'extraction_method', c.extraction_method, 'claim_text', LEFT(COALESCE(c.claim_text, ''), 80), 'evidence_link_count', COALESCE((SELECT COUNT(*)::int FROM claim_evidence_links cel WHERE cel.claim_id = c.id), 0)) ORDER BY c.created_at ASC) FROM claims c WHERE c.case_id = $1::uuid AND c.is_active = TRUE), '[]'::jsonb) AS claims_json",
       options: {
         queryReplacement: expr('{{ $("Validate Scoring Request").item.json.case_id }}'),
         replaceEmptyStrings: true,
@@ -889,6 +913,7 @@ const loadAnalysisConfig = node({
   config: {
     name: 'Load Analysis Config',
     alwaysOutputData: true,
+    executeOnce: true,
     parameters: {
       operation: 'executeQuery',
       query:

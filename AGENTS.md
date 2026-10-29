@@ -146,14 +146,14 @@ Fill these values as the project is established:
 - Primary workflow name and ID: `PII-00 Case Orchestrator` / `4jvmYtTHKufojJRK` (published; version `e1828955-d1db-48e9-b359-b61fc76a98cd`)
 - PII-01 workflow name and ID: `PII-01 Identity Resolver` / `Xf6DjDUMyfOyNX3G` (published; version `de222a9c-c473-4dae-86f8-2017ff9319a7`)
 - PII-02 workflow name and ID: `PII-02 Eligibility Gate` / `hqgFoP7ny6jnycxx` (published; version `567e37d5-1cd7-41cd-9399-9ae3055f69e0`)
-- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `dd3f6f92-dcfd-436e-a0de-be298656f5ed`)
-- PII-04 workflow name and ID: `PII-04 Financial and Business Analyst` / `RvIlyuDV0MEsXezL` (published; version `93d2a4b7-4192-4348-b27e-45d5ae81da26`)
+- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `e32c2e06-8367-42f0-983b-dfe7104eab5d`)
+- PII-04 workflow name and ID: `PII-04 Financial and Business Analyst` / `RvIlyuDV0MEsXezL` (published; version `5e50acb9-556f-47d2-92ac-edeb8572e85c`)
 - PII-05 workflow name and ID: `PII-05 Growth Analyst` / `sdamxDo9SUdo4QxC` (published; version `5eda536b-d371-4b57-a95f-c61b450e91df`)
-- PII-06 workflow name and ID: `PII-06 Pipeline and Clinical Analyst` / `b8CxYW8T8FrGl62x` (published; version `7b992085-7363-4320-897b-cd0b87aeec14`)
+- PII-06 workflow name and ID: `PII-06 Pipeline and Clinical Analyst` / `b8CxYW8T8FrGl62x` (published; version `d72f0c85-0b16-423e-8226-0f0b29d305a6`)
 - PII-07 workflow name and ID: `PII-07 Regulatory and Catalyst Analyst` / `4AqBDr5hjZeMLy99` (published; version `024718e7-9cd9-4fe8-ba7b-0598b405f3c4`)
 - PII-08 workflow name and ID: `PII-08 Valuation and Market Analyst` / `1PuOVYf0O3GThRwq` (published; version `d64f67dc-4a25-4527-8175-e258c554b12c`)
-- PII-09 workflow name and ID: `PII-09 Risk and Red-Team Reviewer` / `mioSWLKBMLAaBGzs` (published; version `68b3a70b-5e3d-4942-9df1-46746edda50a`)
-- PII-10 workflow name and ID: `PII-10 Scoring and Quality Gate` / `lIjKOZS7qDizvynm` (published; version `74ad0610-407a-46fe-8e13-cc238cec2dc3`)
+- PII-09 workflow name and ID: `PII-09 Risk and Red-Team Reviewer` / `mioSWLKBMLAaBGzs` (published; version `31e32194-f9a7-4627-805c-479eafb137a0`)
+- PII-10 workflow name and ID: `PII-10 Scoring and Quality Gate` / `lIjKOZS7qDizvynm` (published; version `8b776acf-27a8-4627-9693-c9683c873eae`)
 - PII-11 workflow name and ID: `PII-11 Report Generator` / `CLiHq1zJ1Euwhrxb` (published; version `65614b81-f873-4f1c-ad89-05e6df8dcb35`)
 - PII-12 workflow name and ID: `PII-12 Monitoring and Reassessment` / `go396vtpeHKcvtub` (inactive; version `2633c95f-34cf-4051-a384-a0ec7b78762e`)
 - PII-13 workflow name and ID: `PII-13 Operations and Alerts` / `ldPDfkqkkuDBfLe5` (inactive; version `be2d45ee-bd56-4e1a-b588-bdf46d2143f1`)
@@ -201,7 +201,7 @@ Fill these values as the project is established:
 
 ## Current Status
 
-Project status: Phase 1 through PII-15 hosted. **E1 + E4 + E5 + E6 + E7 signed off**. **E8 local** (CourtListener + wider XBRL + CT.gov enrollment; migration `024`). **Slack early-exit notify deployed**. Remaining: apply `024` + deploy E8; optional TwelveData upgrade; webhook rotation.
+Project status: Phase 1 through PII-15 hosted. **E1 + E4 + E5 + E6 + E7 signed off**. **E8 deployed** (CourtListener + wider XBRL + CT.gov enrollment; VPS `024`). **Slack early-exit notify deployed**. **PII-10 OOM pack deployed** (GALT scoring `2446` succeeded). Remaining: continue GALT PII-11→14→15 or smoke a fresh ticker through report/email; optional TwelveData upgrade; webhook rotation.
 
 ### PII-03 enrichment backlog (see ENRICHMENT.md)
 
@@ -211,18 +211,43 @@ Project status: Phase 1 through PII-15 hosted. **E1 + E4 + E5 + E6 + E7 signed o
 4. ~~Company IR / press (E5)~~ — **done** (Finnhub company-news compact headlines)
 5. ~~USPTO / patents collector (E6)~~ — **done** (ODP Patent File Wrapper compact; credential `USPTO ODP API Key`)
 6. ~~Broader `evidence_chunks` + analyst sweep (E7)~~ — **done**
-7. CourtListener litigation inventory (E8) — **local**; Orange Book ZIP exclusivity still deferred
+7. ~~CourtListener litigation inventory (E8)~~ — **deployed**; Orange Book ZIP exclusivity still deferred
 
 Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 
 ## Next Steps
 
-1. Apply VPS migration `024`, then say **deploy** for PII-03 / PII-04 / PII-06 / PII-09 / PII-10.
-2. Smoke a fresh ticker through collect → report → email; confirm burn/margins/shares/enrollment/litigation claims and a numeric Business score.
-3. Optionally upgrade TwelveData; rotate webhook secret; smoke early-exit DM on a mega-cap.
-4. Day-to-day: Slack `/pii` / webhook for fresh tickers (avoid REGN duplicate_recent_case).
+1. Re-run **GALT** from intake (`/pii GALT` or webhook). Prior case `c52537ae-3238-4197-9ea3-bc69561f0100` is `SUPERSEDED` so `duplicate_recent_case` is clear. PII-10 OOM pack is published.
+2. Discovery D0 spec is in `docs/DISCOVERY.md` (weekly SEC name lead list → email; owner `/pii` to analyze). Not implemented until explicitly requested.
+2. Optionally upgrade TwelveData; rotate webhook secret; smoke early-exit DM on a mega-cap.
+3. Day-to-day: Slack `/pii` / webhook for fresh tickers (avoid REGN `duplicate_recent_case`).
 
 ## Milestone Log
+
+### 2026-09-17 (Discovery D0 spec)
+
+- Authored [`docs/DISCOVERY.md`](docs/DISCOVERY.md): weekly SEC ticker-file name/keyword lead list + SMTP digest; never calls PII-00. Owner investigates with `/pii TICKER`. Linked from README and ENRICHMENT.md. **Not implemented** until explicitly requested.
+
+### 2026-09-17 (GALT duplicate blocker cleared)
+
+- Marked GALT case `c52537ae-3238-4197-9ea3-bc69561f0100` `SUPERSEDED` (from `AWAITING_HUMAN_REVIEW`) via temp Postgres wrapper `MHYYepqxa9MJOQhL` exec `2447` (archived); verify exec `2448` `remaining_duplicate_blockers=0`. Owner can re-run `/pii GALT` from intake.
+
+### 2026-09-17 (PII-10 OOM pack deploy + GALT smoke)
+
+- Published PII-10 `lIjKOZS7qDizvynm` → `8b776acf-27a8-4627-9693-c9683c873eae` (jsonb_agg Load Evidence/Claims; `executeOnce`; Evaluate unpacks packed JSON).
+- GALT case `c52537ae-3238-4197-9ea3-bc69561f0100` via temp wrapper `DFF6nAlYufTAGOFE` (archived): wrapper exec `2445` success; PII-10 exec `2446` **SUCCEEDED** in ~5s (Evaluate Scoring Quality 39ms). 66 claims / 77 evidence; `business_quality_score=72.29`; `cash_debt_from_filing` PASS; only `schema_valid_report` failed (expected until PII-11). Parent PII-00 `2434` had crashed, so report/email still outstanding.
+
+### 2026-09-17 (PII-10 Evaluate Scoring Quality OOM — local)
+
+- HALO PII-10 exec `2444` (and REGN `2423`/`2427`) crashed at **Evaluate Scoring Quality**: n8n Cloud OOM. Root cause: Load Evidence / Load Claims return one item per row; the linear chain fans out; Evaluate then copies all rows including bulky `metadata_json` / full `claim_text` via `$().all()`.
+- Local fix (same pattern as PII-11, without sampling): `jsonb_agg` Load Evidence (`source_type` + `publication_date` only) and Load Claims (slim fields + `LEFT(claim_text, 80)`); `executeOnce` on those loads + config; evaluate unpacks `evidence_json` / `claims_json`. Unit tests + `bundle:pii-10`. **Not deployed** until explicitly requested.
+
+### 2026-09-16 (Slice E8 deploy + smoke)
+
+- Applied migration `024` via temp n8n Postgres `LmoLFiK5BBVwq35n` (exec `2417`; archived). Active config: `courtlistener.enabled=true`, scoring `business_quality` → `business_financial`.
+- Published PII-03 `IqoALspzvN3PL5Cq` → `e32c2e06-8367-42f0-983b-dfe7104eab5d` (CourtListener path after USPTO; `openFDA API key` / `m1RMa7Lmpdqw0w5F`; `CourtListener API Token` / `Ve0yaFI4wjj8yZxF`).
+- Published PII-04 `RvIlyuDV0MEsXezL` → `5e50acb9-556f-47d2-92ac-edeb8572e85c`; PII-06 `b8CxYW8T8FrGl62x` → `d72f0c85-0b16-423e-8226-0f0b29d305a6`; PII-09 `mioSWLKBMLAaBGzs` → `31e32194-f9a7-4627-805c-479eafb137a0`; PII-10 `lIjKOZS7qDizvynm` → `8a2f47da-1de2-4329-9867-7e211985dc4c`.
+- REGN case `a87fa88d-2508-4150-b01f-da7f03a6d8c0` via temp wrappers (archived): PII-03 exec `2419` COLLECTED (`courtlistener_stored_count=10`, `xbrl_metric_count=12` including revenue/OCF/shares/operating_margin); PII-04 `2420` ANALYZED (`margins`, `burn_runway`, `share_count`; `product_revenue` still insufficient); PII-06 `2421` ANALYZED (`enrollment_inventory`, 16 studies / sum 4111); PII-09 `2422` ANALYZED (`litigation_docket_inventory`, `dockets_count=10`). PII-10 wrapper OOM (`2423`/`2427`) — do not re-run REGN scoring until a lighter ticker smoke.
 
 ### 2026-09-16 (Slice E8 local)
 
@@ -230,7 +255,7 @@ Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 - PII-03: credential `openFDA API key` on Fetch OpenFDA; collector `courtlistener` → `courtlistener_docket`; companyfacts now extracts revenue/margins/OCF/shares/runway; CT.gov stores enrollment.
 - PII-04: facts for `margins`, `burn_runway`, `share_count` when XBRL metrics exist.
 - PII-06: `enrollment_inventory`; PII-09: `litigation_docket_inventory`; PII-10: score `business_financial` claims (fixes blank Business email score).
-- Migration `024_collection_courtlistener_xbrl_e8_v1.sql`. Unit tests + `bundle:pii-03/04/06/09/10`. **Not deployed** until explicitly requested.
+- Migration `024_collection_courtlistener_xbrl_e8_v1.sql`. Unit tests + `bundle:pii-03/04/06/09/10`. Deployed same day (see Slice E8 deploy + smoke).
 
 ### 2026-09-16 (Slack early-exit notify deploy)
 

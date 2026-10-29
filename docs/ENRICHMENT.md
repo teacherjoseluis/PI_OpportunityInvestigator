@@ -12,7 +12,7 @@ Unblock research quality that Phase 1 deliberately deferred:
 
 ## Non-goals
 
-- Weekly **discovery / ticker picking** (separate product track)
+- Weekly **discovery / ticker picking** — separate track; first slice **D0** is specified in [`docs/DISCOVERY.md`](DISCOVERY.md) (SEC name lead list + email; owner `/pii` to run full analysis)
 - Using an LLM as the evidence source (snippets must cite stored evidence IDs)
 - Rewriting PII-00…PII-15 orchestration topology (enrichment extends PII-03 and analyst consumers)
 - Implementing all collectors in one change set
@@ -314,7 +314,7 @@ Dependencies: later slices assume earlier ones unless noted.
 
 ### Slice E8 — CourtListener + wider XBRL + CT.gov enrollment
 
-**Status:** local implemented (not deployed until requested)
+**Status:** deployed (VPS `024`; owner email sign-off still open)
 
 **Scope**
 
@@ -334,9 +334,9 @@ Dependencies: later slices assume earlier ones unless noted.
 
 **Sign-off**
 
-- [ ] Credentials attached and collectors persist compact rows
+- [x] Credentials attached and collectors persist compact rows
 - [ ] Email gaps/scores match smoke notes
-- [ ] Milestone in `AGENTS.md`
+- [x] Milestone in `AGENTS.md`
 
 ---
 
@@ -379,6 +379,6 @@ Dependencies: later slices assume earlier ones unless noted.
 - **E5:** **signed off** (PII-03 `bfe2cf6f…`, PII-05 `5eda536b…`; REGN `news_stored_count=25`; owner verified checks).
 - **E6:** **signed off** (VPS `021`; PII-03 `4e4d2fa2…`, PII-09 `5db6fefe…`; REGN `patents_stored_count=25`; owner verified checks).
 - **E7:** **signed off** (VPS `022`; PII-03 `dd3f6f92…`, PII-04 `93d2a4b7…`, PII-08 `d64f67dc…`, PII-09 `68b3a70b…`; REGN chunks + `net_cash_debt` / liquidity claims; owner verified).
-- **E8:** **local** (migration `024`; CourtListener + wider XBRL + CT.gov enrollment + openFDA query auth). **Not deployed** until requested.
+- **E8:** **deployed** (VPS `024`; PII-03 `e32c2e06…`, PII-04 `5e50acb9…`, PII-06 `d72f0c85…`, PII-09 `31e32194…`, PII-10 `8a2f47da…`; REGN `2419`–`2422` courtlistener=10 + XBRL income/OCF/shares + enrollment/litigation claims). PII-10 REGN OOM; owner email sign-off on a fresh ticker still open.
 - **Slack early-exit notify:** **deployed** (config `023`; PII-15 `fdf2949f…`, PII-00 `e1828955…`).
-- **Next:** apply `024` + deploy E8; then smoke email on a fresh ticker. Optional TwelveData upgrade / webhook rotation.
+- **Next:** fresh-ticker collect → report → email; confirm Business score + gap drop. Optional TwelveData upgrade / webhook rotation.

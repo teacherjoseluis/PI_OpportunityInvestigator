@@ -14,7 +14,7 @@ Typical Phase 1 result: `next_state = AWAITING_HUMAN_REVIEW`, `outcome_class = M
 
 ## Behavior
 
-1. Load case + evidence + active claims (with link counts) + config (`gates_json.analysis.scoring`, `scores_json`, `freshness_json`)
+1. Load case + packed evidence/claims jsonb (one row each; no `metadata_json` / full claim text) + config (`gates_json.analysis.scoring`, `scores_json`, `freshness_json`). Per-row Postgres items previously OOM'd Evaluate Scoring Quality on n8n Cloud.
 2. Compute domain scores from claim coverage; mark missing domains explicitly
 3. Evaluate quality gates (SEC present, red-team present, citations, cash/debt fail, report schema fail)
 4. Upsert `scores` + replace `score_components`
@@ -32,7 +32,7 @@ npm run bundle:pii-10
 
 ## Deploy
 
-Deployed inactive: workflow `lIjKOZS7qDizvynm`, version `f8cee04b-460e-427d-ac5b-b1c1c8add2d1`. Credential: **Postgres account**. `callerPolicy=workflowsFromSameOwner`. Migration `011` applied on VPS.
+Deployed/published: workflow `lIjKOZS7qDizvynm`, version `8b776acf-27a8-4627-9693-c9683c873eae`. Credential: **Postgres account**. `callerPolicy=workflowsFromSameOwner`. Packed Load Claims/Evidence jsonb (OOM fix). Migration `011` applied on VPS.
 
 ## Smoke
 

@@ -1,0 +1,45 @@
+});
+
+const openfdaEnabled = ifElse({
+  version: 2.3,
+  config: {
+    name: 'OpenFDA Enabled?',
+    parameters: {
+      conditions: {
+        options: {
+          caseSensitive: true,
+          leftValue: '',
+          typeValidation: 'strict',
+          version: 2,
+        },
+        conditions: [
+          {
+            leftValue: expr('{{ $json.skip_fetch }}'),
+            operator: { type: 'boolean', operation: 'false', singleValue: true },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+});
+
+const fetchOpenfdaDrugsfda = node({
+  type: 'n8n-nodes-base.httpRequest',
+  version: 4.5,
+  config: {
+    name: 'Fetch OpenFDA DrugsFDA',
+    onError: 'continueRegularOutput',
+    retryOnFail: true,
+    maxTries: 2,
+    waitBetweenTries: 1000,
+    parameters: {
+      method: 'GET',
+      url: expr('={{ $("Prepare OpenFDA Query").item.json.openfda_url }}'),
+      authentication: 'none',
+      sendHeaders: true,
+      specifyHeaders: 'keypair',
+      headerParameters: {
+        parameters: [
+          { name: 'Accept', value: 'application/json' },
+          {

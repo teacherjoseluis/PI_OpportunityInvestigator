@@ -17,6 +17,28 @@ function nodeAll(name) {
   }
 }
 
+function parseJsonArray(value) {
+  if (Array.isArray(value)) return value;
+  if (value == null || value === '') return [];
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function loadPackedRows(nodeName, jsonKey) {
+  const packed = nodeJson(nodeName);
+  if (packed && packed[jsonKey] != null) {
+    return parseJsonArray(packed[jsonKey]);
+  }
+  return nodeAll(nodeName);
+}
+
 function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n));
 }
@@ -97,13 +119,13 @@ const legalName = caseRow.legal_name || null;
 const configurationVersionId =
   configRow.configuration_version_id || caseRow.configuration_version_id || null;
 
-let evidenceRows = nodeAll('Load Evidence Documents');
+let evidenceRows = loadPackedRows('Load Evidence Documents', 'evidence_json');
 if (!evidenceRows.length) {
   const bundled = $input.first().json.evidence_documents;
   if (Array.isArray(bundled)) evidenceRows = bundled;
 }
 
-let claimRows = nodeAll('Load Claims');
+let claimRows = loadPackedRows('Load Claims', 'claims_json');
 if (!claimRows.length) {
   const bundled = $input.first().json.claims;
   if (Array.isArray(bundled)) claimRows = bundled;

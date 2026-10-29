@@ -163,6 +163,60 @@ describe('evaluate-scoring-quality', () => {
     assert.equal(cashGate.passed, true);
   });
 
+  it('unpacks packed claims_json / evidence_json without loading per-row items', () => {
+    const evidenceWithDates = evidence.map((row, i) => ({
+      source_type: row.source_type,
+      publication_date: row.publication_date || `2025-0${(i % 8) + 1}-15`,
+    }));
+
+    const [result] = runCodeNode(EVALUATE, {
+      items: [{ scoring_config: scoringConfig }],
+      nodes: {
+        'Validate Scoring Request': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            ticker: 'ACAD',
+            exchange: 'NASDAQ',
+            n8n_execution_id: 'exec-packed',
+          },
+        ],
+        'Load Case And Company': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            company_id: '7e2399f9-c323-41e5-8291-e354b3375527',
+            legal_name: 'ACADIA PHARMACEUTICALS INC',
+            ticker: 'ACAD',
+            configuration_version_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          },
+        ],
+        'Load Analysis Config': [
+          {
+            configuration_version_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            gates_json: {
+              require_cash_debt_from_filing: true,
+              require_red_team: true,
+              analysis: { scoring: scoringConfig },
+            },
+            scores_json: {
+              weights: { business_quality: 0.4, growth: 0.3, pipeline: 0.3 },
+              risk_penalty_factor: 0.25,
+            },
+            freshness_json: { sec_days: 120, clinical_trials_days: 30 },
+          },
+        ],
+        'Load Evidence Documents': [{ evidence_json: evidenceWithDates }],
+        'Load Claims': [{ claims_json: claims }],
+      },
+    });
+
+    assert.equal(result.json.next_state, 'AWAITING_HUMAN_REVIEW');
+    assert.equal(result.json.outcome_class, 'MONITOR');
+    assert.ok(result.json.scores.business_quality_score != null);
+    assert.ok(result.json.gates_failed.includes('cash_debt_from_filing'));
+    assert.equal(result.json.claim_count, claims.length);
+    assert.equal(result.json.counts.evidence_count, evidenceWithDates.length);
+  });
+
   it('hard-stops when evidence is empty', () => {
     const [result] = runCodeNode(EVALUATE, {
       items: [{ scoring_config: scoringConfig }],

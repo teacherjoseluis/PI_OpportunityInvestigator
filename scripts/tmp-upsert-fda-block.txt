@@ -1,0 +1,45 @@
+
+const upsertFdaEvidence = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Upsert FDA Evidence',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query: upsertFdaEvidenceSql,
+      options: {
+        queryReplacement: expr(
+          '{{ $json.case_id }},{{ $json.company_id }},{{ $json.source_type }},{{ $json.publisher }},{{ $json.canonical_url }},{{ $json.stable_source_id }},{{ $json.title_safe }},{{ $json.publication_date }},{{ $json.content_sha256 }},{{ $json.metadata_b64 }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
+const countFdaUpserts = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Count FDA Upserts',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: countFdaUpsertsCode,
+    },
+  },
+});
+
+const prepareFdaZeroCount = node({
+  type: 'n8n-nodes-base.code',
+  version: 2,
+  config: {
+    name: 'Prepare FDA Zero Count',
+    parameters: {
+      mode: 'runOnceForAllItems',
+      language: 'javaScript',
+      jsCode: prepareFdaZeroCountCode,
