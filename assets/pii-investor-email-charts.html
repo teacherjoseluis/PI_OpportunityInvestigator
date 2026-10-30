@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>NBIX research memo</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #E8ECF0;
+    font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+    color: #111827;
+    padding: 18px 0 22px;
+  }
+  .card {
+    width: 720px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .hdr {
+    background: #0B1F33;
+    padding: 16px 22px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .brand { color: #D7E0EA; font-size: 11px; letter-spacing: 0.08em; font-weight: 600; }
+  .ticker { color: #fff; font-size: 34px; font-weight: 700; line-height: 1; margin-top: 4px; }
+  .sub { color: #C9D5E3; font-size: 12px; margin-top: 4px; }
+  .pill {
+    border: 1px solid #5EEAD4;
+    color: #5EEAD4;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .banner {
+    background: #F8EDE3;
+    color: #8A5A2B;
+    font-size: 12px;
+    padding: 7px 22px;
+  }
+  .kpis { display: flex; padding: 12px 18px 4px; gap: 8px; }
+  .kpi {
+    flex: 1;
+    background: #F8FAFC;
+    border: 1px solid #E5E7EB;
+    border-radius: 4px;
+    padding: 8px 10px 7px;
+  }
+  .kpi b { display: block; font-size: 18px; line-height: 1.1; }
+  .kpi span { display: block; margin-top: 2px; font-size: 10px; color: #6B7280; font-weight: 600; }
+  .teal { color: #0F766E; }
+  .amber { color: #C2410C; }
+  .navy { color: #0B1F33; }
+  .section { padding: 8px 22px 2px; }
+  .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #374151;
+    margin: 0 0 4px;
+  }
+  .legend { font-size: 11px; color: #6B7280; }
+  .legend i { display: inline-block; width: 14px; height: 3px; margin: 0 4px 2px 10px; vertical-align: middle; }
+  .split { display: flex; gap: 16px; padding: 4px 22px 2px; }
+  .split > div { flex: 1; }
+  .cap { font-size: 11px; color: #6B7280; margin: 2px 0 6px; }
+  .scores { padding: 2px 22px 6px; }
+  .ev { padding: 2px 22px 8px; }
+  .dots { display: flex; gap: 6px; }
+  .dot {
+    flex: 1;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 650;
+    color: #374151;
+  }
+  .dot .mark {
+    height: 28px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+  }
+  .on { background: #0F766E; }
+  .off { background: #fff; border: 1.5px dashed #9CA3AF; }
+  .watch { display: flex; gap: 8px; padding: 2px 22px 12px; }
+  .chip {
+    flex: 1;
+    border: 1px solid #E5E7EB;
+    border-radius: 4px;
+    padding: 7px 8px;
+    font-size: 11px;
+    font-weight: 650;
+    color: #1F2937;
+    background: #F8FAFC;
+  }
+  .chip em { display: block; font-style: normal; font-weight: 500; color: #6B7280; font-size: 10px; margin-top: 1px; }
+  .foot {
+    border-top: 1px solid #E5E7EB;
+    padding: 10px 22px 12px;
+    font-size: 10px;
+    color: #9CA3AF;
+    display: flex;
+    justify-content: space-between;
+  }
+  .barlab { font-size: 11px; fill: #374151; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="hdr">
+      <div>
+        <div class="brand">PHARMA OPPORTUNITY INVESTIGATOR</div>
+        <div class="ticker">NBIX</div>
+        <div class="sub">Neurocrine Biosciences · NASDAQ · 29 Oct 2026</div>
+      </div>
+      <div class="pill">MONITOR</div>
+    </div>
+    <div class="banner">Research memo · timing context is not a trade instruction. Charts use sample figures.</div>
+
+    <div class="kpis">
+      <div class="kpi"><b class="teal">MONITOR</b><span>Research stance</span></div>
+      <div class="kpi"><b class="amber">MIXED</b><span>Timing context</span></div>
+      <div class="kpi"><b class="navy">58</b><span>Priority score</span></div>
+      <div class="kpi"><b class="navy">64</b><span>Evidence confidence</span></div>
+    </div>
+
+    <div class="section">
+      <div class="label">WEEKLY PRICE</div>
+      <svg viewBox="0 0 676 188" width="676" height="188" role="img" aria-label="Weekly close and 40-week average">
+        <line x1="36" y1="20" x2="36" y2="132" stroke="#E5E7EB" />
+        <line x1="36" y1="132" x2="660" y2="132" stroke="#E5E7EB" />
+        <line x1="36" y1="48" x2="660" y2="48" stroke="#F3F4F6" />
+        <line x1="36" y1="90" x2="660" y2="90" stroke="#F3F4F6" />
+        <text x="0" y="52" class="barlab" font-size="10">high</text>
+        <text x="4" y="136" class="barlab" font-size="10">low</text>
+        <!-- volume -->
+        <g fill="#E5E7EB">
+          <rect x="44" y="148" width="8" height="16" /><rect x="56" y="152" width="8" height="12" />
+          <rect x="68" y="146" width="8" height="18" /><rect x="80" y="150" width="8" height="14" />
+          <rect x="92" y="144" width="8" height="20" /><rect x="104" y="149" width="8" height="15" />
+          <rect x="116" y="142" width="8" height="22" /><rect x="128" y="147" width="8" height="17" />
+          <rect x="140" y="145" width="8" height="19" /><rect x="152" y="151" width="8" height="13" />
+          <rect x="164" y="143" width="8" height="21" /><rect x="176" y="148" width="8" height="16" />
+          <rect x="188" y="140" width="8" height="24" /><rect x="200" y="146" width="8" height="18" />
+          <rect x="212" y="138" width="8" height="26" /><rect x="224" y="144" width="8" height="20" />
+          <rect x="236" y="141" width="8" height="23" /><rect x="248" y="147" width="8" height="17" />
+          <rect x="260" y="136" width="8" height="28" /><rect x="272" y="142" width="8" height="22" />
+          <rect x="284" y="139" width="8" height="25" /><rect x="296" y="145" width="8" height="19" />
+          <rect x="308" y="134" width="8" height="30" /><rect x="320" y="140" width="8" height="24" />
+          <rect x="332" y="137" width="8" height="27" /><rect x="344" y="143" width="8" height="21" />
+          <rect x="356" y="132" width="8" height="32" /><rect x="368" y="141" width="8" height="23" />
+          <rect x="380" y="135" width="8" height="29" /><rect x="392" y="146" width="8" height="18" />
+          <rect x="404" y="144" width="8" height="20" /><rect x="416" y="150" width="8" height="14" />
+          <rect x="428" y="147" width="8" height="17" /><rect x="440" y="152" width="8" height="12" />
+          <rect x="452" y="149" width="8" height="15" /><rect x="464" y="154" width="8" height="10" />
+          <rect x="476" y="151" width="8" height="13" /><rect x="488" y="148" width="8" height="16" />
+          <rect x="500" y="153" width="8" height="11" /><rect x="512" y="150" width="8" height="14" />
+          <rect x="524" y="155" width="8" height="9" /><rect x="536" y="152" width="8" height="12" />
+          <rect x="548" y="156" width="8" height="8" /><rect x="560" y="153" width="8" height="11" />
+          <rect x="572" y="157" width="8" height="7" /><rect x="584" y="154" width="8" height="10" />
+          <rect x="596" y="158" width="8" height="6" /><rect x="608" y="155" width="8" height="9" />
+          <rect x="620" y="157" width="8" height="7" /><rect x="632" y="159" width="8" height="5" />
+          <rect x="644" y="160" width="8" height="4" />
+        </g>
+        <!-- 40-week average -->
+        <polyline fill="none" stroke="#0F766E" stroke-width="2" stroke-dasharray="4 3"
+          points="44,120 80,116 120,112 160,108 200,104 240,100 280,97 320,95 360,94 400,95 440,96 480,97 520,98 560,99 600,100 644,101" />
+        <!-- close -->
+        <polyline fill="none" stroke="#0B1F33" stroke-width="2.2"
+          points="44,112 56,108 68,104 80,99 92,102 104,96 116,91 128,94 140,88 152,84 164,86 176,80 188,76 200,79 212,72 224,68 236,70 248,64 260,58 272,61 284,54 296,50 308,46 320,42 332,48 344,44 356,38 368,46 380,52 392,58 404,54 416,62 428,68 440,64 452,70 464,74 476,69 488,76 500,72 512,78 524,74 536,80 548,76 560,82 572,78 584,84 596,80 608,86 620,83 632,88 644,86" />
+        <circle cx="356" cy="38" r="3" fill="#B91C1C" />
+        <circle cx="644" cy="86" r="3.5" fill="#0B1F33" />
+        <text x="300" y="32" font-size="10" fill="#B91C1C">52w high</text>
+        <text x="560" y="78" font-size="10" fill="#0B1F33">−18%</text>
+      </svg>
+      <div class="legend" style="margin-top:-4px">
+        <i style="background:#0B1F33"></i>Weekly close
+        <i style="background:#0F766E"></i>40-week average
+        <i style="background:#E5E7EB;height:8px"></i>Volume
+        <span style="margin-left:14px">RSI 54 · last week 0.9× average volume</span>
+      </div>
+    </div>
+
+    <div class="split">
+      <div>
+        <div class="label">EXCESS RETURN</div>
+        <svg viewBox="0 0 330 148" width="330" height="148">
+          <text x="46" y="14" font-size="10" fill="#6B7280">3 month</text>
+          <text x="196" y="14" font-size="10" fill="#6B7280">12 month</text>
+          <text x="0" y="40" font-size="12" fill="#111827">XBI</text>
+          <rect x="46" y="30" width="80" height="12" fill="#B91C1C" />
+          <text x="130" y="40" font-size="11" fill="#B91C1C">−8.4</text>
+          <rect x="196" y="30" width="108" height="12" fill="#0F766E" />
+          <text x="228" y="40" font-size="11" fill="#fff">+11.6</text>
+
+          <text x="0" y="72" font-size="12" fill="#111827">XLV</text>
+          <rect x="46" y="62" width="12" height="12" fill="#B91C1C" />
+          <text x="62" y="72" font-size="11" fill="#B91C1C">−1.2</text>
+          <rect x="196" y="62" width="55" height="12" fill="#0F766E" />
+          <text x="255" y="72" font-size="11" fill="#0F766E">+6.4</text>
+
+          <text x="0" y="104" font-size="12" fill="#111827">SPY</text>
+          <rect x="46" y="94" width="38" height="12" fill="#B91C1C" />
+          <text x="88" y="104" font-size="11" fill="#B91C1C">−4.0</text>
+          <rect x="196" y="94" width="24" height="12" fill="#0F766E" />
+          <text x="224" y="104" font-size="11" fill="#0F766E">+2.8</text>
+          <text x="46" y="132" font-size="10" fill="#9CA3AF">weaker</text>
+          <text x="196" y="132" font-size="10" fill="#9CA3AF">stronger</text>
+        </svg>
+        <div class="cap">Percentage points versus XBI, XLV, and SPY.</div>
+      </div>
+      <div>
+        <div class="label">DRAWDOWN FROM 52-WEEK HIGH</div>
+        <svg viewBox="0 0 300 72" width="300" height="72">
+          <text x="8" y="12" font-size="10" fill="#6B7280">0</text>
+          <text x="250" y="12" font-size="10" fill="#6B7280">−40%</text>
+          <rect x="8" y="18" width="103" height="18" fill="#D1FAE5" />
+          <rect x="111" y="18" width="68" height="18" fill="#FFEDD5" />
+          <rect x="179" y="18" width="103" height="18" fill="#FEE2E2" />
+          <polygon points="131,18 125,10 137,10" fill="#C2410C" />
+          <text x="108" y="54" font-size="12" fill="#C2410C" font-weight="700">−18% · mixed band</text>
+          <text x="18" y="68" font-size="10" fill="#065F46">inside 15%</text>
+          <text x="118" y="68" font-size="10" fill="#9A3412">15–25</text>
+          <text x="190" y="68" font-size="10" fill="#991B1B">beyond 25</text>
+        </svg>
+        <div class="label" style="margin-top:6px">RSI (14)</div>
+        <svg viewBox="0 0 300 46" width="300" height="46">
+          <rect x="8" y="16" width="78" height="10" fill="#FEE2E2" />
+          <rect x="86" y="16" width="112" height="10" fill="#E5E7EB" />
+          <rect x="198" y="16" width="84" height="10" fill="#D1FAE5" />
+          <polygon points="156,16 150,8 162,8" fill="#0B1F33" />
+          <text x="148" y="40" font-size="11" fill="#111827" font-weight="700">54</text>
+          <text x="8" y="40" font-size="10" fill="#6B7280">30</text>
+          <text x="258" y="40" font-size="10" fill="#6B7280">70</text>
+        </svg>
+        <div class="cap">Neutral momentum. Timing band is the amber slice.</div>
+      </div>
+    </div>
+
+    <div class="scores">
+      <div class="label">SCORES</div>
+      <svg viewBox="0 0 676 108" width="676" height="108">
+        <g font-size="11" fill="#374151">
+          <text x="0" y="16">Business</text>
+          <rect x="78" y="6" width="470" height="12" fill="#F3F4F6" />
+          <rect x="78" y="6" width="338" height="12" fill="#1D4ED8" />
+          <text x="552" y="16">72</text>
+
+          <text x="0" y="34">Growth</text>
+          <rect x="78" y="24" width="470" height="12" fill="#F3F4F6" />
+          <rect x="78" y="24" width="287" height="12" fill="#1D4ED8" />
+          <text x="552" y="34">61</text>
+
+          <text x="0" y="52">Pipeline</text>
+          <rect x="78" y="42" width="470" height="12" fill="#F3F4F6" />
+          <rect x="78" y="42" width="273" height="12" fill="#1D4ED8" />
+          <text x="552" y="52">58</text>
+
+          <text x="0" y="70">Valuation</text>
+          <rect x="78" y="60" width="470" height="12" fill="#F3F4F6" />
+          <rect x="78" y="60" width="230" height="12" fill="#0F766E" />
+          <text x="552" y="70">49</text>
+
+          <text x="0" y="88">Risk</text>
+          <rect x="78" y="78" width="470" height="12" fill="#F3F4F6" />
+          <rect x="78" y="78" width="226" height="12" fill="#B91C1C" />
+          <text x="552" y="88">48</text>
+
+          <text x="0" y="106">Technical</text>
+          <rect x="78" y="96" width="470" height="12" fill="#F3F4F6" />
+          <rect x="78" y="96" width="244" height="12" fill="#C2410C" />
+          <text x="552" y="106">52</text>
+          <text x="580" y="106" fill="#9CA3AF" font-size="10">context only</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="ev">
+      <div class="label">ON FILE</div>
+      <div class="dots">
+        <div class="dot"><div class="mark on"></div>SEC</div>
+        <div class="dot"><div class="mark on"></div>Trials</div>
+        <div class="dot"><div class="mark on"></div>FDA</div>
+        <div class="dot"><div class="mark on"></div>News</div>
+        <div class="dot"><div class="mark on"></div>Cash</div>
+        <div class="dot"><div class="mark on"></div>Patents</div>
+        <div class="dot"><div class="mark on"></div>Courts</div>
+        <div class="dot"><div class="mark on"></div>Prices</div>
+        <div class="dot"><div class="mark off"></div>Short</div>
+        <div class="dot"><div class="mark off"></div>Peers</div>
+      </div>
+    </div>
+
+    <div class="label" style="padding:2px 22px 4px">WHAT WOULD CHANGE THE READ</div>
+    <div class="watch">
+      <div class="chip">Next 10-K / 10-Q<em>Filing</em></div>
+      <div class="chip">Late-stage readout<em>Trials</em></div>
+      <div class="chip">Runway or offering<em>Financing</em></div>
+      <div class="chip">40-week cross<em>or XBI −10 ppt</em></div>
+    </div>
+
+    <div class="foot">
+      <span>Sample layout · figures are illustrative</span>
+      <span>Research assistance only. Not investment advice.</span>
+    </div>
+  </div>
+</body>
+</html>

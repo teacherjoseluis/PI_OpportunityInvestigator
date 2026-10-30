@@ -26,7 +26,6 @@
   "prefer_mid_small_cap": true,
   "market_cap_enabled": true,
   "market_cap_min_usd": 100000000,
-  "market_cap_max_usd": 150000000000,
   "adv_enabled": true,
   "min_avg_daily_dollar_volume_usd": 1000000,
   "duplicate_lookback_days": 30,

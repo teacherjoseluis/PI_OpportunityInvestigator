@@ -121,10 +121,27 @@ describe('build-research-report', () => {
       Buffer.from(result.json.report_json_b64, 'base64').toString('utf8'),
     );
     assert.equal(report.schema_version, 'report.v1');
+    assert.ok(report.technical_market);
+    assert.equal(report.scores.technical_context_score, null);
+    assert.match(
+      report.methodology_limitations_disclaimer.disclaimer,
+      /not a trade instruction/i,
+    );
     const markdown = Buffer.from(result.json.report_markdown_b64, 'base64').toString(
       'utf8',
     );
     assert.ok(markdown.includes('Executive research brief'));
+    assert.ok(markdown.includes('Market behavior and technical context'));
+    assert.match(markdown, /not a trade instruction/i);
+    assert.ok(markdown.includes('Market behavior and technical context'));
+    assert.ok(markdown.includes('Not a trade instruction'));
+    assert.ok(report.technical_market);
+    assert.equal(report.scores.technical_context_score, null);
+    assert.ok(
+      String(report.methodology_limitations_disclaimer.disclaimer).includes(
+        'not a trade instruction',
+      ),
+    );
     const plan = JSON.parse(
       Buffer.from(result.json.monitoring_rules_json_b64, 'base64').toString('utf8'),
     );

@@ -166,6 +166,7 @@ function renderMarkdown(report) {
   lines.push(\`- **Strongest opposing evidence:** \${brief.strongest_against || 'n/a'}\`);
   lines.push(\`- **What would change the conclusion:** \${brief.thesis_changers || 'n/a'}\`);
   lines.push(\`- **Monitor next:** \${brief.monitor_next || 'n/a'}\`);
+  lines.push(\`- **Timing context:** \${brief.timing_context || 'not available. Not a trade instruction.'}\`);
   lines.push('');
   lines.push('## Research outcome');
   lines.push('');
@@ -195,7 +196,8 @@ function renderMarkdown(report) {
     ['growth', 'Growth prospects'],
     ['pipeline', 'Pipeline and clinical evidence'],
     ['regulatory_catalysts', 'Regulatory status and catalyst calendar'],
-    ['valuation_market', 'Valuation and market context'],
+    ['valuation_market', 'Valuation context'],
+    ['technical_market', 'Market behavior and technical context'],
     ['risks', 'Material risks and thesis-breaking conditions'],
   ];
   for (const [key, title] of sectionOrder) {
@@ -398,6 +400,7 @@ const valuation = sectionClaims(
   categoryMap.valuation || 'valuation_market',
   maxClaims,
 );
+const technical = sectionClaims(claimRows, categoryMap.technical || 'technical_market', maxClaims);
 const risks = sectionClaims(claimRows, categoryMap.risk || 'risk_red_team', maxClaims);
 
 const supporting = strongestClaim(
@@ -438,6 +441,30 @@ const monitoringPlan = [
     description: 'Watch for financing, ATM, or share-issuance disclosures that change runway assumptions.',
   },
 ];
+const technicalFacts = technical.claims.filter((claim) => !claim.insufficient);
+if (technicalFacts.length) {
+  monitoringPlan.push(
+    {
+      rule_type: 'weekly_40_sma_cross',
+      description: 'Weekly close crosses the 40-week SMA.',
+    },
+    {
+      rule_type: 'drawdown_from_case_close',
+      description: 'Drawdown from case-as-of close reaches 20 percent.',
+    },
+    {
+      rule_type: 'volume_spike',
+      description: 'Daily volume is at least 3 times the 20-day average.',
+    },
+    {
+      rule_type: 'rs_vs_xbi_deterioration',
+      description: '3-month relative strength versus XBI worsens by at least 10 ppt.',
+    },
+  );
+}
+const timingClaim = technical.claims.find((claim) =>
+  String(claim.text || '').includes('Entry-timing context'),
+);
 
 const sources = evidenceRows.slice(0, maxSources).map((doc) => ({
   id: doc.id,
@@ -471,6 +498,9 @@ const report = {
     thesis_changers:
       'Verified current cash and debt from filings; material trial readouts; regulatory decisions; dilutive financing.',
     monitor_next: monitoringPlan.map((m) => m.rule_type).join(', '),
+    timing_context: timingClaim
+      ? timingClaim.text
+      : 'Timing context is not available from stored bars. Not a trade instruction.',
   },
   outcome: {
     class: outcomeClass,
@@ -525,6 +555,13 @@ const report = {
     limitations: valuation.insufficient_topics,
     claim_total: valuation.total,
   },
+  technical_market: {
+    claims: technical.claims,
+    limitations: technical.insufficient_topics,
+    claim_total: technical.total,
+    timing_context: timingClaim ? timingClaim.text : null,
+    note: 'Market behavior is context for the research case. Not a trade instruction.',
+  },
   risks: {
     claims: risks.claims,
     limitations: risks.insufficient_topics,
@@ -557,6 +594,10 @@ const report = {
       scoreRow.research_priority_score == null
         ? null
         : Number(scoreRow.research_priority_score),
+    technical_context_score:
+      scoreRow.technical_context_score == null || scoreRow.technical_context_score === ''
+        ? null
+        : Number(scoreRow.technical_context_score),
     components: componentRows.map((c) => ({
       component_key: c.component_key,
       parent_score_key: c.parent_score_key,
@@ -574,7 +615,9 @@ const report = {
       'Phase 1 report is deterministically assembled from persisted claims, scores, and evidence metadata. No LLM language generation was used.',
     limitations:
       'Filing bodies/XBRL, FDA, IR, patents, and market-quote enrichment are incomplete. Precise financial figures beyond metadata-backed claims are not asserted. Claim inventory may include duplicates from repeated analyst runs.',
-    disclaimer,
+    disclaimer:
+      (disclaimer || '') +
+      ' Timing context is not a trade instruction.',
   },
   publication_ready: false,
 };
@@ -989,7 +1032,7 @@ const loadScores = node({
     parameters: {
       operation: 'executeQuery',
       query:
-        'SELECT id AS score_id, case_id, business_quality_score, growth_score, pipeline_score, valuation_context_score, risk_score, evidence_confidence_score, data_freshness_score, research_priority_score, outcome_class, hard_stop FROM scores WHERE case_id = $1::uuid LIMIT 1',
+        'SELECT id AS score_id, case_id, business_quality_score, growth_score, pipeline_score, valuation_context_score, risk_score, evidence_confidence_score, data_freshness_score, research_priority_score, technical_context_score, outcome_class, hard_stop FROM scores WHERE case_id = $1::uuid LIMIT 1',
       options: {
         queryReplacement: expr('{{ $("Validate Report Request").item.json.case_id }}'),
         replaceEmptyStrings: true,

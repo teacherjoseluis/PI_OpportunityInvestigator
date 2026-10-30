@@ -39,7 +39,7 @@ State mapping: PASS / PASS_WITH_EXCEPTION → `COLLECTING`; HUMAN_REVIEW → `AW
 1. Validate `case_id` / ticker / exchange
 2. Load case + company/security; load active eligibility config; count recent duplicate cases
 3. Fetch Twelve Data `/profile`, `/statistics`, `/quote` (credential **TwelveData API key**)
-4. Evaluate deterministic rules (exchange, identity, type, industry, shell/SPAC, market cap, ADV, duplicates)
+4. Evaluate deterministic rules (exchange, identity, type, industry, shell/SPAC, market cap, ADV, duplicates). Market cap has a $100M floor and no ceiling.
 5. Optionally update `companies.sector` / `industry` / `website_url`
 6. Advance case state; log `case_state_history` + `workflow_runs` (`PII-02`) with base64-safe rules metadata
 

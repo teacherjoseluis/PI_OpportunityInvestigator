@@ -4,7 +4,20 @@
   "max_concurrent_full_cases": 2,
   "max_parallel_collectors_per_case": 6,
   "max_parallel_specialists_per_case": 6,
-  "shadow_plan_only": true,
+  "shadow_plan_only": false,
+  "collector_facade": {
+    "enabled": false,
+    "agent_key": "PII-03",
+    "covers": [
+      "PII-03-SEC",
+      "PII-03-XBRL",
+      "PII-03-CT",
+      "PII-03-FDA",
+      "PII-03-NEWS",
+      "PII-03-USPTO",
+      "PII-03-CL"
+    ]
+  },
   "timing_can_defer_watchlist": false,
   "provider_concurrency": {
     "sec_edgar": 1,
@@ -183,10 +196,10 @@
     },
     {
       "agent_key": "PII-03-MKT",
-      "enabled": false,
+      "enabled": true,
       "wave": "collect",
       "depends_on": ["PII-02"],
-      "note": "Enable in slice T1 after bar adapter and plan check."
+      "note": "T1 local collector. TwelveData /time_series plan coverage is unverified; denials become INSUFFICIENT_EVIDENCE."
     }
   ],
   "event_type_map": {

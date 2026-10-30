@@ -232,6 +232,38 @@ describe('evaluate-collection-coverage', () => {
     assert.equal(result.json.outcome, 'FAILED');
     assert.equal(result.json.next_state, 'INCOMPLETE');
   });
+
+  it('joins stored evidence counts for the coverage worker', () => {
+    const [result] = runCodeNode(COVERAGE, {
+      items: [{}],
+      nodes: {
+        'Validate Collection Request': [
+          {
+            case_id: '91815cf2-865d-4173-8263-f490cc129608',
+            ticker: 'ACAD',
+            exchange: 'NASDAQ',
+            collector_key: 'PII-03-COVER',
+          },
+        ],
+        'Load Collection Config': [{ gates_json: { collection: { min_sec_documents: 1 } } }],
+        'Load Coverage Counts': [
+          {
+            sec_stored_count: 3,
+            ct_stored_count: 2,
+            xbrl_stored_count: 1,
+            fda_stored_count: 0,
+            news_stored_count: 0,
+            patents_stored_count: 0,
+            courtlistener_stored_count: 0,
+          },
+        ],
+      },
+    });
+    assert.equal(result.json.outcome, 'COLLECTED');
+    assert.equal(result.json.next_state, 'ANALYZING');
+    assert.equal(result.json.counts.sec_stored_count, 3);
+    assert.equal(result.json.counts.ct_stored_count, 2);
+  });
 });
 
 describe('build-collection-result', () => {

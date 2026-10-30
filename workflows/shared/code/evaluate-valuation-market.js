@@ -238,6 +238,12 @@ const insufficient_topics = [];
 for (const topic of insufficientTopics) {
   const key = topic.key || topic;
   if (satisfiedInsufficient.has(key)) continue;
+  if (
+    Array.isArray(valuation.rehomed_topic_keys) &&
+    valuation.rehomed_topic_keys.includes(key)
+  ) {
+    continue;
+  }
   const text =
     topic.text ||
     'INSUFFICIENT_EVIDENCE: ' + key + ' requires richer valuation/market evidence sources.';

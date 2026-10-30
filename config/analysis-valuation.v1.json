@@ -2,6 +2,7 @@
   "min_evidence_documents": 1,
   "min_structural_claims": 1,
   "claim_category": "valuation_market",
+  "rehomed_topic_keys": ["liquidity_adv", "volatility_drawdown", "short_interest", "entry_timing"],
   "watched_event_forms": ["8-K", "6-K"],
   "watched_offering_forms": ["S-3", "424B", "424B5", "S-1"],
   "insufficient_topics": [
@@ -35,7 +36,8 @@
     },
     {
       "key": "entry_timing",
-      "text": "INSUFFICIENT_EVIDENCE: Optional entry-timing context is deferred until market-behavior evidence and scoring (PII-10) are available."
+      "text": "INSUFFICIENT_EVIDENCE: Entry-timing context is owned by PII-16 once stored OHLCV bars exist."
     }
-  ]
+  ],
+  "rehomed_topic_keys": ["liquidity_adv", "volatility_drawdown", "short_interest", "entry_timing"]
 }

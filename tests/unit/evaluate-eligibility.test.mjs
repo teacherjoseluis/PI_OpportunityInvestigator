@@ -155,6 +155,36 @@ describe('evaluate-eligibility', () => {
     );
   });
 
+  it('passes a large cap when the ceiling is unset', () => {
+    const openCeiling = { ...eligibility };
+    delete openCeiling.market_cap_max_usd;
+    const [result] = runCodeNode(SCRIPT, {
+      items: [
+        baseItem({
+          config: {
+            configuration_version_id: '11111111-2222-4333-8444-555555555555',
+            version_label: 'v1',
+            eligibility_json: openCeiling,
+          },
+          statistics: {
+            ...statistics,
+            statistics: {
+              ...statistics.statistics,
+              valuations_metrics: {
+                ...statistics.statistics.valuations_metrics,
+                market_capitalization: 505_377_862_107,
+              },
+            },
+          },
+        }),
+      ],
+    });
+    const marketCapRule = result.json.rules.find((r) => r.key === 'market_cap_range');
+    assert.equal(marketCapRule.status, 'PASS');
+    assert.equal(marketCapRule.detail, 'market_cap_in_range');
+    assert.equal(result.json.outcome, 'PASS');
+  });
+
   it('matches industry via legal_name keywords when profile is unavailable', () => {
     const [result] = runCodeNode(SCRIPT, {
       items: [

@@ -190,4 +190,49 @@ describe('build-monitoring-result', () => {
     assert.equal(result.json.outcome, 'MATERIAL_EVENTS');
     assert.equal(result.json.event_count, 2);
   });
+
+  it('emits a drawdown event from stored bars when that rule is active', () => {
+    const daily = [];
+    for (let i = 0; i < 5; i += 1) {
+      daily.push({
+        bar_time: '2026-02-0' + (i + 1),
+        open: 100,
+        high: 100,
+        low: 70,
+        close: i === 0 ? 100 : 70,
+        volume: i === 4 ? 9000 : 1000,
+      });
+    }
+    const [result] = runCodeNode(EVALUATE, {
+      items: [{ monitoring_config: monitoringConfig }],
+      nodes: {
+        'Validate Monitoring Request': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            ticker: 'ACAD',
+            exchange: 'NASDAQ',
+          },
+        ],
+        'Load Case And Company': [
+          {
+            case_id: 'fb342540-1bd9-49a4-a38b-5328501ccac4',
+            ticker: 'ACAD',
+            case_state: 'AWAITING_HUMAN_REVIEW',
+          },
+        ],
+        'Load Monitoring Config': [{ gates_json: { monitoring: monitoringConfig } }],
+        'Load Latest Report': [{ as_of: '2026-02-01' }],
+        'Load Monitoring Rules': [
+          { rules_json: [{ rule_type: 'drawdown_from_case_close', is_active: true }] },
+        ],
+        'Load Evidence Fingerprints': [{ evidence_json: [] }],
+        'Fetch SEC Submissions': [{}],
+        'Fetch CT.gov Studies': [{}],
+        'Load Market Bars': [{ bars_json: { ACAD: { '1day': daily } } }],
+      },
+    });
+    const events = JSON.parse(Buffer.from(result.json.events_json_b64, 'base64').toString('utf8'));
+    assert.ok(events.some((event) => event.event_type === 'drawdown_from_case_close'));
+    assert.match(events.map((event) => event.change_memo).join(' '), /Not a trade instruction/);
+  });
 });

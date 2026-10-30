@@ -65,6 +65,10 @@
     {
       "key": "thesis_breaking_conditions",
       "text": "INSUFFICIENT_EVIDENCE: Explicit thesis-breaking conditions and monitoring signals require scored risk objects (PII-10) and richer evidence."
+    },
+    {
+      "key": "market_behavior_liquidity",
+      "text": "INSUFFICIENT_EVIDENCE: Liquidity, drawdown, and gap risk need authorized OHLCV bars. PII-16 owns the calculation once market_ohlcv evidence exists."
     }
   ]
 }

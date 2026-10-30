@@ -73,6 +73,12 @@ const ruleEventMap = monitoring.rule_event_map || {
   sec_filings: ['sec_new_filing', 'sec_financing_signal'],
   clinical_trials: ['ctgov_status_change', 'ctgov_new_study'],
   financing: ['sec_financing_signal'],
+  price_volume: [
+    'weekly_40_sma_cross',
+    'drawdown_from_case_close',
+    'volume_spike',
+    'rs_vs_xbi_deterioration',
+  ],
 };
 
 const caseId = validated.case_id || caseRow.case_id;
@@ -206,6 +212,149 @@ for (const study of studies.slice(0, Number(monitoring.ctgov_page_size ?? 20))) 
   }
 }
 
+function closesOf(series) {
+  return (Array.isArray(series) ? series : [])
+    .map((bar) => Number(bar && bar.close))
+    .filter((value) => Number.isFinite(value));
+}
+
+function mean(values) {
+  if (!values.length) return null;
+  let sum = 0;
+  for (const value of values) sum += value;
+  return sum / values.length;
+}
+
+function totalReturn(closes, sessions) {
+  if (!closes || closes.length <= sessions) return null;
+  const start = closes[closes.length - 1 - sessions];
+  const end = closes[closes.length - 1];
+  if (!start) return null;
+  return (end / start - 1) * 100;
+}
+
+function detectPriceEvents() {
+  const barPack = nodeJson('Load Market Bars');
+  if (!barPack) return false;
+  const active = new Set(rules.filter((rule) => rule.is_active !== false).map((rule) => rule.rule_type));
+  const priceBundle = active.has('price_volume');
+  const wants = (key) => priceBundle || active.has(key);
+  const priceRules = [
+    'weekly_40_sma_cross',
+    'drawdown_from_case_close',
+    'volume_spike',
+    'rs_vs_xbi_deterioration',
+  ];
+  if (!priceRules.some((key) => wants(key))) return false;
+  let bars = barPack.bars_json;
+  if (typeof bars === 'string') {
+    try {
+      bars = JSON.parse(bars);
+    } catch {
+      return false;
+    }
+  }
+  if (!bars || typeof bars !== 'object' || Array.isArray(bars)) return false;
+  const symbol = String(ticker || '').toUpperCase();
+  const symbolBars = bars[symbol] && typeof bars[symbol] === 'object' ? bars[symbol] : {};
+  const xbiBars = bars.XBI && typeof bars.XBI === 'object' ? bars.XBI : {};
+  const daily = symbolBars['1day'] || [];
+  const weekly = symbolBars['1week'] || [];
+  const xbiDaily = xbiBars['1day'] || [];
+  const weeklyCloses = closesOf(weekly);
+  if (wants('weekly_40_sma_cross') && weeklyCloses.length >= 41) {
+    const previous = weeklyCloses.slice(0, -1);
+    const prevSma = mean(previous.slice(-40));
+    const currSma = mean(weeklyCloses.slice(-40));
+    const prevClose = previous[previous.length - 1];
+    const currClose = weeklyCloses[weeklyCloses.length - 1];
+    if (prevSma != null && currSma != null && (prevClose - prevSma) * (currClose - currSma) < 0) {
+      addEvent({
+        event_type: 'weekly_40_sma_cross',
+        event_date: toSqlDate(weekly[weekly.length - 1] && weekly[weekly.length - 1].bar_time) || asOf,
+        materiality: 'MEDIUM',
+        dedupe_key: caseId + ':weekly_40_sma_cross:' + toSqlDate(weekly[weekly.length - 1].bar_time),
+        verified: false,
+        source_evidence_ids: [],
+        change_memo: 'Weekly close crossed the 40-week SMA. Not a trade instruction.',
+        matched_rule_types: ['weekly_40_sma_cross'],
+      });
+    }
+  }
+  const dailyCloses = closesOf(daily);
+  const drawdownBand = Number(monitoring.drawdown_from_case_close_pct ?? 20);
+  if (wants('drawdown_from_case_close') && dailyCloses.length > 1) {
+    let baseline = null;
+    for (const bar of daily) {
+      const day = toSqlDate(bar.bar_time);
+      if (day && day <= asOf) baseline = bar;
+    }
+    if (!baseline) baseline = daily[0];
+    const baselineClose = Number(baseline && baseline.close);
+    const latestClose = dailyCloses[dailyCloses.length - 1];
+    if (baselineClose > 0 && ((baselineClose - latestClose) / baselineClose) * 100 >= drawdownBand) {
+      addEvent({
+        event_type: 'drawdown_from_case_close',
+        event_date: toSqlDate(daily[daily.length - 1] && daily[daily.length - 1].bar_time) || asOf,
+        materiality: 'HIGH',
+        dedupe_key: caseId + ':drawdown_from_case_close:' + asOf,
+        verified: false,
+        source_evidence_ids: [],
+        change_memo:
+          'Close is at least ' +
+          drawdownBand +
+          '% below the case-as-of close. Not a trade instruction.',
+        matched_rule_types: ['drawdown_from_case_close'],
+      });
+    }
+  }
+  const volumeMultiple = Number(monitoring.volume_spike_multiple ?? 3);
+  if (wants('volume_spike') && daily.length > 21) {
+    const prior = daily.slice(-21, -1).map((bar) => Number(bar.volume)).filter((value) => Number.isFinite(value));
+    const latestVolume = Number(daily[daily.length - 1].volume);
+    const average = mean(prior);
+    if (average > 0 && latestVolume >= volumeMultiple * average) {
+      addEvent({
+        event_type: 'volume_spike',
+        event_date: toSqlDate(daily[daily.length - 1].bar_time) || asOf,
+        materiality: 'MEDIUM',
+        dedupe_key: caseId + ':volume_spike:' + toSqlDate(daily[daily.length - 1].bar_time),
+        verified: false,
+        source_evidence_ids: [],
+        change_memo:
+          'Latest session volume is at least ' +
+          volumeMultiple +
+          ' times the prior 20-session average. Not a trade instruction.',
+        matched_rule_types: ['volume_spike'],
+      });
+    }
+  }
+  const rsBand = Number(monitoring.rs_deterioration_ppt ?? 10);
+  const baselineRs = Number(barPack.baseline_rs_xbi_3m_ppt);
+  if (wants('rs_vs_xbi_deterioration') && Number.isFinite(baselineRs)) {
+    const stockReturn = totalReturn(dailyCloses, 63);
+    const xbiReturn = totalReturn(closesOf(xbiDaily), 63);
+    if (stockReturn != null && xbiReturn != null && stockReturn - xbiReturn <= baselineRs - rsBand) {
+      addEvent({
+        event_type: 'rs_vs_xbi_deterioration',
+        event_date: asOf,
+        materiality: 'MEDIUM',
+        dedupe_key: caseId + ':rs_vs_xbi_deterioration:' + asOf,
+        verified: false,
+        source_evidence_ids: [],
+        change_memo:
+          '3-month relative strength versus XBI worsened by at least ' +
+          rsBand +
+          ' ppt since the last report. Not a trade instruction.',
+        matched_rule_types: ['rs_vs_xbi_deterioration'],
+      });
+    }
+  }
+  return true;
+}
+
+const marketOk = detectPriceEvents();
+
 // Match active monitoring rules
 const activeRuleTypes = new Set(rules.filter((r) => r.is_active !== false).map((r) => r.rule_type));
 for (const evt of events) {
@@ -234,7 +383,7 @@ if (events.length > 0 && materialCount > 0) {
 const changeMemoLines = [
   'Monitoring check for ' + ticker + ' as of baseline ' + asOf + '.',
   'Active rules: ' + (rules.map((r) => r.rule_type).join(', ') || 'none') + '.',
-  'SEC poll ok=' + secOk + '; CT.gov poll ok=' + ctOk + '.',
+  'SEC poll ok=' + secOk + '; CT.gov poll ok=' + ctOk + '; market bars checked=' + marketOk + '.',
   'Events detected: ' + events.length + ' (HIGH materiality: ' + materialCount + ').',
 ];
 for (const evt of events.slice(0, 10)) {

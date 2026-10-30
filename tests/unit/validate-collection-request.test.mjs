@@ -19,6 +19,24 @@ describe('validate-collection-request', () => {
     const [result] = runCodeNode(SCRIPT, { items: [valid] });
     assert.equal(result.json.valid, true);
     assert.equal(result.json.ticker, 'ACAD');
+    assert.equal(result.json.collector_key, 'ALL');
+    assert.equal(result.json.continue_chain, true);
+  });
+
+  it('accepts a single collector worker and stops the chain', () => {
+    const [result] = runCodeNode(SCRIPT, {
+      items: [{ ...valid, collector_key: 'pii-03-sec' }],
+    });
+    assert.equal(result.json.valid, true);
+    assert.equal(result.json.collector_key, 'PII-03-SEC');
+    assert.equal(result.json.continue_chain, false);
+  });
+
+  it('rejects an unknown collector key', () => {
+    const [result] = runCodeNode(SCRIPT, {
+      items: [{ ...valid, collector_key: 'PII-03-OTHER' }],
+    });
+    assert.equal(result.json.valid, false);
   });
 
   it('rejects missing case_id', () => {

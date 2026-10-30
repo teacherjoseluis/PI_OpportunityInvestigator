@@ -19,16 +19,16 @@ function countItems(name) {
 const item = $input.first().json || {};
 const validated = nodeJson('Validate Collection Request') || item;
 const configRow = nodeJson('Load Collection Config') || item.config || {};
-const secNorm = nodeJson('Normalize SEC Evidence') || item.sec || {};
-const ctNorm = nodeJson('Normalize CT.gov Evidence') || item.ctgov || {};
-const xbrlNorm = nodeJson('Normalize SEC XBRL Facts') || item.xbrl || {};
-const fdaNorm = nodeJson('Normalize OpenFDA Evidence') || item.fda || {};
+let secNorm = nodeJson('Normalize SEC Evidence') || item.sec || {};
+let ctNorm = nodeJson('Normalize CT.gov Evidence') || item.ctgov || {};
+let xbrlNorm = nodeJson('Normalize SEC XBRL Facts') || item.xbrl || {};
+let fdaNorm = nodeJson('Normalize OpenFDA Evidence') || item.fda || {};
 const fdaPrep = nodeJson('Prepare OpenFDA Query') || {};
-const newsNorm = nodeJson('Normalize Company News Evidence') || item.news || {};
+let newsNorm = nodeJson('Normalize Company News Evidence') || item.news || {};
 const newsPrep = nodeJson('Prepare Company News Query') || {};
-const patentsNorm = nodeJson('Normalize USPTO Patents Evidence') || item.patents || {};
+let patentsNorm = nodeJson('Normalize USPTO Patents Evidence') || item.patents || {};
 const patentsPrep = nodeJson('Prepare USPTO Query') || {};
-const courtNorm = nodeJson('Normalize CourtListener Evidence') || item.courtlistener || {};
+let courtNorm = nodeJson('Normalize CourtListener Evidence') || item.courtlistener || {};
 const courtPrep = nodeJson('Prepare CourtListener Query') || {};
 
 const gates = configRow.gates_json || {};
@@ -63,45 +63,64 @@ const courtEnabled =
 const secAttempted = countItems('Expand SEC Documents') || Number(secNorm.document_count || 0);
 const ctAttempted = countItems('Expand CT.gov Documents') || Number(ctNorm.document_count || 0);
 
-const secStored = Number(
+let secStored = Number(
   item.sec_stored_count ?? nodeJson('Count SEC Upserts')?.sec_stored_count ?? secAttempted,
 );
-const ctStored = Number(
+let ctStored = Number(
   item.ct_stored_count ?? nodeJson('Count CT.gov Upserts')?.ct_stored_count ?? ctAttempted,
 );
-const xbrlStored = Number(
+let xbrlStored = Number(
   item.xbrl_stored_count ??
     nodeJson('Count XBRL Upserts')?.xbrl_stored_count ??
     nodeJson('Prepare XBRL Zero Count')?.xbrl_stored_count ??
     0,
 );
-const xbrlMetrics = Number(
+let xbrlMetrics = Number(
   item.xbrl_metric_count ?? nodeJson('Count XBRL Upserts')?.xbrl_metric_count ?? 0,
 );
-const fdaStored = Number(
+let fdaStored = Number(
   item.fda_stored_count ??
     nodeJson('Count FDA Upserts')?.fda_stored_count ??
     nodeJson('Prepare FDA Zero Count')?.fda_stored_count ??
     0,
 );
-const newsStored = Number(
+let newsStored = Number(
   item.news_stored_count ??
     nodeJson('Count Company News Upserts')?.news_stored_count ??
     nodeJson('Prepare Company News Zero Count')?.news_stored_count ??
     0,
 );
-const patentsStored = Number(
+let patentsStored = Number(
   item.patents_stored_count ??
     nodeJson('Count USPTO Upserts')?.patents_stored_count ??
     nodeJson('Prepare USPTO Zero Count')?.patents_stored_count ??
     0,
 );
-const courtStored = Number(
+let courtStored = Number(
   item.courtlistener_stored_count ??
     nodeJson('Count CourtListener Upserts')?.courtlistener_stored_count ??
     nodeJson('Prepare CourtListener Zero Count')?.courtlistener_stored_count ??
     0,
 );
+
+if (validated.collector_key === 'PII-03-COVER') {
+  const coverCounts = nodeJson('Load Coverage Counts') || item;
+  secStored = Number(coverCounts.sec_stored_count || 0);
+  ctStored = Number(coverCounts.ct_stored_count || 0);
+  xbrlStored = Number(coverCounts.xbrl_stored_count || 0);
+  xbrlMetrics = Number(coverCounts.xbrl_metric_count || 0);
+  fdaStored = Number(coverCounts.fda_stored_count || 0);
+  newsStored = Number(coverCounts.news_stored_count || 0);
+  patentsStored = Number(coverCounts.patents_stored_count || 0);
+  courtStored = Number(coverCounts.courtlistener_stored_count || 0);
+  secNorm = { ok: secStored >= minSec, document_count: secStored };
+  ctNorm = { ok: true, document_count: ctStored };
+  xbrlNorm = { ok: xbrlStored > 0, skipped: xbrlEnabled && xbrlStored < 1, document_count: xbrlStored };
+  fdaNorm = { ok: fdaStored > 0, skipped: fdaStored < 1, document_count: fdaStored };
+  newsNorm = { ok: newsStored > 0, skipped: newsStored < 1, document_count: newsStored };
+  patentsNorm = { ok: patentsStored > 0, skipped: patentsStored < 1, document_count: patentsStored };
+  courtNorm = { ok: courtStored > 0, skipped: courtStored < 1, document_count: courtStored };
+}
 
 const secOk = secNorm.ok === true && secStored >= minSec;
 const secFailed = secNorm.ok === false;

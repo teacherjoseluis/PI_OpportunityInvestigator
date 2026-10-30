@@ -143,24 +143,26 @@ Fill these values as the project is established:
 
 - Hosted n8n URL: `https://teacherjoseluis.app.n8n.cloud`
 - Hosted n8n project ID: `FaU28ckb88bAPAfT` (personal project; confirmed via MCP)
-- Primary workflow name and ID: `PII-00 Case Orchestrator` / `4jvmYtTHKufojJRK` (published; version `e1828955-d1db-48e9-b359-b61fc76a98cd`)
+- Primary workflow name and ID: `PII-00 Case Orchestrator` / `14meNEolSDfSRhjy` (published; version `920afc9a-36aa-4b34-9dc3-e164fbdbdd4b`). Previous orchestrator `4jvmYtTHKufojJRK` is unpublished.
 - PII-01 workflow name and ID: `PII-01 Identity Resolver` / `Xf6DjDUMyfOyNX3G` (published; version `de222a9c-c473-4dae-86f8-2017ff9319a7`)
 - PII-02 workflow name and ID: `PII-02 Eligibility Gate` / `hqgFoP7ny6jnycxx` (published; version `567e37d5-1cd7-41cd-9399-9ae3055f69e0`)
-- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `IqoALspzvN3PL5Cq` (published; version `e32c2e06-8367-42f0-983b-dfe7104eab5d`)
+- PII-03 workflow name and ID: `PII-03 Evidence Collector` / `Uo5s0TUOFVMQywQX` (published; version `4f870b13-1db5-404d-974a-9024df46cd48`). Previous collector `IqoALspzvN3PL5Cq` is unpublished.
+- PII-03-MKT workflow name and ID: `PII-03-MKT Market Data Collector` / `EE1ZJNOJcULErIOJ` (published; version `c412bc0d-8efa-40f7-8f37-6fdb89549a18`)
 - PII-04 workflow name and ID: `PII-04 Financial and Business Analyst` / `RvIlyuDV0MEsXezL` (published; version `5e50acb9-556f-47d2-92ac-edeb8572e85c`)
 - PII-05 workflow name and ID: `PII-05 Growth Analyst` / `sdamxDo9SUdo4QxC` (published; version `5eda536b-d371-4b57-a95f-c61b450e91df`)
 - PII-06 workflow name and ID: `PII-06 Pipeline and Clinical Analyst` / `b8CxYW8T8FrGl62x` (published; version `d72f0c85-0b16-423e-8226-0f0b29d305a6`)
 - PII-07 workflow name and ID: `PII-07 Regulatory and Catalyst Analyst` / `4AqBDr5hjZeMLy99` (published; version `024718e7-9cd9-4fe8-ba7b-0598b405f3c4`)
-- PII-08 workflow name and ID: `PII-08 Valuation and Market Analyst` / `1PuOVYf0O3GThRwq` (published; version `d64f67dc-4a25-4527-8175-e258c554b12c`)
-- PII-09 workflow name and ID: `PII-09 Risk and Red-Team Reviewer` / `mioSWLKBMLAaBGzs` (published; version `31e32194-f9a7-4627-805c-479eafb137a0`)
-- PII-10 workflow name and ID: `PII-10 Scoring and Quality Gate` / `lIjKOZS7qDizvynm` (published; version `8b776acf-27a8-4627-9693-c9683c873eae`)
-- PII-11 workflow name and ID: `PII-11 Report Generator` / `CLiHq1zJ1Euwhrxb` (published; version `65614b81-f873-4f1c-ad89-05e6df8dcb35`)
-- PII-12 workflow name and ID: `PII-12 Monitoring and Reassessment` / `go396vtpeHKcvtub` (inactive; version `2633c95f-34cf-4051-a384-a0ec7b78762e`)
+- PII-08 workflow name and ID: `PII-08 Valuation and Market Analyst` / `1PuOVYf0O3GThRwq` (published; version `10d9a44a-5f1c-4991-a4d7-193bc0818c4e`)
+- PII-09 workflow name and ID: `PII-09 Risk and Red-Team Reviewer` / `mioSWLKBMLAaBGzs` (published; version `2bcee50b-912c-4304-b63b-4584606f2e70`)
+- PII-10 workflow name and ID: `PII-10 Scoring and Quality Gate` / `lIjKOZS7qDizvynm` (published; version `ed872825-0b78-4536-88ba-ad6f8eba2b41`)
+- PII-11 workflow name and ID: `PII-11 Report Generator` / `CLiHq1zJ1Euwhrxb` (published; version `3238f85f-4d5e-497f-bce3-c7582ddc6c04`)
+- PII-12 workflow name and ID: `PII-12 Monitoring and Reassessment` / `go396vtpeHKcvtub` (published; version `cf682c29-9afb-4740-a08e-ce9423cab9e3`; execute-workflow trigger only, no schedule)
+- PII-16 workflow name and ID: `PII-16 Technical and Market Behavior Analyst` / `Lwyh7GEDocAaj0V8` (published; version `a85eacff-3fb2-4fd0-ac68-c38a1686cfc2`)
 - PII-13 workflow name and ID: `PII-13 Operations and Alerts` / `ldPDfkqkkuDBfLe5` (inactive; version `be2d45ee-bd56-4e1a-b588-bdf46d2143f1`)
 - PII-14 workflow name and ID: `PII-14 Email Digest and Report Delivery` / `kf6pC1t7J1XavbiE` (published; version `9a7c0bf0-1a1f-4234-99af-d0ec88a6b846`; on PII-00 path)
 - PII Slack Intake workflow name and ID: `PII Slack Intake` / `Co5hmZSuqqk97rhg` (published; version `1d358400-1f6c-4a08-afca-ed776cbceb9e`)
 - PII-15 workflow name and ID: `PII-15 Slack Completion Notify` / `3Q4goJz1gGKJRLMI` (published; version `fdf2949f-d947-4b8b-ad4f-c59377a38d53`)
-- Active version ID: e1828955-d1db-48e9-b359-b61fc76a98cd (PII-00; wired through PII-11 → PII-14 → PII-15; early-exit notify on eligibility/evidence stop)
+- Active version ID: 920afc9a-36aa-4b34-9dc3-e164fbdbdd4b (PII-00 supervisor waves; identity and eligibility serial, collectors and specialists fan out, then PII-11 → PII-14 → PII-15)
 - Webhook test URL: `https://teacherjoseluis.app.n8n.cloud/webhook-test/pii/investigate`
 - Webhook production URL: `https://teacherjoseluis.app.n8n.cloud/webhook/pii/investigate` (published)
 - Slack slash webhook production URL: `https://teacherjoseluis.app.n8n.cloud/webhook/pii/slack` (published)
@@ -197,13 +199,15 @@ Fill these values as the project is established:
  - `npm run bundle:pii-14` — regenerate PII-14 `workflow.ts`
  - `npm run bundle:pii-slack` — regenerate Slack intake `workflow.ts`
  - `npm run bundle:pii-15` — regenerate PII-15 Slack notify `workflow.ts`
+ - `npm run bundle:pii-03-mkt` — regenerate PII-03-MKT `workflow.ts`
+ - `npm run bundle:pii-16` — regenerate PII-16 `workflow.ts`
  - `.\scripts\smoke\Invoke-PiiWebhook.ps1` — hosted webhook smoke test (see `docs/SMOKE_TESTS.md`)
 
 ## Current Status
 
-Project status: Phase 1 through PII-15 hosted. **E1 + E4 + E5 + E6 + E7 signed off**. **E8 deployed** (CourtListener + wider XBRL + CT.gov enrollment; VPS `024`). **Slack early-exit notify deployed**. **PII-10 OOM pack deployed** (GALT scoring `2446` succeeded). Remaining: continue GALT PII-11→14→15 or smoke a fresh ticker through report/email; optional TwelveData upgrade; webhook rotation.
+Project status: Phase 1 through PII-16 hosted. **E1 + E4 + E5 + E6 + E7 signed off**. **E8 deployed**. **Slack early-exit notify deployed**. **Supervisor waves deployed** (PII-00 `14meNEolSDfSRhjy`). L1 LLM shells stay deferred.
 
-**Architecture spec (local, not implemented):** [`docs/MULTI_AGENT_ORCHESTRATION.md`](docs/MULTI_AGENT_ORCHESTRATION.md) — replace the PII-00 hardcoded sequence with a supervisor + task DAG, and add first-class technical/market-behavior analysis (PII-16) that Phase 1 only stubbed as `INSUFFICIENT_EVIDENCE` inside PII-08. Draft configs: `config/agents.v1.json`, `config/analysis-technical.v1.json`, `config/collection-market.v1.json`. No hosted workflow change until explicitly requested.
+**Orchestration (hosted):** [`docs/MULTI_AGENT_ORCHESTRATION.md`](docs/MULTI_AGENT_ORCHESTRATION.md). PII-00 writes `agent_tasks` and dispatches the planned graph: identity and eligibility stay serial; SEC and XBRL stay in separate waves because they share the SEC provider cap; the other collectors and the specialist wave (PII-04–08 and PII-16) fan out; `PII-03-COVER` joins coverage; `PII-16-EVENTS` runs after catalysts; one fill-in pass can rerun the owning analyst. `EVENT_REASSESSMENT` and `REFRESH` execute only the agents in `dispatch_keys`. `PII-03` still accepts a full run when `collector_key` is omitted. `PII-12` evaluates price/volume rules from `market_bars` when those rules are active. Migration `025` is applied on the VPS. NBIX smoke exec `2724` stored 2796 market bars and 10 technical claims; the first result envelopes reported the upsert row instead of that analysis, and the envelope fix is published for the next run.
 
 ### PII-03 enrichment backlog (see ENRICHMENT.md)
 
@@ -219,20 +223,51 @@ Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 
 ## Next Steps
 
-1. Re-run **GALT** from intake (`/pii GALT` or webhook). Prior case `c52537ae-3238-4197-9ea3-bc69561f0100` is `SUPERSEDED` so `duplicate_recent_case` is clear. PII-10 OOM pack is published.
-2. Discovery D0 spec is in `docs/DISCOVERY.md` (weekly SEC name lead list → email; owner `/pii` to analyze). Not implemented until explicitly requested.
-3. Review [`docs/MULTI_AGENT_ORCHESTRATION.md`](docs/MULTI_AGENT_ORCHESTRATION.md). If approved, implement slices **M0** (shadow DAG) and **T0** (fixture-backed indicators) locally before any hosted supervisor rewrite.
-4. Optionally upgrade TwelveData; rotate webhook secret; smoke early-exit DM on a mega-cap.
-5. Day-to-day: Slack `/pii` / webhook for fresh tickers (avoid REGN `duplicate_recent_case`).
+1. Chart memo and follow-up routing are specified in `docs/EMAIL_CHART_MEMO.md` and `docs/FOLLOW_UP_QUESTIONS.md`. Not implemented until explicitly requested.
+2. Re-run **GALT** from intake (`/pii GALT` or webhook). Prior case `c52537ae-3238-4197-9ea3-bc69561f0100` is `SUPERSEDED` so `duplicate_recent_case` is clear. PII-10 OOM pack is published.
+3. Discovery D0 spec is in `docs/DISCOVERY.md` (weekly SEC name lead list → email; owner `/pii` to analyze). Not implemented until explicitly requested.
+4. Orchestration is published. TwelveData `/time_series` returned bars for NBIX (`access_status=ok`, 2796 bars). No short-interest source. L1 stays deferred. NBIX XBRL coverage stored a companyfacts document with `xbrl_metric_count=0`, and CourtListener stored 0 dockets.
+5. Optionally upgrade TwelveData; rotate webhook secret; smoke early-exit DM on a mega-cap.
+6. Day-to-day: Slack `/pii` / webhook for fresh tickers (avoid REGN `duplicate_recent_case`).
 
 ## Milestone Log
+
+### 2026-10-29 (chart memo and follow-up specs)
+
+- Authored [`docs/EMAIL_CHART_MEMO.md`](docs/EMAIL_CHART_MEMO.md) from the accepted layout `assets/pii-investor-email-charts.png`. The memo is table HTML plus one price PNG. Relative strength for XLV, SPY, and the 12-month window is computed in PII-16 and not stored yet. Short interest and peers stay empty tiles. **Not implemented.**
+- Authored [`docs/FOLLOW_UP_QUESTIONS.md`](docs/FOLLOW_UP_QUESTIONS.md). A question on an existing case is routed by PII-00 to the owning agent and answered from the blackboard; a refresh uses the existing `dispatch_keys` subgraph. Trade instructions, short interest, and peers are refusals. **Not implemented.**
+
+### 2026-10-29 (eligibility ceiling removed)
+
+- Removed `market_cap_max_usd` from `config/eligibility.v1.json` and applied migration `026_remove_market_cap_ceiling_v1.sql` on the active config `28c43358-9b2a-4700-81a1-024cc8f03b1b`. The $100M floor stays. Temp workflow `fUFfXo4zl7hggirQ` execution `2754` succeeded and was archived. No PII-02 redeploy. `npm test` 171/171.
+
+### 2026-10-29 (supervisor waves deploy)
+
+- Applied migration `025` earlier in this deploy. Published PII-03-MKT `EE1ZJNOJcULErIOJ` `c412bc0d-8efa-40f7-8f37-6fdb89549a18`, PII-16 `Lwyh7GEDocAaj0V8` `a85eacff-3fb2-4fd0-ac68-c38a1686cfc2`, PII-03 `Uo5s0TUOFVMQywQX` `4f870b13-1db5-404d-974a-9024df46cd48`, PII-08 `10d9a44a-5f1c-4991-a4d7-193bc0818c4e`, PII-09 `2bcee50b-912c-4304-b63b-4584606f2e70`, PII-10 `ed872825-0b78-4536-88ba-ad6f8eba2b41`, PII-11 `3238f85f-4d5e-497f-bce3-c7582ddc6c04`, PII-12 `cf682c29-9afb-4740-a08e-ce9423cab9e3`.
+- Cut over the webhook: unpublished previous PII-00 `4jvmYtTHKufojJRK` and previous PII-03 `IqoALspzvN3PL5Cq`. Published supervisor PII-00 `14meNEolSDfSRhjy` version `920afc9a-36aa-4b34-9dc3-e164fbdbdd4b`. Archived temp migration workflow `aZjMJAYdKYnMsM9A`.
+- Smoke: production webhook NBIX, case `26c575e8-3b9a-4c30-ae84-ee21ed2e0da7`, PII-00 exec `2724` success in about 82s. Eligibility PASS. Coverage COLLECTED (67 documents; CourtListener 0; XBRL metric count 0). PII-11 exec `2745` `REPORT_PUBLISHABLE` / `COMPLETE` / `publication_ready=true`, report `8e740bcb-cf91-492f-9572-2811622d93d0`. Normalize stored 2796 bars (`access_status=ok`) and PII-16 exec `2741` evaluated 10 technical claims, but both result builders read the upsert id row, so the parent envelopes said INSUFFICIENT and FAILED. Published the envelope fix on PII-03-MKT and PII-16. That case was not rerun.
+
+### 2026-10-29 (supervisor waves local)
+
+- Turned the local PII-00 canvas from a shadow plan plus a serial chain into the supervisor graph. `shadow_plan_only` is false. Identity and eligibility stay serial. Collector workers and the specialist wave fan out when `dispatch_keys` includes them. SEC and XBRL stay in separate waves. `PII-03-COVER` reads stored evidence counts and is the coverage gate. `EVENT_REASSESSMENT` and `REFRESH` skip agents that are not in the plan. One fill-in pass reruns the owning analyst after deactivating that claim category. Task rows are updated from result envelopes.
+- `PII-03` accepts `collector_key`. Omitted or `ALL` keeps the existing full collection path. A single worker does not advance case state.
+- `PII-16` `focus=events` keeps the event-reaction claim. `PII-12` emits drawdown, SMA-cross, volume-spike, and XBI relative-strength events from stored bars when those rules are active.
+- L1 LLM shells remain deferred. Not deployed. `npm test` 170/170.
+
+### 2026-10-29 (multi-agent orchestration local)
+
+- Implemented slices **M0–M4** and **T0–T2** locally. **Not deployed.** Migration `025_agent_tasks_technical_market_v1.sql` adds `agent_tasks`, `market_bars`, `technical_indicator_values`, and `scores.technical_context_score`. It is not applied on the VPS.
+- PII-00 writes the shadow plan after the 202 ack (`supervisor_cursor` + `agent_tasks`, `shadow=true`) and still executes the serial canvas. `selectReadyWave` covers parallel specialist and collector waves in tests. The canvas does not fan out in parallel and still runs the FULL chain for every mode.
+- `PII-03` stays the facade for SEC, XBRL, CT.gov, FDA, news, USPTO, and CourtListener. `PII-03-MKT` fetches TwelveData `/time_series` once per investigation, with Finnhub `/stock/candle` when the plan denies the series. `PII-16` computes SMA, RSI, MACD, ATR, ADX, realized vol, drawdown, ADV, and relative strength vs SPY/XBI/XLV from stored bars.
+- `technical_context_score` is nullable and weight 0 in `research_priority_score`. Missing OHLCV applies the configured confidence penalty. `timing_can_defer_watchlist` defaults to false. PII-08 skips `liquidity_adv`, `volatility_drawdown`, `short_interest`, and `entry_timing` when `rehomed_topic_keys` is set. Reports include `technical_market` and the line “Timing context is not a trade instruction.”
+- L1 prompt shells are not implemented (`prompts/README.md`). Provider gaps left explicit: unknown TwelveData `/time_series` access, unknown Finnhub 5-year weekly candle coverage, no short-interest vendor. `npm test` 164/164. Placeholder workflow IDs until deploy.
 
 ### 2026-10-29 (multi-agent orchestration spec)
 
 - Authored [`docs/MULTI_AGENT_ORCHESTRATION.md`](docs/MULTI_AGENT_ORCHESTRATION.md): supervisor + blackboard + task DAG to replace the PII-00 linear chain; specialist parallel wave; mode-aware subgraphs for reassessment.
 - Specified **PII-16 Technical / Market Behavior Analyst** and collector `PII-03-MKT` so entry timing, trend, relative strength vs XBI/XLV/SPY, ADV, volatility, and drawdown are first-class (product §2.5 / §10.5) instead of PII-08 insufficient stubs.
 - TA is context, not a trade bot: no buy/sell language; `technical_context_score` excluded from default `research_priority_score` weights; indicators computed locally from stored OHLCV.
-- Draft configs `config/agents.v1.json`, `config/analysis-technical.v1.json`, `config/collection-market.v1.json`. **Not implemented / not deployed.**
+- Draft configs `config/agents.v1.json`, `config/analysis-technical.v1.json`, `config/collection-market.v1.json`. Implementation is the milestone above. **Not deployed.**
 
 ### 2026-09-17 (Discovery D0 spec)
 

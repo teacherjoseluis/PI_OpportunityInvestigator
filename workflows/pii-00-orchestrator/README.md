@@ -57,20 +57,11 @@ See [docs/SMOKE_TESTS.md](../../docs/SMOKE_TESTS.md) for URLs, fixtures, and DB 
 
 - Validate investigation request
 - Idempotent lookup by `request_id`
-- Insert `research_cases`, `case_state_history`, `workflow_runs`
+- Insert `research_cases`, `case_state_history`, `workflow_runs`, and `agent_tasks`
 - Return case ack without holding connection for full investigation
-- Advance new cases to `IDENTITY_REVIEW` after response
-- **Wired:** PII-01 Identity Resolver (`Xf6DjDUMyfOyNX3G`) via Execute Sub-workflow after IDENTITY_REVIEW
-- **Wired:** PII-02 Eligibility Gate (`hqgFoP7ny6jnycxx`) after PII-01
-- **Wired:** PII-03 Evidence Collector (`IqoALspzvN3PL5Cq`) after PII-02 only when `next_state === COLLECTING`
-- **Wired:** PII-04 Financial Analyst (`RvIlyuDV0MEsXezL`) after PII-03 only when `next_state === ANALYZING`
-- **Wired:** PII-05 Growth Analyst (`sdamxDo9SUdo4QxC`) after PII-04 only when `next_state === ANALYZING`
-- **Wired:** PII-06 Pipeline Analyst (`b8CxYW8T8FrGl62x`) after PII-05 only when `next_state === ANALYZING`
-- **Wired:** PII-07 Regulatory Analyst (`4AqBDr5hjZeMLy99`) after PII-06 only when `next_state === ANALYZING`
-- **Wired (local):** PII-08 Valuation Analyst (`1PuOVYf0O3GThRwq`) after PII-07 only when `next_state === ANALYZING`
+- Dispatch the planned graph after the ack. Identity and eligibility stay serial. Collector workers and specialists fan out when the plan includes them. `EVENT_REASSESSMENT` and `REFRESH` skip agents that are not in `dispatch_keys`.
+- **Not deployed.** PII-03-MKT and PII-16 still use placeholder workflow IDs. Apply migration `025` before a deploy.
 
 ## Postgres credential
 
 Uses n8n credential **`Postgres account`** â†’ VPS `108.174.153.74:5433` / `pii_research`.
-- **Wired:** PII-11 Report Generator (`CLiHq1zJ1Euwhrxb`) after PII-10 only when `next_state === AWAITING_HUMAN_REVIEW`
-- **Wired:** PII-15 Slack Notify (`3Q4goJz1gGKJRLMI`) after PII-11

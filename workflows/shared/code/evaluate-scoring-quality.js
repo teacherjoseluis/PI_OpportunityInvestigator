@@ -133,6 +133,77 @@ if (!claimRows.length) {
 
 const filings = evidenceRows.filter((row) => row.source_type === 'sec_edgar_filing');
 const trials = evidenceRows.filter((row) => row.source_type === 'clinicaltrials_gov');
+const hasMarketOhlcv = evidenceRows.some((row) =>
+  row.source_type === 'market_ohlcv' ||
+  row.source_type === 'market_quote' ||
+  row.source_type === 'market_benchmark',
+);
+
+function loadTechnicalSnapshot() {
+  const packed = nodeJson('Load Technical Snapshot');
+  const raw =
+    (packed && (packed.technical_snapshot || packed.snapshot_json)) ||
+    validated.technical_snapshot ||
+    null;
+  if (!raw) return null;
+  if (typeof raw === 'object') return raw;
+  try {
+    return JSON.parse(String(raw));
+  } catch {
+    return null;
+  }
+}
+
+function technicalComponentScores(snapshot) {
+  const out = {};
+  if (!snapshot) return out;
+  if (snapshot.trend_alignment != null && snapshot.trend_alignment !== '') {
+    out.trend_alignment = Number(snapshot.trend_alignment);
+  }
+  if (snapshot.drawdown_pct != null && snapshot.drawdown_pct !== '') {
+    out.drawdown_from_high = clamp(100 - Number(snapshot.drawdown_pct) * 1.5, 0, 100);
+  }
+  if (snapshot.rs_xbi_3m_ppt != null && snapshot.rs_xbi_3m_ppt !== '') {
+    out.relative_strength_xbi_3m = clamp(50 + Number(snapshot.rs_xbi_3m_ppt), 0, 100);
+  }
+  if (snapshot.adv20 != null && Number(snapshot.adv_minimum) > 0) {
+    const ratio = Number(snapshot.adv20) / Number(snapshot.adv_minimum);
+    out.liquidity_adv =
+      ratio >= 1 ? clamp(70 + 15 * Math.log10(ratio), 0, 100) : clamp(40 * ratio, 0, 100);
+  }
+  if (snapshot.realized_vol != null && snapshot.realized_vol !== '') {
+    const vol = Number(snapshot.realized_vol);
+    let score = 60;
+    if (vol >= 0.2 && vol <= 0.55) score = 75;
+    else if (vol > 0.8) score = 30;
+    else if (vol < 0.15) score = 55;
+    out.volatility_regime = score;
+  }
+  if (snapshot.event_excess_return_pct != null && snapshot.event_excess_return_pct !== '') {
+    out.event_reaction = clamp(50 + Number(snapshot.event_excess_return_pct), 0, 100);
+  }
+  return out;
+}
+
+const technicalSnapshot = loadTechnicalSnapshot();
+const technicalWeights =
+  (scoresCfg.technical && scoresCfg.technical.weights) || {};
+const technicalParts = technicalComponentScores(technicalSnapshot);
+const technicalKeys = Object.keys(technicalParts).filter(
+  (key) => technicalParts[key] != null && !Number.isNaN(technicalParts[key]),
+);
+let technicalContextScore = null;
+if (technicalKeys.length) {
+  let weightSum = 0;
+  let acc = 0;
+  for (const key of technicalKeys) {
+    const weight = Number(technicalWeights[key] ?? 1);
+    if (!(weight > 0)) continue;
+    weightSum += weight;
+    acc += weight * technicalParts[key];
+  }
+  technicalContextScore = weightSum ? round2(acc / weightSum) : null;
+}
 
 function scoreDomainCategories(category) {
   if (category === 'business_financial' || category === 'financial_business') {
@@ -234,7 +305,7 @@ const risk = scoreRisk(categoryMap.risk || 'risk_red_team');
 const claimsWithLinks = claimRows.filter(
   (c) => Number(c.evidence_link_count || 0) > 0,
 ).length;
-const evidenceConfidence = claimRows.length
+let evidenceConfidence = claimRows.length
   ? round2(
       clamp(
         (claimsWithLinks / claimRows.length) * 70 +
@@ -246,6 +317,10 @@ const evidenceConfidence = claimRows.length
   : evidenceRows.length
     ? 20
     : null;
+const missingMarketPenalty = Number(scoring.missing_market_ohlcv_confidence_penalty || 0);
+if (evidenceConfidence != null && !hasMarketOhlcv && missingMarketPenalty > 0) {
+  evidenceConfidence = round2(clamp(evidenceConfidence - missingMarketPenalty, 0, 100));
+}
 
 const dated = evidenceRows
   .map((r) => r.publication_date || (r.metadata_json && r.metadata_json.filingDate))
@@ -274,6 +349,23 @@ const researchPriority = round2(
     100,
   ),
 );
+let riskAdjusted = risk.score;
+if (
+  scoresCfg.technical &&
+  scoresCfg.technical.feed_risk === true &&
+  technicalSnapshot
+) {
+  let bump = 0;
+  if (Number(technicalSnapshot.drawdown_pct) >= 25) bump += 8;
+  if (
+    technicalSnapshot.adv20 != null &&
+    Number(technicalSnapshot.adv_minimum) > 0 &&
+    Number(technicalSnapshot.adv20) < Number(technicalSnapshot.adv_minimum)
+  ) {
+    bump += 8;
+  }
+  if (bump && riskAdjusted != null) riskAdjusted = round2(clamp(Number(riskAdjusted) + bump, 0, 100));
+}
 
 const components = [
   {
@@ -346,6 +438,18 @@ const components = [
     missing: freshnessScore == null,
     notes: 'dated_evidence=' + dated.length,
   },
+  {
+    component_key: 'technical_context',
+    parent_score_key: 'technical_context_score',
+    raw_value: technicalKeys.length || null,
+    normalized_value: technicalContextScore,
+    weight: 0,
+    contribution: 0,
+    missing: technicalContextScore == null,
+    notes: technicalKeys.length
+      ? 'components=' + technicalKeys.join('+') + '; excluded from research_priority_score'
+      : 'missing market snapshot',
+  },
 ];
 
 const gateResults = [];
@@ -413,8 +517,10 @@ addGate(
 
 addGate(
   'schema_valid_report',
-  false,
-  'Phase 1: report schema validation deferred to PII-11',
+  scoring.require_schema_valid_report === false,
+  scoring.require_schema_valid_report === false
+    ? 'schema gate not required for this scoring pass'
+    : 'Phase 1: report schema validation deferred to PII-11',
 );
 
 const requiredFailed = gateResults.filter((g) => !g.passed);
@@ -450,10 +556,14 @@ if (hardStopZero) {
   Number(evidenceConfidence || 0) >= minConfWatchlist &&
   Number(researchPriority || 0) >= minPriWatchlist
 ) {
+  const deferWatchlist =
+    scoring.timing_can_defer_watchlist === true &&
+    technicalSnapshot &&
+    technicalSnapshot.timing_label === 'UNFAVORABLE';
   outcome = 'SCORED';
-  outcome_class = 'ACTIVE_WATCHLIST';
-  next_state = 'COMPLETE';
-  reason = 'gates_passed_watchlist';
+  outcome_class = deferWatchlist ? 'MONITOR' : 'ACTIVE_WATCHLIST';
+  next_state = deferWatchlist ? 'AWAITING_HUMAN_REVIEW' : 'COMPLETE';
+  reason = deferWatchlist ? 'timing_deferred_watchlist' : 'gates_passed_watchlist';
 } else {
   outcome = 'SCORED';
   outcome_class = 'MONITOR';
@@ -466,10 +576,11 @@ const scores = {
   growth_score: growth.score,
   pipeline_score: pipeline.score,
   valuation_context_score: valuation.score,
-  risk_score: risk.score,
+  risk_score: riskAdjusted == null ? risk.score : riskAdjusted,
   evidence_confidence_score: evidenceConfidence,
   data_freshness_score: freshnessScore,
   research_priority_score: researchPriority,
+  technical_context_score: technicalContextScore,
   outcome_class,
   hard_stop,
 };
@@ -530,6 +641,7 @@ return [
       evidence_confidence_score: sqlNum(scores.evidence_confidence_score),
       data_freshness_score: sqlNum(scores.data_freshness_score),
       research_priority_score: sqlNum(scores.research_priority_score),
+      technical_context_score: sqlNum(scores.technical_context_score),
       hard_stop_sql: hard_stop ? 'true' : 'false',
       metadata_b64,
       n8n_execution_id: validated.n8n_execution_id || null,

@@ -198,6 +198,26 @@ const loadAnalysisConfig = node({
   },
 });
 
+const loadTechnicalSnapshot = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Load Technical Snapshot',
+    alwaysOutputData: true,
+    executeOnce: true,
+    parameters: {
+      operation: 'executeQuery',
+      query:
+        "SELECT COALESCE((SELECT jsonb_object_agg(indicator_key, metric_value) FROM technical_indicator_values WHERE case_id = $1::uuid), '{}'::jsonb) AS technical_snapshot",
+      options: {
+        queryReplacement: expr('{{ $("Validate Scoring Request").item.json.case_id }}'),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: { postgres: newCredential('Postgres account') },
+  },
+});
+
 const evaluateScoringQuality = node({
   type: 'n8n-nodes-base.code',
   version: 2,
@@ -220,10 +240,10 @@ const upsertScores = node({
     parameters: {
       operation: 'executeQuery',
       query:
-        "INSERT INTO scores (case_id, configuration_version_id, business_quality_score, growth_score, pipeline_score, valuation_context_score, risk_score, evidence_confidence_score, data_freshness_score, research_priority_score, outcome_class, hard_stop) VALUES ($1::uuid, NULLIF(NULLIF(TRIM($2), ''), 'null')::uuid, NULLIF(NULLIF(TRIM($3), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($4), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($5), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($6), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($7), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($8), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($9), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($10), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($11), ''), 'null'), (NULLIF(TRIM($12), '') = 'true')) ON CONFLICT (case_id) DO UPDATE SET configuration_version_id = EXCLUDED.configuration_version_id, business_quality_score = EXCLUDED.business_quality_score, growth_score = EXCLUDED.growth_score, pipeline_score = EXCLUDED.pipeline_score, valuation_context_score = EXCLUDED.valuation_context_score, risk_score = EXCLUDED.risk_score, evidence_confidence_score = EXCLUDED.evidence_confidence_score, data_freshness_score = EXCLUDED.data_freshness_score, research_priority_score = EXCLUDED.research_priority_score, outcome_class = EXCLUDED.outcome_class, hard_stop = EXCLUDED.hard_stop, updated_at = NOW() RETURNING id AS score_id, case_id",
+        "INSERT INTO scores (case_id, configuration_version_id, business_quality_score, growth_score, pipeline_score, valuation_context_score, risk_score, evidence_confidence_score, data_freshness_score, research_priority_score, outcome_class, hard_stop, technical_context_score) VALUES ($1::uuid, NULLIF(NULLIF(TRIM($2), ''), 'null')::uuid, NULLIF(NULLIF(TRIM($3), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($4), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($5), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($6), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($7), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($8), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($9), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($10), ''), 'null')::numeric, NULLIF(NULLIF(TRIM($11), ''), 'null'), (NULLIF(TRIM($12), '') = 'true'), NULLIF(NULLIF(TRIM($13), ''), 'null')::numeric) ON CONFLICT (case_id) DO UPDATE SET configuration_version_id = EXCLUDED.configuration_version_id, business_quality_score = EXCLUDED.business_quality_score, growth_score = EXCLUDED.growth_score, pipeline_score = EXCLUDED.pipeline_score, valuation_context_score = EXCLUDED.valuation_context_score, risk_score = EXCLUDED.risk_score, evidence_confidence_score = EXCLUDED.evidence_confidence_score, data_freshness_score = EXCLUDED.data_freshness_score, research_priority_score = EXCLUDED.research_priority_score, technical_context_score = EXCLUDED.technical_context_score, outcome_class = EXCLUDED.outcome_class, hard_stop = EXCLUDED.hard_stop, updated_at = NOW() RETURNING id AS score_id, case_id",
       options: {
         queryReplacement: expr(
-          '{{ $json.case_id }},{{ $json.configuration_version_id }},{{ $json.business_quality_score }},{{ $json.growth_score }},{{ $json.pipeline_score }},{{ $json.valuation_context_score }},{{ $json.risk_score }},{{ $json.evidence_confidence_score }},{{ $json.data_freshness_score }},{{ $json.research_priority_score }},{{ $json.outcome_class }},{{ $json.hard_stop_sql }}',
+          '{{ $json.case_id }},{{ $json.configuration_version_id }},{{ $json.business_quality_score }},{{ $json.growth_score }},{{ $json.pipeline_score }},{{ $json.valuation_context_score }},{{ $json.risk_score }},{{ $json.evidence_confidence_score }},{{ $json.data_freshness_score }},{{ $json.research_priority_score }},{{ $json.outcome_class }},{{ $json.hard_stop_sql }},{{ $json.technical_context_score }}',
         ),
         replaceEmptyStrings: true,
       },
@@ -585,6 +605,7 @@ export default workflow('pii-10-scoring', 'PII-10 Scoring and Quality Gate')
         loadCaseAndCompany.to(
           loadEvidenceDocuments.to(
             loadClaims.to(
+              loadTechnicalSnapshot.to(
               loadAnalysisConfig.to(
                 evaluateScoringQuality.to(
                   upsertScores.to(
@@ -597,6 +618,7 @@ export default workflow('pii-10-scoring', 'PII-10 Scoring and Quality Gate')
                     ),
                   ),
                 ),
+              ),
               ),
             ),
           ),

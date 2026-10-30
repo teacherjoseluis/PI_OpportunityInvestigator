@@ -1,7 +1,7 @@
 {
   "schema_version": "collection-market.v1",
-  "enabled": false,
-  "description": "Slice T1 — authorized OHLCV and quotes for PII-16 and valuation last-price inputs. Disabled until the adapter and provider plan are verified.",
+  "enabled": true,
+  "description": "Slice T1 — authorized OHLCV and quotes for PII-16 and valuation last-price inputs. Provider plan for /time_series is unverified; a denial is stored and technical claims stay insufficient.",
   "mode": "ohlcv_compact",
   "provider_order": ["twelvedata", "finnhub"],
   "intervals": ["1day", "1week"],

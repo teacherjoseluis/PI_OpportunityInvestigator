@@ -290,6 +290,28 @@ const fetchCtgovStudies = node({
   },
 });
 
+const loadMarketBars = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Load Market Bars',
+    alwaysOutputData: true,
+    executeOnce: true,
+    parameters: {
+      operation: 'executeQuery',
+      query:
+        "SELECT COALESCE((SELECT jsonb_object_agg(symbol, intervals) FROM (SELECT symbol, jsonb_object_agg(interval, bars) AS intervals FROM (SELECT symbol, interval, jsonb_agg(jsonb_build_object('bar_time', bar_time, 'open', open, 'high', high, 'low', low, 'close', close, 'volume', volume) ORDER BY bar_time) AS bars FROM market_bars WHERE symbol = $1 OR symbol IN ('SPY', 'XBI', 'XLV') GROUP BY symbol, interval) s GROUP BY symbol) t), '{}'::jsonb) AS bars_json, (SELECT metric_value FROM technical_indicator_values WHERE case_id = $2::uuid AND indicator_key = 'rs_xbi_3m_ppt' ORDER BY created_at DESC LIMIT 1) AS baseline_rs_xbi_3m_ppt",
+      options: {
+        queryReplacement: expr(
+          '{{ $("Validate Monitoring Request").item.json.ticker }},{{ $("Validate Monitoring Request").item.json.case_id }}',
+        ),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: { postgres: newCredential('Postgres account') },
+  },
+});
+
 const evaluateMonitoringSignals = node({
   type: 'n8n-nodes-base.code',
   version: 2,
@@ -509,7 +531,7 @@ const buildMonitoringResult = node({
 });
 
 const flowNote = sticky(
-  '## PII-12 Monitoring\nPoll SEC + CT.gov vs last report as_of.\nPersist detected_events + change memo.\nPhase 1: no auto re-analysis.',
+  '## PII-12 Monitoring\nPoll SEC + CT.gov vs last report as_of.\nPrice rules use stored market bars when those rules are active.\nPersist detected_events + change memo.\nPhase 1: no auto re-analysis.',
   [monitoringTrigger, validateMonitoringRequest, evaluateMonitoringSignals],
   { color: 4 },
 );
@@ -534,6 +556,7 @@ export default workflow('pii-12-monitoring', 'PII-12 Monitoring and Reassessment
           .to(loadMonitoringConfig)
           .to(fetchSecSubmissions)
           .to(fetchCtgovStudies)
+          .to(loadMarketBars)
           .to(evaluateMonitoringSignals)
           .to(
             hasEvents

@@ -392,6 +392,36 @@ const embedMap = {
     repoRoot,
     'workflows/shared/code/build-slack-notify-result.js',
   ),
+  PLAN_AGENT_TASKS: path.join(repoRoot, 'workflows/shared/code/plan-agent-tasks.js'),
+  VALIDATE_MARKET_REQUEST: path.join(
+    repoRoot,
+    'workflows/shared/code/validate-market-request.js',
+  ),
+  PREPARE_MARKET_QUERIES: path.join(
+    repoRoot,
+    'workflows/shared/code/prepare-market-queries.js',
+  ),
+  PREPARE_FINNHUB_FALLBACK: path.join(
+    repoRoot,
+    'workflows/shared/code/prepare-finnhub-fallback.js',
+  ),
+  NORMALIZE_MARKET_EVIDENCE: path.join(
+    repoRoot,
+    'workflows/shared/code/normalize-market-evidence.js',
+  ),
+  BUILD_MARKET_RESULT: path.join(repoRoot, 'workflows/shared/code/build-market-result.js'),
+  VALIDATE_TECHNICAL_REQUEST: path.join(
+    repoRoot,
+    'workflows/shared/code/validate-technical-request.js',
+  ),
+  EVALUATE_TECHNICAL_MARKET: path.join(
+    repoRoot,
+    'workflows/shared/code/technical-indicators.js',
+  ),
+  BUILD_TECHNICAL_RESULT: path.join(
+    repoRoot,
+    'workflows/shared/code/build-technical-result.js',
+  ),
 };
 
 let content = fs.readFileSync(templatePath, 'utf8');

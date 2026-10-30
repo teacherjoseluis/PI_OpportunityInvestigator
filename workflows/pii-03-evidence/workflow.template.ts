@@ -5,6 +5,7 @@ import {
   sticky,
   newCredential,
   ifElse,
+  switchCase,
   expr,
 } from '@n8n/workflow-sdk';
 
@@ -51,6 +52,7 @@ const collectionTrigger = trigger({
           { name: 'case_id', type: 'string' },
           { name: 'ticker', type: 'string' },
           { name: 'exchange', type: 'string' },
+          { name: 'collector_key', type: 'string' },
         ],
       },
     },
@@ -2011,12 +2013,97 @@ const coverageNote = sticky(
   { color: 6 },
 );
 
+const buildWorkerResult = node({
+  type: 'n8n-nodes-base.set',
+  version: 3.5,
+  config: {
+    name: 'Build Collector Worker Result',
+    executeOnce: true,
+    parameters: {
+      mode: 'manual',
+      includeOtherFields: true,
+      assignments: {
+        assignments: [
+          { id: 'outcome', name: 'outcome', value: 'COLLECTED', type: 'string' },
+          { id: 'status', name: 'status', value: 'SUCCEEDED', type: 'string' },
+          { id: 'next-state', name: 'next_state', value: 'COLLECTING', type: 'string' },
+          {
+            id: 'agent-key',
+            name: 'agent_key',
+            value: expr('{{ $("Validate Collection Request").item.json.collector_key }}'),
+            type: 'string',
+          },
+          {
+            id: 'case-id',
+            name: 'case_id',
+            value: expr('{{ $("Validate Collection Request").item.json.case_id }}'),
+            type: 'string',
+          },
+          {
+            id: 'ticker',
+            name: 'ticker',
+            value: expr('{{ $("Validate Collection Request").item.json.ticker }}'),
+            type: 'string',
+          },
+          {
+            id: 'exchange',
+            name: 'exchange',
+            value: expr('{{ $("Validate Collection Request").item.json.exchange }}'),
+            type: 'string',
+          },
+        ],
+      },
+    },
+  },
+});
+
+const loadCoverageCounts = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Load Coverage Counts',
+    alwaysOutputData: true,
+    executeOnce: true,
+    parameters: {
+      operation: 'executeQuery',
+      query:
+        "SELECT COUNT(*) FILTER (WHERE source_type IN ('sec_edgar_submissions', 'sec_edgar_filing'))::int AS sec_stored_count, COUNT(*) FILTER (WHERE source_type = 'clinicaltrials_gov')::int AS ct_stored_count, COUNT(*) FILTER (WHERE source_type = 'sec_companyfacts')::int AS xbrl_stored_count, COUNT(*) FILTER (WHERE source_type = 'fda_drugsfda')::int AS fda_stored_count, COUNT(*) FILTER (WHERE source_type = 'finnhub_company_news')::int AS news_stored_count, COUNT(*) FILTER (WHERE source_type = 'uspto_patent')::int AS patents_stored_count, COUNT(*) FILTER (WHERE source_type = 'courtlistener_docket')::int AS courtlistener_stored_count FROM evidence_documents WHERE case_id = $1::uuid",
+      options: {
+        queryReplacement: expr('{{ $("Validate Collection Request").item.json.case_id }}'),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: { postgres: newCredential('Postgres account') },
+  },
+});
+
 const finishPath = evaluateCollectionCoverage
   .to(advanceCaseState)
   .to(logCollectionState)
   .to(logWorkflowRun)
   .to(mergeCollectionOutput)
   .to(buildCollectionResult);
+
+const afterCourt = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Continue Full Collection After CourtListener?',
+    parameters: {
+      conditions: {
+        options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+        conditions: [
+          {
+            leftValue: expr('{{ $("Validate Collection Request").item.json.continue_chain }}'),
+            operator: { type: 'boolean', operation: 'true' },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+})
+  .onTrue(finishPath)
+  .onFalse(buildWorkerResult);
 
 const courtlistenerAndFinish = prepareCourtlistenerQuery.to(
   courtlistenerEnabled
@@ -2031,20 +2118,41 @@ const courtlistenerAndFinish = prepareCourtlistenerQuery.to(
                     hasCourtlistenerChunks
                       .onTrue(
                         upsertCourtlistenerEvidenceChunks.to(
-                          countCourtlistenerUpserts.to(finishPath),
+                          countCourtlistenerUpserts.to(afterCourt),
                         ),
                       )
-                      .onFalse(countCourtlistenerUpserts.to(finishPath)),
+                      .onFalse(countCourtlistenerUpserts.to(afterCourt)),
                   ),
                 ),
               )
-              .onFalse(prepareCourtlistenerZeroCount.to(finishPath)),
+              .onFalse(prepareCourtlistenerZeroCount.to(afterCourt)),
           ),
         ),
       ),
     )
-    .onFalse(prepareCourtlistenerZeroCount.to(finishPath)),
+    .onFalse(prepareCourtlistenerZeroCount.to(afterCourt)),
 );
+
+const afterUspto = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Continue Full Collection After USPTO?',
+    parameters: {
+      conditions: {
+        options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+        conditions: [
+          {
+            leftValue: expr('{{ $("Validate Collection Request").item.json.continue_chain }}'),
+            operator: { type: 'boolean', operation: 'true' },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+})
+  .onTrue(courtlistenerAndFinish)
+  .onFalse(buildWorkerResult);
 
 const patentsAndFinish = prepareUsptoQuery.to(
   usptoEnabled
@@ -2059,20 +2167,41 @@ const patentsAndFinish = prepareUsptoQuery.to(
                     hasUsptoChunks
                       .onTrue(
                         upsertUsptoEvidenceChunks.to(
-                          countUsptoUpserts.to(courtlistenerAndFinish),
+                          countUsptoUpserts.to(afterUspto),
                         ),
                       )
-                      .onFalse(countUsptoUpserts.to(courtlistenerAndFinish)),
+                      .onFalse(countUsptoUpserts.to(afterUspto)),
                   ),
                 ),
               )
-              .onFalse(prepareUsptoZeroCount.to(courtlistenerAndFinish)),
+              .onFalse(prepareUsptoZeroCount.to(afterUspto)),
           ),
         ),
       ),
     )
-    .onFalse(prepareUsptoZeroCount.to(courtlistenerAndFinish)),
+    .onFalse(prepareUsptoZeroCount.to(afterUspto)),
 );
+
+const afterNews = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Continue Full Collection After News?',
+    parameters: {
+      conditions: {
+        options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+        conditions: [
+          {
+            leftValue: expr('{{ $("Validate Collection Request").item.json.continue_chain }}'),
+            operator: { type: 'boolean', operation: 'true' },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+})
+  .onTrue(patentsAndFinish)
+  .onFalse(buildWorkerResult);
 
 const newsAndFinish = prepareCompanyNewsQuery.to(
   companyNewsEnabled
@@ -2087,20 +2216,41 @@ const newsAndFinish = prepareCompanyNewsQuery.to(
                     hasCompanyNewsChunks
                       .onTrue(
                         upsertCompanyNewsEvidenceChunks.to(
-                          countCompanyNewsUpserts.to(patentsAndFinish),
+                          countCompanyNewsUpserts.to(afterNews),
                         ),
                       )
-                      .onFalse(countCompanyNewsUpserts.to(patentsAndFinish)),
+                      .onFalse(countCompanyNewsUpserts.to(afterNews)),
                   ),
                 ),
               )
-              .onFalse(prepareCompanyNewsZeroCount.to(patentsAndFinish)),
+              .onFalse(prepareCompanyNewsZeroCount.to(afterNews)),
           ),
         ),
       ),
     )
-    .onFalse(prepareCompanyNewsZeroCount.to(patentsAndFinish)),
+    .onFalse(prepareCompanyNewsZeroCount.to(afterNews)),
 );
+
+const afterFda = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Continue Full Collection After FDA?',
+    parameters: {
+      conditions: {
+        options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+        conditions: [
+          {
+            leftValue: expr('{{ $("Validate Collection Request").item.json.continue_chain }}'),
+            operator: { type: 'boolean', operation: 'true' },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+})
+  .onTrue(newsAndFinish)
+  .onFalse(buildWorkerResult);
 
 const fdaAndFinish = prepareOpenfdaQuery.to(
   openfdaEnabled
@@ -2113,18 +2263,39 @@ const fdaAndFinish = prepareOpenfdaQuery.to(
                 upsertFdaEvidence.to(
                   prepareFdaEvidenceChunks.to(
                     hasFdaChunks
-                      .onTrue(upsertFdaEvidenceChunks.to(countFdaUpserts.to(newsAndFinish)))
-                      .onFalse(countFdaUpserts.to(newsAndFinish)),
+                      .onTrue(upsertFdaEvidenceChunks.to(countFdaUpserts.to(afterFda)))
+                      .onFalse(countFdaUpserts.to(afterFda)),
                   ),
                 ),
               )
-              .onFalse(prepareFdaZeroCount.to(newsAndFinish)),
+              .onFalse(prepareFdaZeroCount.to(afterFda)),
           ),
         ),
       ),
     )
-    .onFalse(prepareFdaZeroCount.to(newsAndFinish)),
+    .onFalse(prepareFdaZeroCount.to(afterFda)),
 );
+
+const afterCt = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Continue Full Collection After CT.gov?',
+    parameters: {
+      conditions: {
+        options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+        conditions: [
+          {
+            leftValue: expr('{{ $("Validate Collection Request").item.json.continue_chain }}'),
+            operator: { type: 'boolean', operation: 'true' },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+})
+  .onTrue(fdaAndFinish)
+  .onFalse(buildWorkerResult);
 
 const ctgovAndFinish = fetchCtgovStudies.to(
   normalizeCtgovEvidence.to(
@@ -2134,15 +2305,36 @@ const ctgovAndFinish = fetchCtgovStudies.to(
           upsertCtgovEvidence.to(
             prepareCtgovEvidenceChunks.to(
               hasCtgovChunks
-                .onTrue(upsertCtgovEvidenceChunks.to(countCtgovUpserts.to(fdaAndFinish)))
-                .onFalse(countCtgovUpserts.to(fdaAndFinish)),
+                .onTrue(upsertCtgovEvidenceChunks.to(countCtgovUpserts.to(afterCt)))
+                .onFalse(countCtgovUpserts.to(afterCt)),
             ),
           ),
         )
-        .onFalse(prepareCtgovZeroCount.to(fdaAndFinish)),
+        .onFalse(prepareCtgovZeroCount.to(afterCt)),
     ),
   ),
 );
+
+const afterXbrl = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Continue Full Collection After XBRL?',
+    parameters: {
+      conditions: {
+        options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+        conditions: [
+          {
+            leftValue: expr('{{ $("Validate Collection Request").item.json.continue_chain }}'),
+            operator: { type: 'boolean', operation: 'true' },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+})
+  .onTrue(ctgovAndFinish)
+  .onFalse(buildWorkerResult);
 
 const xbrlAndFinish = fetchSecCompanyfacts.to(
   normalizeSecXbrlEvidence.to(
@@ -2153,16 +2345,167 @@ const xbrlAndFinish = fetchSecCompanyfacts.to(
             prepareXbrlFinancialUpserts.to(
               upsertXbrlFinancialPeriod.to(
                 upsertXbrlFinancialMetrics.to(
-                  upsertXbrlEvidenceChunk.to(countXbrlUpserts.to(ctgovAndFinish)),
+                  upsertXbrlEvidenceChunk.to(countXbrlUpserts.to(afterXbrl)),
                 ),
               ),
             ),
           ),
         )
-        .onFalse(prepareXbrlZeroCount.to(ctgovAndFinish)),
+        .onFalse(prepareXbrlZeroCount.to(afterXbrl)),
     ),
   ),
 );
+
+const afterSec = ifElse({
+  version: 2.3,
+  config: {
+    name: 'Continue Full Collection After SEC?',
+    parameters: {
+      conditions: {
+        options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+        conditions: [
+          {
+            leftValue: expr('{{ $("Validate Collection Request").item.json.continue_chain }}'),
+            operator: { type: 'boolean', operation: 'true' },
+          },
+        ],
+        combinator: 'and',
+      },
+    },
+  },
+})
+  .onTrue(xbrlAndFinish)
+  .onFalse(buildWorkerResult);
+
+const secEntry = fetchSecSubmissions.to(
+  normalizeSecEvidence.to(
+    expandSecDocuments.to(
+      hasSecDocs
+        .onTrue(
+          upsertSecEvidence.to(
+            prepareSecEvidenceChunks.to(
+              hasSecChunks
+                .onTrue(upsertSecEvidenceChunks.to(countSecUpserts.to(afterSec)))
+                .onFalse(countSecUpserts.to(afterSec)),
+            ),
+          ),
+        )
+        .onFalse(prepareSecZeroCount.to(afterSec)),
+    ),
+  ),
+);
+
+const routeCollector = switchCase({
+  version: 3.2,
+  config: {
+    name: 'Route Collector Worker',
+    parameters: {
+      rules: {
+        values: [
+          {
+            outputKey: 'xbrl',
+            conditions: {
+              options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+              conditions: [
+                {
+                  leftValue: expr('{{ $("Validate Collection Request").item.json.collector_key }}'),
+                  rightValue: 'PII-03-XBRL',
+                  operator: { type: 'string', operation: 'equals' },
+                },
+              ],
+              combinator: 'and',
+            },
+          },
+          {
+            outputKey: 'ct',
+            conditions: {
+              options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+              conditions: [
+                {
+                  leftValue: expr('{{ $("Validate Collection Request").item.json.collector_key }}'),
+                  rightValue: 'PII-03-CT',
+                  operator: { type: 'string', operation: 'equals' },
+                },
+              ],
+              combinator: 'and',
+            },
+          },
+          {
+            outputKey: 'fda',
+            conditions: {
+              options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+              conditions: [
+                {
+                  leftValue: expr('{{ $("Validate Collection Request").item.json.collector_key }}'),
+                  rightValue: 'PII-03-FDA',
+                  operator: { type: 'string', operation: 'equals' },
+                },
+              ],
+              combinator: 'and',
+            },
+          },
+          {
+            outputKey: 'news',
+            conditions: {
+              options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+              conditions: [
+                {
+                  leftValue: expr('{{ $("Validate Collection Request").item.json.collector_key }}'),
+                  rightValue: 'PII-03-NEWS',
+                  operator: { type: 'string', operation: 'equals' },
+                },
+              ],
+              combinator: 'and',
+            },
+          },
+          {
+            outputKey: 'uspto',
+            conditions: {
+              options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+              conditions: [
+                {
+                  leftValue: expr('{{ $("Validate Collection Request").item.json.collector_key }}'),
+                  rightValue: 'PII-03-USPTO',
+                  operator: { type: 'string', operation: 'equals' },
+                },
+              ],
+              combinator: 'and',
+            },
+          },
+          {
+            outputKey: 'courtlistener',
+            conditions: {
+              options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+              conditions: [
+                {
+                  leftValue: expr('{{ $("Validate Collection Request").item.json.collector_key }}'),
+                  rightValue: 'PII-03-CL',
+                  operator: { type: 'string', operation: 'equals' },
+                },
+              ],
+              combinator: 'and',
+            },
+          },
+          {
+            outputKey: 'cover',
+            conditions: {
+              options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+              conditions: [
+                {
+                  leftValue: expr('{{ $("Validate Collection Request").item.json.collector_key }}'),
+                  rightValue: 'PII-03-COVER',
+                  operator: { type: 'string', operation: 'equals' },
+                },
+              ],
+              combinator: 'and',
+            },
+          },
+        ],
+      },
+      options: { fallbackOutput: 'extra', renameFallbackOutput: 'SEC or full collection' },
+    },
+  },
+});
 
 export default workflow('pii-03-evidence', 'PII-03 Evidence Collector')
   .add(collectionTrigger)
@@ -2173,23 +2516,15 @@ export default workflow('pii-03-evidence', 'PII-03 Evidence Collector')
       .onTrue(
         loadCaseAndCompany.to(
           loadCollectionConfig.to(
-            fetchSecSubmissions.to(
-              normalizeSecEvidence.to(
-                expandSecDocuments.to(
-                  hasSecDocs
-                    .onTrue(
-                      upsertSecEvidence.to(
-                        prepareSecEvidenceChunks.to(
-                          hasSecChunks
-                            .onTrue(upsertSecEvidenceChunks.to(countSecUpserts.to(xbrlAndFinish)))
-                            .onFalse(countSecUpserts.to(xbrlAndFinish)),
-                        ),
-                      ),
-                    )
-                    .onFalse(prepareSecZeroCount.to(xbrlAndFinish)),
-                ),
-              ),
-            ),
+            routeCollector
+              .onCase(0, xbrlAndFinish)
+              .onCase(1, ctgovAndFinish)
+              .onCase(2, fdaAndFinish)
+              .onCase(3, newsAndFinish)
+              .onCase(4, patentsAndFinish)
+              .onCase(5, courtlistenerAndFinish)
+              .onCase(6, loadCoverageCounts.to(finishPath))
+              .onCase(7, secEntry),
           ),
         ),
       ),

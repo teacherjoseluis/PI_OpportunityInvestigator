@@ -183,7 +183,7 @@ const loadScores = node({
     parameters: {
       operation: 'executeQuery',
       query:
-        'SELECT id AS score_id, case_id, business_quality_score, growth_score, pipeline_score, valuation_context_score, risk_score, evidence_confidence_score, data_freshness_score, research_priority_score, outcome_class, hard_stop FROM scores WHERE case_id = $1::uuid LIMIT 1',
+        'SELECT id AS score_id, case_id, business_quality_score, growth_score, pipeline_score, valuation_context_score, risk_score, evidence_confidence_score, data_freshness_score, research_priority_score, technical_context_score, outcome_class, hard_stop FROM scores WHERE case_id = $1::uuid LIMIT 1',
       options: {
         queryReplacement: expr('{{ $("Validate Report Request").item.json.case_id }}'),
         replaceEmptyStrings: true,

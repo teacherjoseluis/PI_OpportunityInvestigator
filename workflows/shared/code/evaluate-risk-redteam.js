@@ -297,6 +297,31 @@ if (dockets.length) {
   satisfiedInsufficient.add('legal_compliance_litigation');
 }
 
+const marketDocs = evidenceRows.filter((row) =>
+  row.source_type === 'market_ohlcv' ||
+  row.source_type === 'market_quote' ||
+  row.source_type === 'market_benchmark',
+);
+if (marketDocs.length) {
+  claims.push({
+    topic_key: 'market_behavior_liquidity_inventory',
+    claim_text:
+      'Authorized market bars are stored for this case (' +
+      marketDocs.length +
+      ' market evidence rows). Liquidity, drawdown, and gap context are owned by the technical analyst; this inventory does not restate a trade instruction.',
+    claim_category: claimCategory,
+    claim_kind: 'fact',
+    confidence: 76,
+    materiality: 'MEDIUM',
+    extraction_method: 'deterministic_market_bars',
+    evidence_ids: marketDocs
+      .map((row) => row.id)
+      .filter(Boolean)
+      .slice(0, 5),
+  });
+  satisfiedInsufficient.add('market_behavior_liquidity');
+}
+
 if (hasCashDebtMetrics) {
   const cash = metrics.cash_and_equivalents;
   const mkt = metrics.marketable_securities_current;
@@ -396,6 +421,7 @@ const structuralKeys = new Set([
   'patent_portfolio_inventory',
   'litigation_docket_inventory',
   'liquidity_balance_sheet_inventory',
+  'market_behavior_liquidity_inventory',
 ]);
 const structuralCount = claims.filter((c) => structuralKeys.has(c.topic_key)).length;
 

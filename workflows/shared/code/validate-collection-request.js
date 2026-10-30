@@ -26,6 +26,26 @@ for (const item of $input.all()) {
     .trim()
     .toUpperCase();
 
+  const knownKeys = new Set([
+    'ALL',
+    'PII-03',
+    'PII-03-SEC',
+    'PII-03-XBRL',
+    'PII-03-CT',
+    'PII-03-FDA',
+    'PII-03-NEWS',
+    'PII-03-USPTO',
+    'PII-03-CL',
+    'PII-03-COVER',
+  ]);
+  const requestedKey = String(body.collector_key || body.collectorKey || 'ALL')
+    .trim()
+    .toUpperCase();
+  if (!knownKeys.has(requestedKey)) {
+    errors.push('collector_key is not a known collector worker');
+  }
+  const collectorKey = requestedKey === 'PII-03' ? 'ALL' : requestedKey;
+
   if (errors.length > 0) {
     results.push({
       json: {
@@ -48,6 +68,8 @@ for (const item of $input.all()) {
       company_id: body.company_id || body.companyId || null,
       cik: body.cik || null,
       n8n_execution_id: $execution.id,
+      collector_key: collectorKey || 'ALL',
+      continue_chain: (collectorKey || 'ALL') === 'ALL',
     },
   });
 }

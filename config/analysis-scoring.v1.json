@@ -5,6 +5,7 @@
     "growth": "growth_prospects",
     "pipeline": "pipeline_clinical",
     "valuation": "valuation_market",
+    "technical": "technical_market",
     "risk": "risk_red_team"
   },
   "insufficient_topic_penalty": 5,
@@ -16,5 +17,7 @@
   "hard_stop_zero_evidence": true,
   "min_evidence_confidence_for_watchlist": 70,
   "min_research_priority_for_watchlist": 60,
-  "min_research_priority_for_high_conviction": 75
+  "min_research_priority_for_high_conviction": 75,
+  "missing_market_ohlcv_confidence_penalty": 8,
+  "timing_can_defer_watchlist": false
 }

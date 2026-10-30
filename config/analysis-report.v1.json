@@ -12,7 +12,8 @@
     "pipeline": "pipeline_clinical",
     "regulatory": "regulatory_catalyst",
     "valuation": "valuation_market",
+    "technical": "technical_market",
     "risk": "risk_red_team"
   },
-  "disclaimer": "This report is an automated research aid based on public information as of the stated as-of timestamp. It may contain errors or omissions. It is not personalized investment, legal, tax, or accounting advice. Independently verify material facts before making an investment decision."
+  "disclaimer": "This report is an automated research aid based on public information as of the stated as-of timestamp. It may contain errors or omissions. It is not personalized investment, legal, tax, or accounting advice. Independently verify material facts before making an investment decision. Timing context is not a trade instruction."
 }
