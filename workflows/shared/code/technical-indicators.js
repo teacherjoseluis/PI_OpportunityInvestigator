@@ -184,11 +184,15 @@ function drawdownFromHigh(bars, sessions) {
   if (!Array.isArray(bars) || !bars.length) return null;
   const window = bars.slice(-Math.min(Number(sessions) || bars.length, bars.length));
   let high = null;
+  let highTime = null;
   let low = null;
   for (const bar of window) {
     const h = num(bar.high);
     const l = num(bar.low);
-    if (h != null) high = high == null ? h : Math.max(high, h);
+    if (h != null && (high == null || h > high)) {
+      high = h;
+      highTime = bar.bar_time || null;
+    }
     if (l != null) low = low == null ? l : Math.min(low, l);
   }
   const close = num(window[window.length - 1].close);
@@ -198,6 +202,7 @@ function drawdownFromHigh(bars, sessions) {
     drawdown_pct: ((high - close) / high) * 100,
     percentile: span === 0 ? 100 : ((close - low) / span) * 100,
     high,
+    high_time: highTime,
     low,
     close,
   };
@@ -880,8 +885,28 @@ function evaluateTechnical(input) {
     weekly_sma_40: weekly40 ? weekly40.value : null,
   };
   addIndicator('trend_alignment', trendAlignment, 'sma stack score', '1day');
-  addIndicator('drawdown_52w_pct', range ? range.drawdown_pct : null, 'from 52w high', '1day');
-  addIndicator('rs_xbi_3m_ppt', rs3 ? rs3.excess_ppt : null, 'excess vs XBI', '1day');
+  addIndicator(
+    'drawdown_52w_pct',
+    range ? range.drawdown_pct : null,
+    range && range.high_time ? 'from 52w high; high_time=' + String(range.high_time).slice(0, 10) : 'from 52w high',
+    '1day',
+  );
+  const rsBenches = [
+    ['xbi', 'XBI'],
+    ['xlv', 'XLV'],
+    ['spy', 'SPY'],
+  ];
+  for (const months of indicatorsCfg.relative_strength_months || [1, 3, 6, 12]) {
+    for (const [slug, bench] of rsBenches) {
+      const row = rs[bench + '_' + months + 'm'];
+      addIndicator(
+        'rs_' + slug + '_' + months + 'm_ppt',
+        row ? row.excess_ppt : null,
+        'excess vs ' + bench + ' ' + months + 'm',
+        '1day',
+      );
+    }
+  }
   addIndicator('adv_20d', adv20, 'dollar volume', '1day');
   addIndicator('realized_vol_20d_ann', vol, 'log return stdev annualized', '1day');
   addIndicator(
@@ -891,6 +916,12 @@ function evaluateTechnical(input) {
     '1day',
   );
   addIndicator('weekly_rsi_14', rsiValue, 'wilder', '1week');
+  addIndicator(
+    'weekly_volume_ratio',
+    weeklyVolRatio,
+    'last week vs prior weekly average',
+    '1week',
+  );
   if (macdRow) addIndicator('weekly_macd_histogram', macdRow.histogram, '12/26/9', '1week');
   if (adxRow) addIndicator('weekly_adx_14', adxRow.adx, 'wilder', '1week');
   if (timing.label) {

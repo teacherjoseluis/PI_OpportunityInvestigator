@@ -1,6 +1,6 @@
 # PII-16 Technical and Market Behavior Analyst
 
-Computes trend, momentum, volatility, drawdown, ADV, relative strength, and entry-timing context from stored bars. Claims use `claim_category=technical_market`. Timing labels are `CONSTRUCTIVE`, `MIXED`, or `UNFAVORABLE`. Claim text does not use buy or sell language.
+Computes trend, momentum, volatility, drawdown, ADV, relative strength, and entry-timing context from stored bars. Claims use `claim_category=technical_market`. Timing labels are `CONSTRUCTIVE`, `MIXED`, or `UNFAVORABLE`. Claim text does not use buy or sell language. Persists the full relative-strength grid (`rs_{xbi,xlv,spy}_{1,3,6,12}m_ppt`) plus `weekly_volume_ratio` for the PII-14 chart memo.
 
 `technical_context_score` is stored for the report. It is not a weight in `research_priority_score`.
 

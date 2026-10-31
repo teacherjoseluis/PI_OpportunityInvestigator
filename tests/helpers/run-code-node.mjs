@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import crypto from 'node:crypto';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -11,9 +12,11 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../
  */
 export function runCodeNode(
   scriptPath,
-  { items = [], executionId = 'test-exec-1', nodes = {} } = {},
+  { items = [], executionId = 'test-exec-1', nodes = {}, prepend = [] } = {},
 ) {
-  const code = fs.readFileSync(scriptPath, 'utf8');
+  const parts = (prepend || []).map((file) => fs.readFileSync(file, 'utf8'));
+  parts.push(fs.readFileSync(scriptPath, 'utf8'));
+  const code = parts.join('\n');
   const normalized = items.map((item) =>
     item && item.json !== undefined ? item : { json: item },
   );
@@ -54,6 +57,7 @@ export function runCodeNode(
     Buffer,
     require: (name) => {
       if (name === 'crypto') return crypto;
+      if (name === 'zlib') return zlib;
       throw new Error('Cannot require: ' + name);
     },
   };

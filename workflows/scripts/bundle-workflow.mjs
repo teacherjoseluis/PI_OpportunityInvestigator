@@ -356,10 +356,10 @@ const embedMap = {
     repoRoot,
     'workflows/shared/code/validate-email-request.js',
   ),
-  EVALUATE_EMAIL_DELIVERY: path.join(
-    repoRoot,
-    'workflows/shared/code/evaluate-email-delivery.js',
-  ),
+  EVALUATE_EMAIL_DELIVERY: [
+    path.join(repoRoot, 'workflows/shared/code/chart-memo.js'),
+    path.join(repoRoot, 'workflows/shared/code/evaluate-email-delivery.js'),
+  ],
   PREPARE_EMAIL_AGGREGATE: path.join(
     repoRoot,
     'workflows/shared/code/prepare-email-aggregate.js',
@@ -428,11 +428,16 @@ let content = fs.readFileSync(templatePath, 'utf8');
 
 for (const [token, filePath] of Object.entries(embedMap)) {
   if (!content.includes(`__${token}__`)) continue;
-  if (!fs.existsSync(filePath)) {
-    console.error(`Missing embed source: ${filePath}`);
-    process.exit(1);
+  const paths = Array.isArray(filePath) ? filePath : [filePath];
+  const parts = [];
+  for (const partPath of paths) {
+    if (!fs.existsSync(partPath)) {
+      console.error(`Missing embed source: ${partPath}`);
+      process.exit(1);
+    }
+    parts.push(fs.readFileSync(partPath, 'utf8'));
   }
-  const code = fs.readFileSync(filePath, 'utf8');
+  const code = parts.join('\n');
   // Escape for embedding inside a TypeScript template literal.
   const escaped = code
     .replace(/\\/g, '\\\\')

@@ -1,6 +1,6 @@
 # Chart research memo — email format
 
-**Document status:** Design contract. Not implemented. Do not deploy until explicitly requested.  
+**Document status:** Implemented locally in PII-14 / PII-16. Do not deploy until explicitly requested.  
 **Visual source of truth:** [`assets/pii-investor-email-charts.png`](../assets/pii-investor-email-charts.png)  
 **Layout reference (browser only):** [`assets/pii-investor-email-charts.html`](../assets/pii-investor-email-charts.html)  
 **Replaces, when implemented:** the supporting/challenging memo in `workflows/shared/code/evaluate-email-delivery.js`  

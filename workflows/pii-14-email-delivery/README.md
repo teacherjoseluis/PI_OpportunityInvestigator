@@ -17,11 +17,13 @@ Outcomes: `SENT` | `SKIPPED_GATES` | `SKIPPED_DUPLICATE` | `FAILED`.
 
 ## Behavior
 
-1. Load `gates_json.email_delivery` + case + latest `research_reports` (executive brief only) + prior `email_deliveries`
+1. Load `gates_json.email_delivery` + case + latest `research_reports` + prior `email_deliveries` + chart-memo inputs (`technical_indicator_values`, weekly/daily `market_bars`, evidence counts, cash metrics)
 2. Decide send vs skip (gates / dedupe / test flag)
-3. If sending: SMTP email (text + HTML)
+3. If sending: SMTP chart research memo (table HTML + CID weekly-price PNG). Draft deliveries keep the test subject prefix; the body layout does not change.
 4. Insert `email_deliveries` (dedupe skip if already SENT)
 5. Log `workflow_runs` (`PII-14`); leave case state unchanged
+
+Subject: `[PII] {TICKER} · {OUTCOME_CLASS} · Timing {TIMING_LABEL}`. The supporting/challenging essay is no longer sent.
 
 ## Config
 

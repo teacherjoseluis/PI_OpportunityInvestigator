@@ -174,11 +174,11 @@ describe('technical indicators', () => {
   });
 
   it('emits technical claims from fixture bars without trade language', () => {
-    const daily = risingBars(220, 40);
+    const daily = risingBars(280, 40);
     const weekly = risingBars(80, 40);
-    const xbi = risingBars(220, 50);
-    const spy = risingBars(220, 80);
-    const xlv = risingBars(220, 70);
+    const xbi = risingBars(280, 50);
+    const spy = risingBars(280, 80);
+    const xlv = risingBars(280, 70);
     const result = run({
       action: 'evaluate',
       ticker: 'ACAD',
@@ -206,6 +206,24 @@ describe('technical indicators', () => {
     const blob = result.claims.map((claim) => claim.claim_text).join('\n');
     assert.equal(run({ action: 'audit_text', text: blob }).hits.length, 0);
     assert.match(blob, /Not a trade instruction/);
+    const indicatorKeys = result.indicator_rows.map((row) => row.indicator_key);
+    for (const key of [
+      'rs_xbi_1m_ppt',
+      'rs_xlv_1m_ppt',
+      'rs_spy_1m_ppt',
+      'rs_xbi_3m_ppt',
+      'rs_xlv_3m_ppt',
+      'rs_spy_3m_ppt',
+      'rs_xbi_6m_ppt',
+      'rs_xlv_6m_ppt',
+      'rs_spy_6m_ppt',
+      'rs_xbi_12m_ppt',
+      'rs_xlv_12m_ppt',
+      'rs_spy_12m_ppt',
+      'weekly_volume_ratio',
+    ]) {
+      assert.ok(indicatorKeys.includes(key), key);
+    }
   });
 
   it('returns insufficient claims and a market-data fill-in when bars are missing', () => {

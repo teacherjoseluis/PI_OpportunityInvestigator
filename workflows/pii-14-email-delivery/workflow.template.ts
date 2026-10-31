@@ -167,6 +167,27 @@ const loadPriorDeliveries = node({
   },
 });
 
+const loadChartMemoInputs = node({
+  type: 'n8n-nodes-base.postgres',
+  version: 2.7,
+  config: {
+    name: 'Load Chart Memo Inputs',
+    alwaysOutputData: true,
+    parameters: {
+      operation: 'executeQuery',
+      query:
+        "SELECT COALESCE((SELECT jsonb_object_agg(indicator_key, jsonb_build_object('metric_value', metric_value, 'calculation_notes', calculation_notes)) FROM (SELECT DISTINCT ON (indicator_key) indicator_key, metric_value, calculation_notes FROM technical_indicator_values WHERE case_id = rc.id ORDER BY indicator_key, created_at DESC) ind), '{}'::jsonb) AS indicators_json, COALESCE((SELECT jsonb_agg(jsonb_build_object('bar_time', bar_time, 'open', open, 'high', high, 'low', low, 'close', close, 'volume', volume) ORDER BY bar_time) FROM (SELECT bar_time, open, high, low, close, volume FROM market_bars WHERE symbol = rc.ticker AND interval = '1week' ORDER BY bar_time DESC LIMIT 100) w), '[]'::jsonb) AS weekly_bars_json, COALESCE((SELECT jsonb_agg(jsonb_build_object('bar_time', bar_time, 'high', high) ORDER BY bar_time) FROM (SELECT bar_time, high FROM market_bars WHERE symbol = rc.ticker AND interval = '1day' ORDER BY bar_time DESC LIMIT 252) d), '[]'::jsonb) AS daily_highs_json, (SELECT COUNT(*)::int FROM market_bars WHERE symbol = rc.ticker AND interval = '1week') AS weekly_bar_count, COALESCE((SELECT jsonb_object_agg(source_type, n) FROM (SELECT source_type, COUNT(*)::int AS n FROM evidence_documents WHERE case_id = rc.id GROUP BY source_type) e), '{}'::jsonb) AS evidence_counts_json, (SELECT COUNT(*)::int FROM financial_metrics fm JOIN financial_periods fp ON fp.id = fm.financial_period_id WHERE (fp.case_id = rc.id OR fp.company_id = rc.company_id) AND fm.metric_key IN ('cash_and_equivalents', 'short_term_debt', 'long_term_debt', 'total_debt', 'net_cash', 'liquid_assets')) AS cash_metric_count, (SELECT claim_text FROM claims WHERE case_id = rc.id AND claim_category = 'technical_market' AND claim_text ILIKE 'Entry-timing context is %' ORDER BY created_at DESC LIMIT 1) AS timing_claim_text FROM research_cases rc WHERE rc.id = $1::uuid LIMIT 1",
+      options: {
+        queryReplacement: expr('{{ $("Validate Email Request").item.json.case_id }}'),
+        replaceEmptyStrings: true,
+      },
+    },
+    credentials: {
+      postgres: newCredential('Postgres account'),
+    },
+  },
+});
+
 const evaluateEmailDelivery = node({
   type: 'n8n-nodes-base.code',
   version: 2,
@@ -218,6 +239,7 @@ const sendInvestigationEmail = node({
       html: expr('{{ $json.html_body }}'),
       options: {
         appendAttribution: false,
+        attachments: expr("{{ $json.has_price_chart ? 'priceChart' : '' }}"),
       },
     },
     credentials: {
@@ -418,7 +440,7 @@ const buildEmailResult = node({
 });
 
 const flowNote = sticky(
-  '## PII-14 Email Delivery\nTEST_DELIVERY drafts + gated production sends.\nSMTP account → teacherjoseluis@gmail.com.\nWeekly digest deferred.',
+  '## PII-14 Email Delivery\nChart research memo: table HTML + CID weekly-price PNG.\nTEST_DELIVERY keeps the draft subject prefix. Weekly digest deferred.',
   [emailTrigger, validateEmailRequest, evaluateEmailDelivery],
   { color: 4 },
 );
@@ -439,6 +461,7 @@ export default workflow('pii-14-email-delivery', 'PII-14 Email Digest and Report
         loadEmailConfig
           .to(loadCaseAndLatestReport)
           .to(loadPriorDeliveries)
+          .to(loadChartMemoInputs)
           .to(evaluateEmailDelivery)
           .to(
             shouldSend

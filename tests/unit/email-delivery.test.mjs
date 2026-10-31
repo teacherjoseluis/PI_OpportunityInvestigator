@@ -8,6 +8,7 @@ import { runCodeNode } from '../helpers/run-code-node.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const VALIDATE = path.join(repoRoot, 'workflows/shared/code/validate-email-request.js');
+const CHART = path.join(repoRoot, 'workflows/shared/code/chart-memo.js');
 const EVALUATE = path.join(repoRoot, 'workflows/shared/code/evaluate-email-delivery.js');
 const PREPARE = path.join(repoRoot, 'workflows/shared/code/prepare-email-aggregate.js');
 const BUILD = path.join(repoRoot, 'workflows/shared/code/build-email-result.js');
@@ -42,8 +43,11 @@ const caseReportBase = {
     business_quality_score: 62,
     growth_score: 48,
     pipeline_score: 71,
+    valuation_context_score: 49,
     risk_score: 68,
     evidence_confidence_score: 54,
+    research_priority_score: 58,
+    technical_context_score: 52,
   },
   monitoring_plan: [
     {
@@ -102,32 +106,54 @@ describe('validate-email-request', () => {
   });
 });
 
+const emptyChartPack = {
+  indicators_json: {},
+  weekly_bars_json: [],
+  daily_highs_json: [],
+  weekly_bar_count: 0,
+  evidence_counts_json: {},
+  cash_metric_count: 0,
+  timing_claim_text: null,
+};
+
+function evaluateEmail(nodes) {
+  return runCodeNode(EVALUATE, {
+    items: [{}],
+    prepend: [CHART],
+    nodes,
+  });
+}
+
 describe('evaluate-email-delivery', () => {
   it('sends TEST_DELIVERY draft when publication_ready is false', () => {
-    const [result] = runCodeNode(EVALUATE, {
-      items: [{}],
-      nodes: {
-        'Validate Email Request': [
-          { valid: true, case_id: CASE_ID, mode: 'TEST_DELIVERY', n8n_execution_id: 'e1' },
-        ],
-        'Load Email Config': [{ gates_json: { email_delivery: emailConfig } }],
-        'Load Case And Latest Report': [caseReportBase],
-        'Load Prior Deliveries': [{ deliveries_json: [] }],
-      },
+    const [result] = evaluateEmail({
+      'Validate Email Request': [
+        { valid: true, case_id: CASE_ID, mode: 'TEST_DELIVERY', n8n_execution_id: 'e1' },
+      ],
+      'Load Email Config': [{ gates_json: { email_delivery: emailConfig } }],
+      'Load Case And Latest Report': [caseReportBase],
+      'Load Prior Deliveries': [{ deliveries_json: [] }],
+      'Load Chart Memo Inputs': [emptyChartPack],
     });
     assert.equal(result.json.should_send, true);
     assert.equal(result.json.outcome, 'SENT');
     assert.equal(result.json.delivery_type, 'TEST_DELIVERY');
     assert.match(result.json.subject, /DRAFT/);
-    assert.match(result.json.text_body, /Draft — not publication ready/i);
-    assert.match(result.json.text_body, /SUPPORTING|Supporting/i);
+    assert.match(result.json.subject, /\[PII\] ACAD · MONITOR · Timing UNAVAILABLE/);
+    assert.match(result.json.text_body, /Research stance: MONITOR/);
+    assert.match(result.json.text_body, /Price history is not on file/);
     assert.match(result.json.html_body, /PHARMA OPPORTUNITY INVESTIGATOR/);
     assert.match(result.json.html_body, /#0B1F33/);
-    assert.match(result.json.html_body, /SUPPORTING/);
-    assert.match(result.json.html_body, /CHALLENGING/);
-    assert.match(result.json.html_body, /WATCH NEXT/);
-    assert.match(result.json.html_body, /EVIDENCE GAPS/);
+    assert.match(result.json.html_body, /Weekly price/i);
+    assert.match(result.json.html_body, /Excess return/i);
+    assert.match(result.json.html_body, /On file/i);
+    assert.match(result.json.html_body, /What would change the read/i);
+    assert.doesNotMatch(result.json.html_body, /SUPPORTING/);
+    assert.doesNotMatch(result.json.html_body, /CHALLENGING/);
+    assert.doesNotMatch(result.json.html_body, /<svg\b/i);
+    assert.doesNotMatch(result.json.html_body, /display\s*:\s*flex/i);
     assert.match(result.json.html_body, /MONITOR/);
+    assert.equal(result.json.has_price_chart, false);
     assert.ok(result.json.delivery_json_b64);
     const decoded = JSON.parse(
       Buffer.from(result.json.delivery_json_b64, 'base64').toString('utf8'),
@@ -138,16 +164,14 @@ describe('evaluate-email-delivery', () => {
   });
 
   it('skips INVESTIGATION_REPORT when publication gates fail', () => {
-    const [result] = runCodeNode(EVALUATE, {
-      items: [{}],
-      nodes: {
-        'Validate Email Request': [
-          { valid: true, case_id: CASE_ID, mode: 'INVESTIGATION_REPORT' },
-        ],
-        'Load Email Config': [{ gates_json: { email_delivery: emailConfig } }],
-        'Load Case And Latest Report': [caseReportBase],
-        'Load Prior Deliveries': [{ deliveries_json: [] }],
-      },
+    const [result] = evaluateEmail({
+      'Validate Email Request': [
+        { valid: true, case_id: CASE_ID, mode: 'INVESTIGATION_REPORT' },
+      ],
+      'Load Email Config': [{ gates_json: { email_delivery: emailConfig } }],
+      'Load Case And Latest Report': [caseReportBase],
+      'Load Prior Deliveries': [{ deliveries_json: [] }],
+      'Load Chart Memo Inputs': [emptyChartPack],
     });
     assert.equal(result.json.should_send, false);
     assert.equal(result.json.outcome, 'SKIPPED_GATES');
@@ -155,45 +179,98 @@ describe('evaluate-email-delivery', () => {
   });
 
   it('sends INVESTIGATION_REPORT when publication_ready', () => {
-    const [result] = runCodeNode(EVALUATE, {
-      items: [{}],
-      nodes: {
-        'Validate Email Request': [
-          { valid: true, case_id: CASE_ID, mode: 'INVESTIGATION_REPORT' },
-        ],
-        'Load Email Config': [{ gates_json: { email_delivery: emailConfig } }],
-        'Load Case And Latest Report': [
-          { ...caseReportBase, publication_ready: true },
-        ],
-        'Load Prior Deliveries': [{ deliveries_json: [] }],
-      },
+    const [result] = evaluateEmail({
+      'Validate Email Request': [
+        { valid: true, case_id: CASE_ID, mode: 'INVESTIGATION_REPORT' },
+      ],
+      'Load Email Config': [{ gates_json: { email_delivery: emailConfig } }],
+      'Load Case And Latest Report': [
+        { ...caseReportBase, publication_ready: true },
+      ],
+      'Load Prior Deliveries': [{ deliveries_json: [] }],
+      'Load Chart Memo Inputs': [emptyChartPack],
     });
     assert.equal(result.json.should_send, true);
     assert.equal(result.json.outcome, 'SENT');
     assert.equal(result.json.delivery_type, 'INVESTIGATION_REPORT');
-    assert.match(result.json.subject, /\[PII Report\]/);
+    assert.match(result.json.subject, /^\[PII\] ACAD · MONITOR · Timing UNAVAILABLE$/);
+    assert.doesNotMatch(result.json.subject, /PII Report/);
   });
 
   it('skips duplicate SENT dedupe_key', () => {
     const dedupe =
       'report:' + CASE_ID + ':' + REPORT_ID + ':TEST_DELIVERY:teacherjoseluis@gmail.com';
-    const [result] = runCodeNode(EVALUATE, {
-      items: [{}],
-      nodes: {
-        'Validate Email Request': [
-          { valid: true, case_id: CASE_ID, mode: 'TEST_DELIVERY' },
-        ],
-        'Load Email Config': [{ gates_json: { email_delivery: emailConfig } }],
-        'Load Case And Latest Report': [caseReportBase],
-        'Load Prior Deliveries': [
-          {
-            deliveries_json: [{ dedupe_key: dedupe, status: 'SENT' }],
-          },
-        ],
-      },
+    const [result] = evaluateEmail({
+      'Validate Email Request': [
+        { valid: true, case_id: CASE_ID, mode: 'TEST_DELIVERY' },
+      ],
+      'Load Email Config': [{ gates_json: { email_delivery: emailConfig } }],
+      'Load Case And Latest Report': [caseReportBase],
+      'Load Prior Deliveries': [
+        {
+          deliveries_json: [{ dedupe_key: dedupe, status: 'SENT' }],
+        },
+      ],
+      'Load Chart Memo Inputs': [emptyChartPack],
     });
     assert.equal(result.json.should_send, false);
     assert.equal(result.json.outcome, 'SKIPPED_DUPLICATE');
+  });
+
+  it('embeds a CID weekly-price PNG when bars are on file', () => {
+    const weekly = [];
+    for (let i = 0; i < 52; i += 1) {
+      weekly.push({
+        bar_time: new Date(Date.UTC(2025, 0, 3 + i * 7)).toISOString().slice(0, 10),
+        open: 100 + i,
+        high: 102 + i,
+        low: 98 + i,
+        close: 101 + i,
+        volume: 1000 + i * 10,
+      });
+    }
+    const [result] = evaluateEmail({
+      'Validate Email Request': [
+        { valid: true, case_id: CASE_ID, mode: 'TEST_DELIVERY' },
+      ],
+      'Load Email Config': [{ gates_json: { email_delivery: emailConfig } }],
+      'Load Case And Latest Report': [caseReportBase],
+      'Load Prior Deliveries': [{ deliveries_json: [] }],
+      'Load Chart Memo Inputs': [
+        {
+          indicators_json: {
+            timing_label: { metric_value: 1, calculation_notes: 'MIXED' },
+            drawdown_52w_pct: { metric_value: 18, calculation_notes: 'from 52w high' },
+            weekly_rsi_14: { metric_value: 54, calculation_notes: 'wilder' },
+            weekly_volume_ratio: { metric_value: 0.9, calculation_notes: 'last week' },
+            rs_xbi_3m_ppt: { metric_value: -8.4 },
+            rs_xlv_3m_ppt: { metric_value: -1.2 },
+            rs_spy_3m_ppt: { metric_value: -4 },
+            rs_xbi_12m_ppt: { metric_value: 11.6 },
+            rs_xlv_12m_ppt: { metric_value: 6.4 },
+            rs_spy_12m_ppt: { metric_value: 2.8 },
+          },
+          weekly_bars_json: weekly,
+          daily_highs_json: weekly.map((bar) => ({ bar_time: bar.bar_time, high: bar.high })),
+          weekly_bar_count: 52,
+          evidence_counts_json: {
+            sec_edgar_filing: 4,
+            clinicaltrials_gov: 2,
+          },
+          cash_metric_count: 0,
+          timing_claim_text: 'Entry-timing context is MIXED. Not a trade instruction.',
+        },
+      ],
+    });
+    assert.match(result.json.subject, /Timing MIXED/);
+    assert.match(result.json.html_body, /cid:priceChart/);
+    assert.match(result.json.html_body, /RSI 54/);
+    assert.equal(result.json.has_price_chart, true);
+    assert.ok(result.binary);
+    assert.ok(result.binary.priceChart);
+    assert.equal(result.binary.priceChart.mimeType, 'image/png');
+    const png = Buffer.from(result.binary.priceChart.data, 'base64');
+    assert.equal(png.slice(0, 8).toString('hex'), '89504e470d0a1a0a');
   });
 });
 
