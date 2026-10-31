@@ -35,7 +35,7 @@ Unit tests cover shared Code node logic under `workflows/shared/code/`. Full web
 - `docs/ENRICHMENT.md` — evidence enrichment slices (XBRL, blobs, FDA/IR/patents)
 - `docs/DISCOVERY.md` — D0 weekly discovery lead list (SEC names → email; no auto PII-00)
 - `docs/MULTI_AGENT_ORCHESTRATION.md` — supervisor DAG, specialist agents, technical analysis
-- `docs/EMAIL_CHART_MEMO.md` — chart research-memo email (visual: `assets/pii-investor-email-charts.png`)
+- `docs/EMAIL_CHART_MEMO.md` — chart research-memo email (implemented locally in PII-14; visual: `assets/pii-investor-email-charts.png`)
 - `docs/FOLLOW_UP_QUESTIONS.md` — supervisor routing for follow-up questions on an existing case
 - `docs/SMOKE_TESTS.md` — hosted webhook smoke helpers
 - `config/agents.v1.json` — agent catalog and task-graph dependencies

@@ -205,7 +205,7 @@ Fill these values as the project is established:
 
 ## Current Status
 
-Project status: Phase 1 through PII-16 hosted. **E1 + E4 + E5 + E6 + E7 signed off**. **E8 deployed**. **Slack early-exit notify deployed**. **Supervisor waves deployed** (PII-00 `14meNEolSDfSRhjy`). L1 LLM shells stay deferred.
+Project status: Phase 1 through PII-16 hosted. **E1 + E4 + E5 + E6 + E7 signed off**. **E8 deployed**. **Slack early-exit notify deployed**. **Supervisor waves deployed** (PII-00 `14meNEolSDfSRhjy`). Chart research memo implemented locally (not deployed). L1 LLM shells stay deferred.
 
 **Orchestration (hosted):** [`docs/MULTI_AGENT_ORCHESTRATION.md`](docs/MULTI_AGENT_ORCHESTRATION.md). PII-00 writes `agent_tasks` and dispatches the planned graph: identity and eligibility stay serial; SEC and XBRL stay in separate waves because they share the SEC provider cap; the other collectors and the specialist wave (PII-04–08 and PII-16) fan out; `PII-03-COVER` joins coverage; `PII-16-EVENTS` runs after catalysts; one fill-in pass can rerun the owning analyst. `EVENT_REASSESSMENT` and `REFRESH` execute only the agents in `dispatch_keys`. `PII-03` still accepts a full run when `collector_key` is omitted. `PII-12` evaluates price/volume rules from `market_bars` when those rules are active. Migration `025` is applied on the VPS. NBIX smoke exec `2724` stored 2796 market bars and 10 technical claims; the first result envelopes reported the upsert row instead of that analysis, and the envelope fix is published for the next run.
 
@@ -223,7 +223,7 @@ Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 
 ## Next Steps
 
-1. Chart memo and follow-up routing are specified in `docs/EMAIL_CHART_MEMO.md` and `docs/FOLLOW_UP_QUESTIONS.md`. Not implemented until explicitly requested.
+1. Chart memo is implemented locally (PII-14 table HTML + CID price PNG; PII-16 persists the full RS grid). **Not deployed.** Follow-up routing remains specified in `docs/FOLLOW_UP_QUESTIONS.md` and is not implemented until explicitly requested.
 2. Re-run **GALT** from intake (`/pii GALT` or webhook). Prior case `c52537ae-3238-4197-9ea3-bc69561f0100` is `SUPERSEDED` so `duplicate_recent_case` is clear. PII-10 OOM pack is published.
 3. Discovery D0 spec is in `docs/DISCOVERY.md` (weekly SEC name lead list → email; owner `/pii` to analyze). Not implemented until explicitly requested.
 4. Orchestration is published. TwelveData `/time_series` returned bars for NBIX (`access_status=ok`, 2796 bars). No short-interest source. L1 stays deferred. NBIX XBRL coverage stored a companyfacts document with `xbrl_metric_count=0`, and CourtListener stored 0 dockets.
@@ -231,6 +231,11 @@ Hosted workflows in personal project `FaU28ckb88bAPAfT`.
 6. Day-to-day: Slack `/pii` / webhook for fresh tickers (avoid REGN `duplicate_recent_case`).
 
 ## Milestone Log
+
+### 2026-10-30 (chart research memo local)
+
+- Implemented [`docs/EMAIL_CHART_MEMO.md`](docs/EMAIL_CHART_MEMO.md) locally. PII-16 now persists the full relative-strength grid (`rs_{xbi,xlv,spy}_{1,3,6,12}m_ppt`) plus `weekly_volume_ratio`. PII-14 replaces the supporting/challenging essay with table HTML (no flex/SVG) and one CID weekly-price PNG rendered from `market_bars`. Short and Peers tiles stay dashed. **Not deployed.**
+- Follow-up routing in [`docs/FOLLOW_UP_QUESTIONS.md`](docs/FOLLOW_UP_QUESTIONS.md) is still not implemented.
 
 ### 2026-10-29 (chart memo and follow-up specs)
 
